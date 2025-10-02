@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "189034620903",
+    "project_id": "tnauto-4f500",
+    "storage_bucket": "tnauto-4f500.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:189034620903:android:bf429b865a1f2a45a6ff42",
+        "android_client_info": {
+          "package_name": "com.tnauto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDbk0Mg0OCjAhpazXi4kJy6fbCYgxkdK7U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

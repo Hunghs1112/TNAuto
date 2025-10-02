@@ -1,0 +1,1 @@
+Is CN=TNAUTO, OU=TNAUTO, O=TNAUTO, L=Hanoi, ST=Hanoi, C=vn correct?
