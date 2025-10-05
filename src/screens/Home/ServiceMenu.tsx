@@ -1,4 +1,4 @@
-// screens/Service/ServiceMenu.tsx
+// screens/Service/ServiceMenu.tsx (Updated: Added Warranty route)
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -10,7 +10,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-type NoParamsRoute = 'Offer' | 'Product';
+type NoParamsRoute = 'Offer' | 'Product' | 'Warranty';
 
 interface MenuItem {
   id: number;
@@ -25,7 +25,7 @@ const ServiceMenu: React.FC = () => {
     { id: 1, title: "Ưu đãi", icon: "pricetag-outline", route: "Offer" },
     { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "Product" },
     { id: 3, title: "Tích điểm", icon: "star-outline" },
-    { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline" },
+    { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline", route: "Warranty" },
   ];
 
   const handlePress = (route?: NoParamsRoute) => {

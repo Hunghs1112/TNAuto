@@ -9,8 +9,9 @@ import { productApi } from '../../services/productApi';
 import { serviceOrderApi } from '../../services/serviceOrderApi';
 import { employeeApi } from '../../services/employeeApi';
 import { imageApi } from '../../services/imageApi';
-import { serviceApi } from '../../services/serviceApi'; // Added
-import { notificationApi } from '../../services/notificationApi'; // Added
+import { serviceApi } from '../../services/serviceApi';
+import { notificationApi } from '../../services/notificationApi';
+import { warrantyApi } from '../../services/warrantyApi'; // Added
 
 import authReducer from '../slices/authSlice';
 import loadingReducer from '../slices/loadingSlice';
@@ -21,7 +22,8 @@ import offersReducer from '../slices/offersSlice';
 import productReducer from '../slices/productSlice';
 import employeeReducer from '../slices/employeeSlice';
 import imageReducer from '../slices/imageSlice';
-import notificationReducer from '../slices/notificationSlice'; // Added
+import notificationReducer from '../slices/notificationSlice';
+import warrantyReducer from '../slices/warrantySlice'; // Added
 
 const persistConfig = {
   key: 'root',
@@ -42,15 +44,17 @@ export const store = configureStore({
     product: productReducer,
     employee: employeeReducer,
     image: imageReducer,
-    notification: notificationReducer, // Added
+    notification: notificationReducer,
+    warranty: warrantyReducer, // Added
     [customerApi.reducerPath]: customerApi.reducer,
     [offerApi.reducerPath]: offerApi.reducer,
     [productApi.reducerPath]: productApi.reducer,
     [serviceOrderApi.reducerPath]: serviceOrderApi.reducer,
     [employeeApi.reducerPath]: employeeApi.reducer,
     [imageApi.reducerPath]: imageApi.reducer,
-    [serviceApi.reducerPath]: serviceApi.reducer, // Added
-    [notificationApi.reducerPath]: notificationApi.reducer, // Added
+    [serviceApi.reducerPath]: serviceApi.reducer,
+    [notificationApi.reducerPath]: notificationApi.reducer,
+    [warrantyApi.reducerPath]: warrantyApi.reducer, // Added
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -64,8 +68,9 @@ export const store = configureStore({
       serviceOrderApi.middleware,
       employeeApi.middleware,
       imageApi.middleware,
-      serviceApi.middleware, // Added
-      notificationApi.middleware // Added
+      serviceApi.middleware,
+      notificationApi.middleware,
+      warrantyApi.middleware // Added
     ),
 });
 
@@ -73,7 +78,7 @@ setupListeners(store.dispatch);
 
 export const persistor = persistStore(store);
 
-console.log('Store configured with persist for auth, all APIs including serviceApi and notificationApi'); // Debug
+console.log('Store configured with persist for auth, all APIs including warrantyApi and warranty slice'); // Debug
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

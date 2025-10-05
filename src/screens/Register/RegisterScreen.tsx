@@ -21,7 +21,6 @@ export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,12 +29,12 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     setIsLoading(true);
     try {
-      if (!name || !phone || !email || !licensePlate) {
+      if (!name || !phone || !licensePlate) {
         Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin!");
         return;
       }
-      console.log('Registering with:', { name, phone, email, licensePlate });
-      const result = await registerCustomer({ name, phone, email, licensePlate }).unwrap();
+      console.log('Registering with:', { name, phone, licensePlate });
+      const result = await registerCustomer({ name, phone, licensePlate }).unwrap();
       console.log('Registration result:', result);
       if (result.success) {
         Alert.alert("Thành công", "Đăng ký thành công!");
@@ -87,13 +86,6 @@ export default function RegisterScreen() {
               keyboardType="phone-pad"
             />
             <TextInputComponent
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              placeholderTextColor={Colors.text.placeholder}
-              keyboardType="email-address"
-            />
-            <TextInputComponent
               value={licensePlate}
               onChangeText={setLicensePlate}
               placeholder="Biển số xe"
@@ -115,10 +107,6 @@ export default function RegisterScreen() {
               <Text style={styles.registerLink}>Đăng nhập</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        <View style={styles.bar}>
-          <View style={styles.barInner} />
         </View>
       </View>
     </SafeAreaView>

@@ -14,14 +14,18 @@ const Header = ({ title = "Đăng nhập" }: HeaderProps) => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const handleBackPress = () => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-        <Ionicons name="chevron-back-outline" size={32} color={Colors.text.inverted} />
-      </TouchableOpacity>
+      {navigation.canGoBack() && (
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="chevron-back-outline" size={32} color={Colors.text.inverted} />
+        </TouchableOpacity>
+      )}
       <Text style={styles.title}>{title}</Text>
       <View style={styles.spacer} />
     </View>

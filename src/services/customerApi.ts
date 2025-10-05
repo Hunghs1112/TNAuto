@@ -1,4 +1,4 @@
-// src/services/customerApi.ts (Updated: Added avatar_url to Customer interface)
+// src/services/customerApi.ts (Updated: Removed email from registerCustomer mutation)
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_BASE_URL } from '../constants/config';
@@ -106,7 +106,7 @@ export const customerApi = createApi({
     health: builder.query<{ message: string }, void>({
       query: () => ENDPOINTS.health.path,
     }),
-    registerCustomer: builder.mutation<{ success: boolean; customer?: Customer }, { name: string; phone: string; email: string; licensePlate: string }>({
+    registerCustomer: builder.mutation<{ success: boolean; customer?: Customer }, { name: string; phone: string; licensePlate: string }>({
       query: (body) => ({ url: ENDPOINTS.registerCustomer.path, method: 'POST', body }),
       invalidatesTags: ['Customer'],
       transformResponse: (response: ApiResponse<Customer>) => {

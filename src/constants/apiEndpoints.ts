@@ -191,16 +191,33 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Check active warranties (optional params: customer_id, license_plate; no body)',
     params: ['customer_id', 'license_plate'],
   },
+  getAllWarranties: {
+    method: 'GET',
+    path: '/warranties',
+    description: 'Get all warranties (optional param: customer_id; no body)',
+    params: ['customer_id'],
+  },
+  getWarrantyById: {
+    method: 'GET',
+    path: '/warranties/:id',
+    description: 'Get warranty by ID (required param: id; no body)',
+  },
   createWarranty: {
     method: 'POST',
     path: '/warranties',
     description: 'Create warranty (required body: order_id, customer_id, warranty_period, start_date)',
     body: ['order_id', 'customer_id', 'warranty_period', 'start_date'],
   },
-  getAllWarranties: {
-    method: 'GET',
-    path: '/warranties',
-    description: 'Get all warranties (no body)',
+  updateWarranty: {
+    method: 'PATCH',
+    path: '/warranties/:id',
+    description: 'Update warranty (required param: id; optional body: warranty_period, start_date, note)',
+    body: ['warranty_period', 'start_date', 'note'],
+  },
+  deleteWarranty: {
+    method: 'DELETE',
+    path: '/warranties/:id',
+    description: 'Delete warranty (required param: id; no body)',
   },
   // Notification
   getNotifications: {

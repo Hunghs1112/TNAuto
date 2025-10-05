@@ -1,4 +1,4 @@
-// src/navigation/AppNavigator.tsx (Updated: Added EmployeeOrderDetail and NotificationScreen routes)
+// src/navigation/AppNavigator.tsx (Updated: Added Warranty route)
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSelector } from "react-redux";
@@ -12,7 +12,8 @@ import MyServiceScreen from "../screens/MyService/MyServiceScreen";
 import BookingScreen from "../screens/Booking/BookingScreen";
 import OrderDetailScreen from "../screens/OrderDetail/OrderDetailScreen";
 import EmployeeOrderDetailScreen from "../screens/OrderDetail/EmployeeOrderDetailScreen";
-import NotificationScreen from "../screens/Notification/NotificationScreen"; // Added
+import NotificationScreen from "../screens/Notification/NotificationScreen";
+import WarrantyScreen from "../screens/Warranty/WarrantyScreen"; // Added
 
 export type AppStackParamList = {
   Home: undefined;
@@ -24,7 +25,8 @@ export type AppStackParamList = {
   Booking: undefined;
   OrderDetail: { id: string };
   EmployeeOrderDetail: { id: string };
-  NotificationScreen: undefined; // Added
+  NotificationScreen: undefined;
+  Warranty: undefined; // Added
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -47,7 +49,8 @@ export default function AppNavigator() {
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
       <Stack.Screen name="EmployeeOrderDetail" component={EmployeeOrderDetailScreen} />
-      <Stack.Screen name="NotificationScreen" component={NotificationScreen} /> 
+      <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
+      <Stack.Screen name="Warranty" component={WarrantyScreen} /> 
     </Stack.Navigator>
   );
 }

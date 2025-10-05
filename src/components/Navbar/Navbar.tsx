@@ -88,7 +88,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     paddingHorizontal: 24,
-    paddingVertical: 16,
     gap: 12,
     backgroundColor: Colors.background.light,
   },

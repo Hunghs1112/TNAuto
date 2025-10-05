@@ -89,9 +89,7 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        <View style={styles.bar}>
-          <View style={styles.barInner} />
-        </View>
+
       </View>
     </SafeAreaView>
   );
