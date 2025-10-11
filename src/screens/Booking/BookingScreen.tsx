@@ -5,12 +5,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
-import Header from "../../components/Header/Header";
+import Header from "../../components/Header";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import DateInput from "../../components/TextInput/DateInput";
 import NoteInput from "../../components/TextInput/NoteInput";
 import SelectInput from "../../components/TextInput/SelectInput";
-import ConfirmButton from "../../components/Button/ConfirmButton";
+import ConfirmButton from "../../components/ConfirmButton";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -28,6 +28,47 @@ interface ServiceItem {
   id: number;
   name: string;
 }
+
+interface InputFieldWithLabelProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  label: string;
+  icon: string;
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "number-pad";
+  editable?: boolean;
+}
+
+const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = ({
+  value,
+  onChangeText,
+  placeholder,
+  label,
+  icon,
+  keyboardType,
+  editable = true,
+}) => (
+  <View style={styles.inputFieldContainer}>
+    <View style={styles.labelRow}>
+      <View style={styles.iconContainer}>
+        <Ionicons name={icon} size={14} color={Colors.text.placeholder} />
+      </View>
+      <Text style={styles.label} numberOfLines={1}>{label}</Text>
+    </View>
+    <View style={styles.inputWrapper}>
+      <TextInputComponent
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        keyboardType={keyboardType}
+        placeholderTextColor={Colors.text.placeholder}
+        textColor={Colors.text.primary}
+        borderColor={Colors.neutral[300]}
+        editable={editable}
+      />
+    </View>
+  </View>
+);
 
 const BookingScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -59,7 +100,7 @@ const BookingScreen = () => {
       <SafeAreaView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
         <View style={styles.redSection}>
-          <Header title="Đặt lịch sửa chữa" />
+          <Header title="Đặt lịch dịch vụ" />
         </View>
         <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
           <ActivityIndicator size="large" color={Colors.text.primary} />
@@ -73,7 +114,7 @@ const BookingScreen = () => {
       <SafeAreaView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
         <View style={styles.redSection}>
-          <Header title="Đặt lịch sửa chữa" />
+          <Header title="Đặt lịch dịch vụ" />
         </View>
         <View style={styles.whiteSection}>
           <View style={styles.body}>
@@ -90,44 +131,7 @@ const BookingScreen = () => {
     return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   };
 
-  const InputFieldWithLabel = ({
-    value,
-    onChangeText,
-    placeholder,
-    label,
-    icon,
-    keyboardType,
-    editable = true,
-  }: {
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    label: string;
-    icon: string;
-    keyboardType?: string;
-    editable?: boolean;
-  }) => (
-    <View style={styles.inputFieldContainer}>
-      <View style={styles.labelRow}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={14} color={Colors.text.placeholder} />
-        </View>
-        <Text style={styles.label} numberOfLines={1}>{label}</Text>
-      </View>
-      <View style={styles.inputWrapper}>
-        <TextInputComponent
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          keyboardType={keyboardType}
-          placeholderTextColor={Colors.text.placeholder}
-          textColor={Colors.text.primary}
-          borderColor={Colors.neutral[300]}
-       
-        />
-      </View>
-    </View>
-  );
+  // Moved InputFieldWithLabel outside component to prevent re-creation
 
   const handleServiceSelect = (option: ServiceItem) => {
     setSelectedService(option);
@@ -157,7 +161,16 @@ const BookingScreen = () => {
       const result = await createOrder(body).unwrap();
       if (result.success) {
         Alert.alert('Thành công', 'Đặt lịch thành công!');
-        navigation.goBack();
+        try {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Home');
+          }
+        } catch (navError) {
+          console.error('BookingScreen: Navigation error after booking:', navError);
+          navigation.navigate('Home');
+        }
       } else {
         Alert.alert('Lỗi', 'Đặt lịch thất bại!');
       }
@@ -174,7 +187,7 @@ const BookingScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
       
       <View style={styles.redSection}>
-        <Header title="Đặt lịch sửa chữa" />
+        <Header title="Đặt lịch dịch vụ" />
       </View>
       
       <View style={styles.whiteSection}>

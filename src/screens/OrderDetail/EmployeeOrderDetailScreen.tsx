@@ -1,34 +1,40 @@
 // src/screens/OrderDetail/EmployeeOrderDetailScreen.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StatusBar, FlatList, Image, ActivityIndicator, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
-import Header from '../../components/Header/Header';
-import ConfirmButton from '../../components/Button/ConfirmButton';
+import Header from '../../components/Header';
+import ConfirmButton from '../../components/ConfirmButton';
 import { useGetEmployeeOrderDetailsQuery } from '../../services/employeeApi';
-import { useUploadServiceOrderImageMutation } from '../../services/imageApi';
+import { 
+  useUploadSingleImageMutation, 
+  useUploadServiceOrderImageMutation 
+} from '../../services/imageApi';
 import { useUpdateServiceOrderStatusMutation } from '../../services/serviceOrderApi';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { RootState } from '../../redux/types';
-import { launchImageLibrary, MediaType, Asset } from 'react-native-image-picker';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import { Platform } from 'react-native';
+import { ServiceOrderImage } from '../../types/api.types';
+import { 
+  pickImageFromGallery, 
+  pickImageFromCamera,
+  showImagePickerOptions,
+  createImageFormData,
+  validateImageSize
+} from '../../utils/imageUpload';
 import { styles } from './styles';
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
 const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
   const { refreshing, onRefresh } = useAutoRefresh();
-  const { data: responseData, isLoading, error, refetch } = useGetEmployeeOrderDetailsQuery(id);
+  const { data: orderData, isLoading, error, refetch } = useGetEmployeeOrderDetailsQuery(id);
+  const [uploadSingleImage] = useUploadSingleImageMutation();
   const [uploadServiceOrderImage] = useUploadServiceOrderImageMutation();
   const [updateServiceOrderStatus] = useUpdateServiceOrderStatusMutation();
   const currentEmployee = useAppSelector((state: RootState) => state.employee.currentEmployee);
-
-  const orderData = responseData?.data;
-
-  console.log('EmployeeOrderDetailScreen: Loading order', id, { isLoading, error, responseData, orderData });
+  const [uploading, setUploading] = useState(false);
 
   if (isLoading) {
     return (
@@ -60,98 +66,130 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
     );
   }
 
-  const requestStoragePermission = async () => {
-    console.log('EmployeeOrderDetailScreen: Requesting storage permission');
-    if (Platform.OS === 'android') {
-      let permissionKey = PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
-      if (Platform.Version >= 33) {
-        permissionKey = PERMISSIONS.ANDROID.READ_MEDIA_IMAGES;
-      }
-      const status = await check(permissionKey);
-      console.log('EmployeeOrderDetailScreen: Permission status:', status);
-      if (status !== RESULTS.GRANTED) {
-        const result = await request(permissionKey);
-        console.log('EmployeeOrderDetailScreen: Permission result:', result);
-        return result === RESULTS.GRANTED;
-      }
-      return true;
-    }
-    return true;
-  };
-
-  const handleUploadImage = async (status_at_time: string) => {
-    console.log('EmployeeOrderDetailScreen: Starting image upload for status', status_at_time);
-    
-    const hasPermission = await requestStoragePermission();
-    if (!hasPermission) {
-      Alert.alert('Permission Denied', 'Cannot access storage for image selection. Please enable in settings.');
+  const handleUploadImageFromCamera = async (status_at_time: string) => {
+    if (uploading) {
+      Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
       return;
     }
 
-    const options = {
-      mediaType: 'photo' as MediaType,
-      includeBase64: false,
-      maxHeight: 2000,
-      maxWidth: 2000,
-    };
-
-    launchImageLibrary(options, (response) => {
-      console.log('EmployeeOrderDetailScreen: Image picker response', response);
+    try {
+      setUploading(true);
       
-      if (response.didCancel || response.errorMessage) {
-        console.log('EmployeeOrderDetailScreen: User cancelled or error:', response.errorMessage);
+      // Pick image from camera
+      const asset = await pickImageFromCamera({
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.8,
+      });
+
+      if (!asset || !asset.uri) {
+        setUploading(false);
         return;
       }
 
-      if (!response.assets || response.assets.length === 0) {
-        Alert.alert('Error', 'No image selected.');
+      // Validate file size (max 5MB)
+      if (!validateImageSize(asset, 5)) {
+        setUploading(false);
         return;
       }
 
-      const asset: Asset = response.assets[0];
-      if (!asset.uri) {
-        Alert.alert('Error', 'Failed to get image URI.');
-        return;
-      }
+      // Step 1: Upload image file to server
+      const formData = createImageFormData(asset, 'image');
+      const uploadResult = await uploadSingleImage(formData).unwrap();
 
-      const mockImageUrl = asset.uri;
-      const description = '';
-
-      uploadServiceOrderImage({
+      // Step 2: Save image metadata with service order
+      await uploadServiceOrderImage({
         order_id: id,
-        image_url: mockImageUrl,
+        image_url: uploadResult.url,
         status_at_time,
         uploaded_by: currentEmployee?.id || '0',
-        description,
-      })
-        .unwrap()
-        .then(() => {
-          console.log('EmployeeOrderDetailScreen: Image uploaded successfully');
-          Alert.alert('Success', 'Image uploaded successfully');
-          refetch();
-        })
-        .catch((err) => {
-          console.error('EmployeeOrderDetailScreen: Failed to upload image:', err);
-          Alert.alert('Error', 'Failed to upload image');
-        });
-    });
+        description: '',
+      }).unwrap();
+
+      Alert.alert('Thành công', 'Tải ảnh lên thành công!');
+      refetch();
+      
+    } catch (err: any) {
+      console.error('Failed to upload image:', err);
+      Alert.alert('Lỗi', err?.data?.message || 'Tải ảnh lên thất bại. Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadImageFromGallery = async (status_at_time: string) => {
+    if (uploading) {
+      Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      
+      // Pick image from gallery
+      const assets = await pickImageFromGallery({
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.8,
+        selectionLimit: 1,
+      });
+
+      if (!assets || assets.length === 0) {
+        setUploading(false);
+        return;
+      }
+
+      const asset = assets[0];
+
+      // Validate file size (max 5MB)
+      if (!validateImageSize(asset, 5)) {
+        setUploading(false);
+        return;
+      }
+
+      // Step 1: Upload image file to server
+      const formData = createImageFormData(asset, 'image');
+      const uploadResult = await uploadSingleImage(formData).unwrap();
+
+      // Step 2: Save image metadata with service order
+      await uploadServiceOrderImage({
+        order_id: id,
+        image_url: uploadResult.url,
+        status_at_time,
+        uploaded_by: currentEmployee?.id || '0',
+        description: '',
+      }).unwrap();
+
+      Alert.alert('Thành công', 'Tải ảnh lên thành công!');
+      refetch();
+      
+    } catch (err: any) {
+      console.error('Failed to upload image:', err);
+      Alert.alert('Lỗi', err?.data?.message || 'Tải ảnh lên thất bại. Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadImage = (status_at_time: string) => {
+    showImagePickerOptions(
+      () => handleUploadImageFromCamera(status_at_time),
+      () => handleUploadImageFromGallery(status_at_time)
+    );
   };
 
   const handleUpdateStatus = async () => {
-    console.log('EmployeeOrderDetailScreen: Updating status to ready_for_pickup');
     try {
       await updateServiceOrderStatus({ id, status: 'ready_for_pickup' }).unwrap();
-      console.log('EmployeeOrderDetailScreen: Status updated successfully');
       Alert.alert('Thành công', 'Cập nhật trạng thái thành công');
       refetch();
     } catch (err) {
-      console.error('EmployeeOrderDetailScreen: Failed to update status:', err);
+      console.error('Failed to update status:', err);
       Alert.alert('Lỗi', 'Cập nhật trạng thái thất bại');
     }
   };
 
   const getStatusText = () => {
-    console.log('getStatusText: status =', orderData.status);
     switch (orderData.status) {
       case 'received':
         return 'Đã đặt lịch';
@@ -161,6 +199,8 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
         return 'Đang xử lý';
       case 'completed':
         return 'Hoàn thành';
+      case 'cancelled':
+        return 'Đã hủy';
       case 'canceled':
         return 'Đã hủy';
       default:
@@ -169,16 +209,17 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   };
 
   const getStatusColor = () => {
-    console.log('getStatusColor: status =', orderData.status);
     switch (orderData.status) {
       case 'received':
         return Colors.background.yellow;
       case 'ready_for_pickup':
-        return Colors.warning;
+        return Colors.status.warning;
       case 'in_progress':
         return Colors.background.red;
       case 'completed':
         return Colors.background.green;
+      case 'cancelled':
+        return Colors.background.gray;
       case 'canceled':
         return Colors.background.gray;
       default:
@@ -187,7 +228,6 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   };
 
   const renderRow = (label: string, value: string | undefined | null | number, style?: any) => {
-    console.log('renderRow:', label, value);
     if (value === null || value === undefined) return null;
     return (
       <View style={styles.row}>
@@ -202,11 +242,15 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
     );
   };
 
-  const renderImage = ({ item }: { item: { image_url: string; description?: string; status_at_time: string; created_at?: string } }) => {
-    console.log('renderImage:', item);
+  const renderImage = ({ item }: { item: ServiceOrderImage }) => {
     return (
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image_url }} style={styles.image} />
+        <Image 
+          source={{ uri: item.image_url }} 
+          style={styles.image}
+          resizeMode="cover"
+          onError={(error) => console.log('EmployeeOrderDetailScreen - Image load error:', error.nativeEvent.error)}
+        />
         {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
         {item.created_at && <Text style={styles.imageDate}>Ngày chụp: {new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>}
       </View>
@@ -243,16 +287,23 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={styles.imageLabel}>Ảnh khi nhận xe:</Text>
                   <TouchableOpacity 
-                    style={styles.uploadButton} 
+                    style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]} 
                     onPress={() => handleUploadImage('received')}
+                    disabled={uploading}
                   >
-                    <Ionicons name="cloud-upload-outline" size={20} color={Colors.text.primary} />
-                    <Text style={styles.uploadButtonText}>Tải lên</Text>
+                    {uploading ? (
+                      <ActivityIndicator size="small" color={Colors.text.primary} />
+                    ) : (
+                      <>
+                        <Ionicons name="cloud-upload-outline" size={20} color={Colors.text.primary} />
+                        <Text style={styles.uploadButtonText}>Tải lên</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
                 {(orderData.images || []).length > 0 ? (
-                  <FlatList
-                    data={(orderData.images || []).filter((img: { status_at_time: string; }) => img.status_at_time === 'received')}
+                  <FlatList<ServiceOrderImage>
+                    data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'received')}
                     keyExtractor={(item, index) => `receive-${index}`}
                     renderItem={renderImage}
                     horizontal
@@ -267,16 +318,23 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={styles.imageLabel}>Ảnh khi bàn giao xe:</Text>
                   <TouchableOpacity 
-                    style={styles.uploadButton} 
+                    style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]} 
                     onPress={() => handleUploadImage('completed')}
+                    disabled={uploading}
                   >
-                    <Ionicons name="cloud-upload-outline" size={20} color={Colors.text.primary} />
-                    <Text style={styles.uploadButtonText}>Tải lên</Text>
+                    {uploading ? (
+                      <ActivityIndicator size="small" color={Colors.text.primary} />
+                    ) : (
+                      <>
+                        <Ionicons name="cloud-upload-outline" size={20} color={Colors.text.primary} />
+                        <Text style={styles.uploadButtonText}>Tải lên</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
                 {(orderData.images || []).length > 0 ? (
-                  <FlatList
-                    data={(orderData.images || []).filter((img: { status_at_time: string; }) => img.status_at_time === 'completed')}
+                  <FlatList<ServiceOrderImage>
+                    data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'completed')}
                     keyExtractor={(item, index) => `delivery-${index}`}
                     renderItem={renderImage}
                     horizontal

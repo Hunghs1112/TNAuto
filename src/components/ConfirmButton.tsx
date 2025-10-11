@@ -1,7 +1,7 @@
 import React from "react"
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet } from "react-native"
-import { Colors } from "../../constants/colors"
-import { Typography } from "../../constants/typo"
+import { Colors } from "../constants/colors"
+import { Typography } from "../constants/typo"
 
 type ConfirmButtonProps = {
   title?: string
@@ -17,7 +17,7 @@ type ConfirmButtonProps = {
 const ConfirmButton = ({
   title = "Confirm",
   onPress = () => {},
-  buttonColor = Colors.confirmbutton,
+  buttonColor = Colors.button.primary,
   textColor = Colors.text.inverted,
   disabled = false,
   loading = false,

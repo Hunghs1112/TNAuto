@@ -1,11 +1,11 @@
-// src/screens/Auth/LoginScreen.tsx (Updated: Add avatarUrl from backend response to auth state)
+// src/screens/Auth/LoginScreen.tsx - Login screen with FCM token registration
 import React, { useState, useEffect } from "react";
 import { View, Text, StatusBar, TouchableOpacity, Image, InteractionManager, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
-import ConfirmButton from "../../components/Button/ConfirmButton";
+import ConfirmButton from "../../components/ConfirmButton";
 import TextInputComponent from "../../components/TextInput/TextInput";
-import Header from "../../components/Header/Header";
+import Header from "../../components/Header";
 import { styles } from "./styles";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,6 +14,7 @@ import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { setLoggedIn } from "../../redux/slices/authSlice";
 import { setCurrentEmployee } from "../../redux/slices/employeeSlice";
 import { AuthStackParamList } from "../../navigation/AuthNavigator";
+import { registerFCMTokenAfterLogin } from "../../utils/fcmTokenManager";
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
@@ -40,52 +41,142 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       if (isCustomerMode) {
-        if (!phone) {
+        // 👤 CUSTOMER LOGIN - Chỉ cần số điện thoại
+        if (!phone.trim()) {
           Alert.alert("Lỗi", "Vui lòng nhập số điện thoại!");
+          setIsLoading(false);
           return;
         }
-        const result = await loginCustomer({ phone }).unwrap();
-        console.log('LoginScreen debug - Customer login result:', result);
-        if (result.success && result.customer) {
-          dispatch(setLoggedIn({ 
-            isLoggedIn: true, 
-            userType: 'customer', 
-            userId: result.customer.id?.toString() || '', // Add userId from backend
-            userName: result.customer?.name || 'Customer',
-            userPhone: result.customer?.phone || '',
-            userLicensePlate: result.customer?.license_plate || '',
-            avatarUrl: result.customer?.avatar_url || ''
-          }));
-          console.log('LoginScreen debug - Set customer userId:', result.customer.id, 'avatarUrl:', result.customer.avatar_url); // Debug
-        } else {
-          Alert.alert("Lỗi", "Đăng nhập thất bại!");
+        
+        try {
+          const result = await loginCustomer({ phone: phone.trim() }).unwrap();
+          
+          if (result.success && result.customer) {
+            const userId = result.customer.id?.toString() || '';
+            
+            dispatch(setLoggedIn({ 
+              isLoggedIn: true, 
+              userType: 'customer', 
+              userId,
+              userName: result.customer?.name || 'Customer',
+              userPhone: result.customer?.phone || '',
+              userLicensePlate: result.customer?.license_plate || '',
+              avatarUrl: result.customer?.avatar_url || '',
+              userEmail: result.customer?.email || ''
+            }));
+
+            // Register FCM token in background
+            registerFCMTokenAfterLogin(userId, 'customer').catch(error => {
+              console.error('Failed to register FCM token:', error);
+              // Don't show error to user, token will be re-registered on next app start
+            });
+          } else {
+            Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại!");
+          }
+        } catch (error: any) {
+          console.error('Customer login error:', error);
+          
+          // Handle specific error codes
+          if (error?.status === 400) {
+            // 400 Bad Request - Thiếu phone (nhưng đã check ở trên)
+            Alert.alert(
+              "Thiếu thông tin",
+              "Vui lòng nhập số điện thoại để đăng nhập."
+            );
+          } else if (error?.status === 404) {
+            // 404 Not Found - Phone chưa đăng ký
+            Alert.alert(
+              "Tài khoản không tồn tại",
+              "Số điện thoại này chưa được đăng ký. Vui lòng đăng ký trước khi đăng nhập.",
+              [
+                { text: "Đóng", style: "cancel" },
+                { 
+                  text: "Đăng ký ngay", 
+                  onPress: () => navigation.navigate("Register")
+                }
+              ]
+            );
+          } else if (error?.status === 500) {
+            // 500 Internal Server Error
+            Alert.alert(
+              "Lỗi hệ thống",
+              "Có lỗi xảy ra từ phía máy chủ. Vui lòng thử lại sau."
+            );
+          } else {
+            // Unknown error
+            Alert.alert(
+              "Lỗi kết nối",
+              error?.data?.message || "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+            );
+          }
         }
       } else {
-        if (!phone || !password) {
-          Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin!");
+        // 👷 EMPLOYEE LOGIN - Yêu cầu phone + password
+        if (!phone.trim() || !password.trim()) {
+          Alert.alert("Lỗi", "Vui lòng nhập đầy đủ số điện thoại và mật khẩu!");
+          setIsLoading(false);
           return;
         }
-        const result = await loginEmployee({ phone, password }).unwrap();
-        console.log('LoginScreen debug - Employee login result:', result);
-        if (result.success && result.employee) {
-          dispatch(setLoggedIn({ 
-            isLoggedIn: true, 
-            userType: 'employee', 
-            userId: result.employee.id.toString(), // Add userId from backend
-            userName: result.employee.name || 'Employee',
-            userPhone: result.employee.phone || '',
-            userLicensePlate: '',
-            avatarUrl: result.employee.avatar_url || ''
-          }));
-          dispatch(setCurrentEmployee(result.employee));
-          console.log('LoginScreen debug - Set employee userId:', result.employee.id, 'avatarUrl:', result.employee.avatar_url, 'Dispatched setCurrentEmployee:', result.employee); // Debug
-        } else {
-          Alert.alert("Lỗi", "Đăng nhập thất bại!");
+        
+        try {
+          const result = await loginEmployee({ phone: phone.trim(), password: password.trim() }).unwrap();
+          
+          if (result.success && result.employee) {
+            const userId = result.employee.id.toString();
+            
+            dispatch(setLoggedIn({ 
+              isLoggedIn: true, 
+              userType: 'employee', 
+              userId,
+              userName: result.employee.name || 'Employee',
+              userPhone: result.employee.phone || '',
+              userLicensePlate: '',
+              avatarUrl: result.employee.avatar_url || ''
+            }));
+            dispatch(setCurrentEmployee(result.employee));
+
+            // Register FCM token in background
+            registerFCMTokenAfterLogin(userId, 'employee').catch(error => {
+              console.error('Failed to register FCM token:', error);
+              // Don't show error to user, token will be re-registered on next app start
+            });
+          } else {
+            Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại!");
+          }
+        } catch (error: any) {
+          console.error('Employee login error:', error);
+          
+          // Handle specific error codes
+          if (error?.status === 400) {
+            // 400 Bad Request - Thiếu phone hoặc password
+            Alert.alert(
+              "Thiếu thông tin",
+              "Vui lòng nhập đầy đủ số điện thoại và mật khẩu."
+            );
+          } else if (error?.status === 401) {
+            // 401 Unauthorized - Sai thông tin (phone không tồn tại HOẶC password sai)
+            Alert.alert(
+              "Thông tin không chính xác",
+              "Số điện thoại hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.",
+              [
+                { text: "Đóng", style: "cancel" }
+              ]
+            );
+          } else if (error?.status === 500) {
+            // 500 Internal Server Error
+            Alert.alert(
+              "Lỗi hệ thống",
+              "Có lỗi xảy ra từ phía máy chủ. Vui lòng thử lại sau."
+            );
+          } else {
+            // Unknown error
+            Alert.alert(
+              "Lỗi kết nối",
+              error?.data?.message || "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+            );
+          }
         }
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert("Lỗi", "Đăng nhập thất bại!");
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +246,7 @@ export default function LoginScreen() {
             title="Đăng nhập"
             onPress={handleLogin}
             loading={isLoading}
-            buttonColor={Colors.confirmbutton}
+            buttonColor={Colors.button.primary}
             textColor={Colors.text.inverted}
           />
 

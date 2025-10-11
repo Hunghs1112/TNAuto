@@ -5,10 +5,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
-import Header from "../../components/Header/Header";
+import Header from "../../components/Header";
 import { styles } from "./styles";
 import SectionHeader from "../Home/SectionHeader";
-import Frame12 from "../Home/Frame12";
+import ServiceOrderCard from "../../components/ServiceOrderCard";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { RootState } from "../../redux/types";
 import { useGetCustomerOrdersQuery } from "../../services/customerApi";
@@ -52,6 +52,7 @@ const MyServiceScreen = () => {
     { key: 'ready_for_pickup', label: 'Chờ xác nhận' },
     { key: 'in_progress', label: 'Đang xử lý' },
     { key: 'completed', label: 'Hoàn thành' },
+    { key: 'cancelled', label: 'Đã hủy' },
     { key: 'canceled', label: 'Đã hủy' },
   ];
 
@@ -165,7 +166,7 @@ const MyServiceScreen = () => {
                 const serviceName = services?.find((s: { id: number; name: string; }) => s.id === Number(item.service_id))?.name || 'Dịch vụ không xác định';
                 const secondaryName = `Nhân viên: ${item.employee_name || 'Chưa giao'}`;
                 return (
-                  <Frame12
+                  <ServiceOrderCard
                     serviceName={serviceName}
                     secondaryName={secondaryName}
                     receiveDate={item.receive_date}

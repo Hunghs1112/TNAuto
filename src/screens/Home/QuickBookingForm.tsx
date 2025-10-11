@@ -9,7 +9,7 @@ import TextInputComponent from "../../components/TextInput/TextInput"
 import DateInput from "../../components/TextInput/DateInput"
 import NoteInput from "../../components/TextInput/NoteInput"
 import SelectInput from "../../components/TextInput/SelectInput"
-import ConfirmButton from "../../components/Button/ConfirmButton"
+import ConfirmButton from "../../components/ConfirmButton"
 import { Colors } from "../../constants/colors"
 import { Typography } from "../../constants/typo"
 import type { RootState } from "../../redux/types"
@@ -24,6 +24,49 @@ interface ServiceItem {
   id: number
   name: string
 }
+
+interface InputFieldWithLabelProps {
+  value: string
+  onChangeText: (text: string) => void
+  placeholder: string
+  label: string
+  icon: string
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "number-pad"
+  editable?: boolean
+}
+
+const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = ({
+  value,
+  onChangeText,
+  placeholder,
+  label,
+  icon,
+  keyboardType,
+  editable = true,
+}) => (
+  <View style={styles.inputFieldContainer}>
+    <View style={styles.labelRow}>
+      <View style={styles.iconContainer}>
+        <Ionicons name={icon} size={14} color={Colors.text.placeholder} />
+      </View>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+    <View style={styles.inputWrapper}>
+      <TextInputComponent
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        keyboardType={keyboardType}
+        placeholderTextColor={Colors.text.placeholder}
+        textColor={Colors.text.primary}
+        borderColor={Colors.neutral[300]}
+        editable={editable}
+      />
+    </View>
+  </View>
+)
 
 const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const dispatch = useDispatch()
@@ -54,45 +97,7 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
     return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
   }
 
-  const InputFieldWithLabel = ({
-    value,
-    onChangeText,
-    placeholder,
-    label,
-    icon,
-    keyboardType,
-    editable = true,
-  }: {
-    value: string
-    onChangeText: (text: string) => void
-    placeholder: string
-    label: string
-    icon: string
-    keyboardType?: string
-    editable?: boolean
-  }) => (
-    <View style={styles.inputFieldContainer}>
-      <View style={styles.labelRow}>
-        <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={14} color={Colors.text.placeholder} />
-        </View>
-        <Text style={styles.label} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-      <View style={styles.inputWrapper}>
-        <TextInputComponent
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          keyboardType={keyboardType}
-          placeholderTextColor={Colors.text.placeholder}
-          textColor={Colors.text.primary}
-          borderColor={Colors.neutral[300]}
-        />
-      </View>
-    </View>
-  )
+  // InputFieldWithLabel moved outside component to prevent re-creation
 
   const handleServiceSelect = (option: ServiceItem) => {
     setSelectedService(option)
@@ -120,6 +125,7 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
       console.log("Booking data:", body)
       const result = await createOrder(body).unwrap()
       if (result.success) {
+        Alert.alert("Thành công", "Đặt lịch thành công!")
         if (onConfirm) onConfirm()
       } else {
         Alert.alert("Lỗi", "Đặt lịch thất bại!")
@@ -134,7 +140,7 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Đặt lịch sửa chữa nhanh</Text>
+      <Text style={styles.title}>Đặt lịch dịch vụ nhanh</Text>
       <ScrollView
         style={styles.formContainer}
         showsVerticalScrollIndicator={false}

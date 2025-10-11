@@ -1,47 +1,31 @@
 // src/redux/slices/warrantySlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '../types';
-import { Warranty } from '../../services/warrantyApi';
+import { createGenericSlice } from './createGenericSlice';
 
-interface WarrantyState {
-  warranties: Warranty[];
-  loading: boolean;
-  error: string | null;
+export interface Warranty {
+  id: number;
+  order_id: number;
+  customer_id: number;
+  warranty_period: number;
+  start_date: string;
+  end_date: string;
+  note?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const initialState: WarrantyState = {
-  warranties: [],
-  loading: false,
-  error: null,
-};
+// Tạo slice sử dụng factory pattern để giảm code duplication
+const warrantySlice = createGenericSlice<Warranty>('warranty');
 
-const warrantySlice = createSlice({
-  name: 'warranty',
-  initialState,
-  reducers: {
-    setWarranties: (state, action: PayloadAction<Warranty[]>) => {
-      state.warranties = action.payload;
-      state.loading = false;
-      state.error = null;
-    },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload;
-      if (action.payload) state.error = null;
-    },
-    setError: (state, action: PayloadAction<string>) => {
-      state.error = action.payload;
-      state.loading = false;
-    },
-    clearWarranties: (state) => {
-      state.warranties = [];
-      state.error = null;
-    },
-  },
-});
-
-export const { setWarranties, setLoading, setError, clearWarranties } = warrantySlice.actions;
-export const selectWarranties = (state: RootState) => state.warranty.warranties;
-export const selectWarrantyLoading = (state: RootState) => state.warranty.loading;
-export const selectWarrantyError = (state: RootState) => state.warranty.error;
+// Export với tên phù hợp
+export const {
+  setItems: setWarranties,
+  addItem: addWarranty,
+  updateItem: updateWarranty,
+  removeItem: removeWarranty,
+  setSelectedItem: setSelectedWarranty,
+  setLoading,
+  setError,
+  clearItems: clearWarranties,
+} = warrantySlice.actions;
 
 export default warrantySlice.reducer;

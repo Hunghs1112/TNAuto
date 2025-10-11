@@ -4,14 +4,13 @@ import { View, FlatList, StatusBar, ActivityIndicator, Text, RefreshControl } fr
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { RootState } from "../../redux/types";
 import { useGetNotificationsQuery } from "../../services/notificationApi";
-import { useMarkNotificationReadMutation } from "../../services/notificationApi";
-import { setNotifications, markAsRead } from "../../redux/slices/notificationSlice";
+import { setNotifications } from "../../redux/slices/notificationSlice";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Colors } from "../../constants/colors";
-import Header from "../../components/Header/Header";
-import Item from "../../components/Item/Item";
+import Header from "../../components/Header";
+import Item from "../../components/Item";
 import { styles } from "./styles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
@@ -35,8 +34,6 @@ const NotificationScreen: React.FC = () => {
     { skip: !recipientId }
   );
 
-  const [markAsReadApi] = useMarkNotificationReadMutation();
-
   console.log('NotificationScreen debug - notifications:', notifications, 'isLoading:', isLoading, 'error:', error); // Debug
 
   // Sync to slice on mount/refetch
@@ -47,33 +44,28 @@ const NotificationScreen: React.FC = () => {
     }
   }, [notifications, dispatch]);
 
-  const handlePress = async (id: string, message: string) => {
-    console.log('NotificationScreen: Marking notification as read, ID:', id, 'message:', message); // Debug
-    try {
-      await markAsReadApi(id).unwrap();
-      dispatch(markAsRead(id)); // Update slice for unreadCount
-      refetch(); // Refetch to ensure consistency
-      console.log('NotificationScreen: Successfully marked as read'); // Debug
-
-      // Parse order_id from message like "Đơn hàng #X ..."
-      const orderMatch = message.match(/#(\d+)/);
-      if (orderMatch) {
-        const orderId = orderMatch[1];
-        console.log('NotificationScreen: Extracted orderId:', orderId); // Debug
-        if (userType === 'customer') {
-          navigation.navigate('OrderDetail', { id: orderId });
-        } else {
-          navigation.navigate('EmployeeOrderDetail', { id: orderId });
-        }
+  const handlePress = (message: string) => {
+    console.log('NotificationScreen: Notification pressed, message:', message); // Debug
+    
+    // Parse order_id from message like "Đơn hàng #X ..."
+    const orderMatch = message.match(/#(\d+)/);
+    if (orderMatch) {
+      const orderId = orderMatch[1];
+      console.log('NotificationScreen: Extracted orderId:', orderId, 'navigating...'); // Debug
+      
+      // Navigate to order detail based on user type
+      if (userType === 'customer') {
+        navigation.navigate('OrderDetail', { id: orderId });
       } else {
-        console.log('NotificationScreen: No order_id found in message'); // Debug
+        navigation.navigate('EmployeeOrderDetail', { id: orderId });
       }
-    } catch (err) {
-      console.error('NotificationScreen: Failed to mark as read:', err); // Debug
+    } else {
+      console.log('NotificationScreen: No order_id found in message, staying on notification screen'); // Debug
     }
   };
 
-  if (isLoading) {
+  // Show loading only on initial load (no data yet)
+  if (isLoading && !notifications) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
@@ -88,7 +80,9 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
-  if (error || !notifications) {
+  // Show error only if no data available
+  if (error && !notifications) {
+    console.log('NotificationScreen: Showing error, error:', error); // Debug
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
@@ -102,7 +96,9 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
-  if (notifications.length === 0) {
+  // Check if we have data
+  if (!notifications || notifications.length === 0) {
+    console.log('NotificationScreen: No notifications available'); // Debug
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
@@ -116,6 +112,8 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
+  console.log('NotificationScreen: Rendering list with', notifications.length, 'notifications'); // Debug
+
   const renderItem = ({ item }: { item: { id: string; message: string; read: boolean; created_at?: string; } }) => {
     let displayMessage = item.message.replace(/ bởi \d+/, ''); // Remove " bởi 1" or similar
     const title = displayMessage.split(':')[0].trim() || 'Thông báo mới';
@@ -125,12 +123,13 @@ const NotificationScreen: React.FC = () => {
       hour: '2-digit', 
       minute: '2-digit' 
     }) : 'Vừa xong';
+    
     return (
       <Item
         title={title}
         description={`${displayMessage.replace(title + ':', '').trim()} • ${time}`}
         imageUri={undefined}
-        onPress={() => handlePress(item.id, displayMessage)}
+        onPress={() => handlePress(displayMessage)}
         isPressable={true}
       />
     );

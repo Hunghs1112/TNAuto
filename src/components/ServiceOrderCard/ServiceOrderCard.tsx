@@ -1,11 +1,11 @@
-// src/components/Frame12/Frame12.tsx
+// src/components/ServiceOrderCard/ServiceOrderCard.tsx
 import type React from "react"
 import { View, Text, Pressable, StyleSheet } from "react-native"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import { Colors } from "../../constants/colors"
 import { Typography } from "../../constants/typo"
 
-interface Frame12Props {
+interface ServiceOrderCardProps {
   serviceName: string
   secondaryName: string
   receiveDate: string
@@ -14,7 +14,7 @@ interface Frame12Props {
   onPress?: () => void
 }
 
-const Frame12: React.FC<Frame12Props> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, onPress }) => {
+const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, onPress }) => {
   const getStatusText = (status?: string) => {
     switch (status) {
       case 'received':
@@ -27,6 +27,8 @@ const Frame12: React.FC<Frame12Props> = ({ serviceName, secondaryName, receiveDa
         return 'Hoàn thành';
       case 'cancelled':
         return 'Đã hủy';
+      case 'canceled':
+        return 'Đã hủy';
       default:
         return status || '';
     }
@@ -37,11 +39,13 @@ const Frame12: React.FC<Frame12Props> = ({ serviceName, secondaryName, receiveDa
       case 'received':
         return Colors.background.yellow;
       case 'ready_for_pickup':
-        return Colors.warning;
+        return Colors.background.orange;
       case 'in_progress':
         return Colors.background.red;
       case 'completed':
         return Colors.background.green;
+      case 'cancelled':
+        return Colors.background.gray;
       case 'canceled':
         return Colors.background.gray;
       default:
@@ -236,4 +240,5 @@ const styles = StyleSheet.create({
   },
 })
 
-export default Frame12
+export default ServiceOrderCard
+

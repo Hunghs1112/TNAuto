@@ -3,11 +3,11 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
+import { Colors } from "../constants/colors";
+import { Typography } from "../constants/typo";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AppStackParamList } from "../../navigation/AppNavigator";
+import { AppStackParamList } from "../navigation/AppNavigator";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -88,8 +88,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     paddingHorizontal: 24,
+    paddingVertical: 12,
     gap: 12,
     backgroundColor: Colors.background.light,
+    borderTopWidth: 0.5,
   },
   homeParent: {
     borderRadius: 12,

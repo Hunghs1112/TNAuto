@@ -1,27 +1,39 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
+import { Colors } from "../constants/colors";
+import { Typography } from "../constants/typo";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 type HeaderProps = {
   title?: string;
-  // Remove onBackPress prop since we'll handle it internally
+  hideBackButton?: boolean; // Optional prop to force hide back button
 };
 
-const Header = ({ title = "Đăng nhập" }: HeaderProps) => {
+const Header = ({ title = "Đăng nhập", hideBackButton = false }: HeaderProps) => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const handleBackPress = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
+    try {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        console.log('Header: Cannot go back, no previous screen in stack');
+      }
+    } catch (error) {
+      console.error('Header: Error during navigation.goBack():', error);
+      // Fallback: try to navigate to Home if goBack fails
+      try {
+        navigation.navigate('Home' as never);
+      } catch (fallbackError) {
+        console.error('Header: Fallback navigation to Home also failed:', fallbackError);
+      }
     }
   };
 
   return (
     <View style={styles.container}>
-      {navigation.canGoBack() && (
+      {!hideBackButton && navigation.canGoBack() && (
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="chevron-back-outline" size={32} color={Colors.text.inverted} />
         </TouchableOpacity>

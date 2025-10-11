@@ -98,6 +98,34 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+  avatar_url?: string;
+}
+
+interface UpdateProfileResponse {
+  success: boolean;
+  customer: Customer;
+  message: string;
+}
+
+interface DeleteAccountRequest {
+  confirm: boolean;
+}
+
+interface DeleteAccountResponse {
+  success: boolean;
+  message: string;
+  deleted_data: {
+    customer: Customer;
+    vehicles_deleted: number;
+    orders_deleted: number;
+    warranties_deleted: number;
+    notifications_deleted: number;
+  };
+}
+
 export const customerApi = createApi({
   reducerPath: 'customerApi' as const,
   baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
@@ -106,13 +134,22 @@ export const customerApi = createApi({
     health: builder.query<{ message: string }, void>({
       query: () => ENDPOINTS.health.path,
     }),
-    registerCustomer: builder.mutation<{ success: boolean; customer?: Customer }, { name: string; phone: string; licensePlate: string }>({
+    registerCustomer: builder.mutation<
+      { success: boolean; customer_id?: number; customer?: Customer; message?: string }, 
+      { name: string; phone: string; license_plate?: string; avatar_url?: string }
+    >({
       query: (body) => ({ url: ENDPOINTS.registerCustomer.path, method: 'POST', body }),
       invalidatesTags: ['Customer'],
-      transformResponse: (response: ApiResponse<Customer>) => {
+      transformResponse: (response: any) => {
         console.log('registerCustomer response:', response); // Debug
-        if (!response.success) throw new Error(response.error || 'Failed to register customer');
-        return { success: true, customer: response.data };
+        // Backend returns: { success: true, customer_id: number, message: string }
+        if (!response.success) throw new Error(response.error || response.message || 'Failed to register customer');
+        return { 
+          success: true, 
+          customer_id: response.customer_id,
+          customer: response.customer,
+          message: response.message 
+        };
       },
     }),
     loginCustomer: builder.mutation<LoginCustomerResponse, { phone: string }>({
@@ -163,6 +200,32 @@ export const customerApi = createApi({
         return { success: true };
       },
     }),
+    updateProfile: builder.mutation<UpdateProfileResponse, { phone: string } & UpdateProfileRequest>({
+      query: ({ phone, ...body }) => ({ 
+        url: `${ENDPOINTS.updateProfile.path}?phone=${phone}`, 
+        method: 'PUT', 
+        body 
+      }),
+      invalidatesTags: ['Customer'],
+      transformResponse: (response: UpdateProfileResponse) => {
+        console.log('updateProfile response:', response);
+        if (!response.success) throw new Error('Failed to update profile');
+        return response;
+      },
+    }),
+    deleteAccount: builder.mutation<DeleteAccountResponse, { phone: string } & DeleteAccountRequest>({
+      query: ({ phone, confirm }) => ({ 
+        url: `${ENDPOINTS.deleteAccount.path}?phone=${phone}`, 
+        method: 'DELETE', 
+        body: { confirm } 
+      }),
+      invalidatesTags: ['Customer', 'ServiceOrder'],
+      transformResponse: (response: DeleteAccountResponse) => {
+        console.log('deleteAccount response:', response);
+        if (!response.success) throw new Error(response.message || 'Failed to delete account');
+        return response;
+      },
+    }),
   }),
 });
 
@@ -174,4 +237,6 @@ export const {
   useGetCustomerOrdersQuery,
   useGetOrderDetailsQuery,
   useCreateOrderMutation,
+  useUpdateProfileMutation,
+  useDeleteAccountMutation,
 } = customerApi;

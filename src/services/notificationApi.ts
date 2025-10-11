@@ -80,6 +80,57 @@ export const notificationApi = createApi({
         }
       },
     }),
+    registerFcmToken: builder.mutation<void, { user_id: string; user_type: string; token: string; device_info?: string }>({
+      query: (body) => ({ 
+        url: ENDPOINTS.registerFcmToken.path, 
+        method: 'POST', 
+        body 
+      }),
+      transformResponse: (response: ApiResponse<{ message: string; token_id?: number; is_new?: boolean }>) => {
+        console.log('notificationApi: registerFcmToken response:', response); // Debug
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to register FCM token');
+        }
+      },
+    }),
+    getUserFcmTokens: builder.query<any[], { user_id: string; user_type: string }>({
+      query: (params) => ({ 
+        url: ENDPOINTS.getUserFcmTokens.path, 
+        params 
+      }),
+      transformResponse: (response: ApiResponse<{ tokens: any[]; count: number }>) => {
+        console.log('notificationApi: getUserFcmTokens response:', response); // Debug
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to get FCM tokens');
+        }
+        return response.data.tokens;
+      },
+    }),
+    deleteFcmToken: builder.mutation<void, { token: string }>({
+      query: (body) => ({ 
+        url: ENDPOINTS.deleteFcmToken.path, 
+        method: 'DELETE', 
+        body 
+      }),
+      transformResponse: (response: ApiResponse<{ message: string }>) => {
+        console.log('notificationApi: deleteFcmToken response:', response); // Debug
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to delete FCM token');
+        }
+      },
+    }),
+    getActiveFcmTokens: builder.query<any[], void>({
+      query: () => ({ 
+        url: ENDPOINTS.getActiveFcmTokens.path 
+      }),
+      transformResponse: (response: ApiResponse<{ tokens: any[]; count: number }>) => {
+        console.log('notificationApi: getActiveFcmTokens response:', response); // Debug
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to get active FCM tokens');
+        }
+        return response.data.tokens;
+      },
+    }),
   }),
 });
 
@@ -87,4 +138,8 @@ export const {
   useGetNotificationsQuery,
   useCreateNotificationMutation,
   useMarkNotificationReadMutation,
+  useRegisterFcmTokenMutation,
+  useGetUserFcmTokensQuery,
+  useDeleteFcmTokenMutation,
+  useGetActiveFcmTokensQuery,
 } = notificationApi;

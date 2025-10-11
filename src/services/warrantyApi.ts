@@ -1,21 +1,18 @@
 // src/services/warrantyApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { ENDPOINTS } from '../constants/apiEndpoints';
+import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_BASE_URL } from '../constants/config';
 
-export interface Warranty {
+interface Warranty {
   id: number;
   order_id: number;
   customer_id: number;
   warranty_period: number;
   start_date: string;
   end_date: string;
-  note?: string | null;
-  created_at?: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_avatar_url?: string | null;
-  service_name?: string;
+  note?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface CreateWarrantyRequest {
@@ -32,72 +29,116 @@ interface UpdateWarrantyRequest {
   note?: string;
 }
 
+interface CompleteServiceOrderRequest {
+  delivery_date: string;
+  warranty_period: number;
+}
+
+interface CompleteServiceOrderResponse {
+  success: boolean;
+  warranty_id: number;
+  message?: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  count?: number;
+  error?: string;
+}
+
 export const warrantyApi = createApi({
   reducerPath: 'warrantyApi' as const,
   baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
   tagTypes: ['Warranty'] as const,
   endpoints: (builder) => ({
-    getAllWarranties: builder.query<Warranty[], { customer_id?: number }>({
-      query: (params) => {
-        const url = params.customer_id ? `${ENDPOINTS.getAllWarranties.path}?customer_id=${params.customer_id}` : ENDPOINTS.getAllWarranties.path;
-        console.log('warrantyApi: getAllWarranties URL', url); // Debug URL
-        return { url };
-      },
+    // 1. GET /api/warranties - Lấy danh sách warranty
+    getWarranties: builder.query<Warranty[], void>({
+      query: () => ENDPOINTS.getAllWarranties?.path || '/api/warranties',
       providesTags: ['Warranty'],
-      transformResponse: (response: { success: boolean; data: Warranty[]; count: number }) => {
-        console.log('warrantyApi: getAllWarranties response', response); // Debug response
-        if (!response.success || !response.data) throw new Error('Failed to fetch warranties');
+      transformResponse: (response: ApiResponse<Warranty[]>) => {
+        console.log('getWarranties response:', response);
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch warranties');
         return response.data;
       },
     }),
-    createWarranty: builder.mutation<{ warranty_id: number }, CreateWarrantyRequest>({
-      query: (body) => ({ url: ENDPOINTS.createWarranty.path, method: 'POST', body }),
-      invalidatesTags: ['Warranty'],
-      transformResponse: (response: { success: boolean; warranty_id: number; message: string }) => {
-        console.log('warrantyApi: createWarranty response', response); // Debug response
-        if (!response.success) throw new Error('Failed to create warranty');
-        return { warranty_id: response.warranty_id };
-      },
-    }),
-    getWarrantyById: builder.query<Warranty, number>({
-      query: (id) => ({ url: `${ENDPOINTS.getWarrantyById.path.replace(':id', id.toString())}` }),
-      providesTags: (result, error, id) => [{ type: 'Warranty' as const, id }],
-      transformResponse: (response: { success: boolean; data: Warranty }) => {
-        console.log('warrantyApi: getWarrantyById response', response); // Debug response
-        if (!response.success || !response.data) throw new Error('Failed to fetch warranty');
-        return response.data;
-      },
-    }),
-    updateWarranty: builder.mutation<void, { id: number } & UpdateWarrantyRequest>({
-      query: ({ id, ...body }) => ({ 
-        url: `${ENDPOINTS.updateWarranty.path.replace(':id', id.toString())}`, 
-        method: 'PATCH', 
+
+    // 2. POST /api/warranties - Tạo warranty mới
+    createWarranty: builder.mutation<Warranty, CreateWarrantyRequest>({
+      query: (body) => ({ 
+        url: ENDPOINTS.createWarranty?.path || '/api/warranties', 
+        method: 'POST', 
         body 
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Warranty' as const, id }, 'Warranty'],
-      transformResponse: (response: { success: boolean; message: string }) => {
-        console.log('warrantyApi: updateWarranty response', response); // Debug response
-        if (!response.success) throw new Error('Failed to update warranty');
+      invalidatesTags: ['Warranty'],
+      transformResponse: (response: ApiResponse<Warranty>) => {
+        console.log('createWarranty response:', response);
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to create warranty');
+        return response.data;
       },
     }),
-    deleteWarranty: builder.mutation<void, number>({
+
+    // 3. GET /api/warranties/:id - Lấy chi tiết warranty theo ID
+    getWarrantyById: builder.query<Warranty, string>({
+      query: (id) => buildEndpointUrl('getWarrantyById', { id }) || `/api/warranties/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Warranty' as const, id }],
+      transformResponse: (response: ApiResponse<Warranty>) => {
+        console.log('getWarrantyById response:', response);
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch warranty details');
+        return response.data;
+      },
+    }),
+
+    // 4. PATCH /api/warranties/:id - Cập nhật warranty
+    updateWarranty: builder.mutation<Warranty, { id: string; data: UpdateWarrantyRequest }>({
+      query: ({ id, data }) => ({ 
+        url: buildEndpointUrl('updateWarranty', { id }) || `/api/warranties/${id}`, 
+        method: 'PATCH', 
+        body: data 
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'Warranty' as const, id }],
+      transformResponse: (response: ApiResponse<Warranty>) => {
+        console.log('updateWarranty response:', response);
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to update warranty');
+        return response.data;
+      },
+    }),
+
+    // 5. DELETE /api/warranties/:id - Xóa warranty
+    deleteWarranty: builder.mutation<void, string>({
       query: (id) => ({ 
-        url: `${ENDPOINTS.deleteWarranty.path.replace(':id', id.toString())}`, 
+        url: buildEndpointUrl('deleteWarranty', { id }) || `/api/warranties/${id}`, 
         method: 'DELETE' 
       }),
       invalidatesTags: ['Warranty'],
-      transformResponse: (response: { success: boolean; message: string }) => {
-        console.log('warrantyApi: deleteWarranty response', response); // Debug response
-        if (!response.success) throw new Error('Failed to delete warranty');
+      transformResponse: (response: ApiResponse<void>) => {
+        console.log('deleteWarranty response:', response);
+        if (!response.success) throw new Error(response.error || 'Failed to delete warranty');
+      },
+    }),
+
+    // 6. PATCH /api/service-orders/:id/complete - Hoàn thành service order và tạo warranty tự động
+    completeServiceOrder: builder.mutation<CompleteServiceOrderResponse, { id: string; data: CompleteServiceOrderRequest }>({
+      query: ({ id, data }) => ({ 
+        url: buildEndpointUrl('completeServiceOrder', { id }) || `/api/service-orders/${id}/complete`, 
+        method: 'PATCH', 
+        body: data 
+      }),
+      invalidatesTags: ['Warranty'],
+      transformResponse: (response: ApiResponse<CompleteServiceOrderResponse>) => {
+        console.log('completeServiceOrder response:', response);
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to complete service order');
+        return response.data;
       },
     }),
   }),
 });
 
-export const { 
-  useGetAllWarrantiesQuery, 
-  useCreateWarrantyMutation, 
-  useGetWarrantyByIdQuery, 
-  useUpdateWarrantyMutation, 
-  useDeleteWarrantyMutation 
+export const {
+  useGetWarrantiesQuery,
+  useCreateWarrantyMutation,
+  useGetWarrantyByIdQuery,
+  useUpdateWarrantyMutation,
+  useDeleteWarrantyMutation,
+  useCompleteServiceOrderMutation: useCompleteServiceOrderWithWarrantyMutation,
 } = warrantyApi;

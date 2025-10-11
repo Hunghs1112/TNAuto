@@ -5,8 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
-import Header from '../../components/Header/Header';
-import ConfirmButton from '../../components/Button/ConfirmButton';
+import Header from '../../components/Header';
+import ConfirmButton from '../../components/ConfirmButton';
 import { useGetOrderDetailsQuery } from '../../services/customerApi';
 import { useCompleteServiceOrderMutation } from '../../services/serviceOrderApi';
 import { styles } from './styles';
@@ -64,6 +64,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
         return 'Hoàn thành';
       case 'cancelled':
         return 'Đã hủy';
+      case 'canceled':
+        return 'Đã hủy';
       default:
         return orderData.status;
     }
@@ -80,6 +82,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
         return Colors.background.red; // #DA1C12
       case 'completed':
         return Colors.background.green; // #34C759
+      case 'cancelled':
+        return Colors.background.gray; // #9CA3AF
       case 'canceled':
         return Colors.background.gray; // #9CA3AF
       default:
@@ -108,7 +112,12 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     return (
       <TouchableOpacity onPress={() => setSelectedImage(item.image_url)} activeOpacity={0.8}>
         <View style={styles.imageContainer}>
-          <Image source={{ uri: item.image_url }} style={styles.image} />
+          <Image 
+            source={{ uri: item.image_url }} 
+            style={styles.image}
+            resizeMode="cover"
+            onError={(error) => console.log('OrderDetailScreen - Image load error:', error.nativeEvent.error)}
+          />
           {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
           {item.created_at && <Text style={styles.imageDate}>Ngày chụp: {new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>}
         </View>
@@ -237,7 +246,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
               {/* Confirmation Row */}
               {showConfirmationRow && (
                 <View style={styles.confirmationRow}>
-                  <Text style={styles.confirmationText}>Đã đặt lịch sửa chữa vào ngày</Text>
+                  <Text style={styles.confirmationText}>Đã đặt lịch dịch vụ vào ngày</Text>
                   <Text style={styles.confirmationDate}>{new Date(orderData.receive_date).toLocaleDateString('vi-VN')}</Text>
                   <View style={styles.checkbox}>
                     <Ionicons name="checkmark-circle" size={24} color={Colors.background.red} />
@@ -249,13 +258,13 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
               {isCompleted && warrantyEndDate && (
                 <View style={[
                   styles.warrantyEndRow,
-                  isWarrantyExpired && { backgroundColor: Colors.error + '20' }
+                  isWarrantyExpired && { backgroundColor: Colors.warranty.expired + '20' }
                 ]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                     <Ionicons 
                       name="shield-checkmark-outline" 
                       size={20} 
-                      color={isWarrantyExpired ? Colors.error : Colors.background.green} 
+                      color={isWarrantyExpired ? Colors.warranty.expired : Colors.warranty.active} 
                       style={{ marginRight: 8 }} 
                     />
                     <Text style={styles.warrantyEndLabel}>
@@ -264,7 +273,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
                   </View>
                   <Text style={[
                     styles.warrantyEndDate,
-                    isWarrantyExpired && { color: Colors.error }
+                    isWarrantyExpired && { color: Colors.warranty.expired }
                   ]}>
                     {warrantyEndDate.toLocaleDateString('vi-VN')}
                   </Text>

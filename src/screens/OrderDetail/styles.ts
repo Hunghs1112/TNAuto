@@ -335,6 +335,9 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 4,
   },
+  uploadButtonDisabled: {
+    opacity: 0.5,
+  },
   uploadButtonText: {
     fontSize: 12,
     color: Colors.text.primary,

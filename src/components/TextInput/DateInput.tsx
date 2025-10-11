@@ -73,14 +73,13 @@ const DateInput: React.FC<DateInputProps> = ({
               onPress={handleDatePress}
             >
               <TextInputComponent
-                value={showText ? value : placeholder}
+                value={value}
                 onChangeText={onChangeText}
-                placeholder={showText ? "" : placeholder}
+                placeholder={placeholder}
                 placeholderTextColor={Colors.text.placeholder}
-                textColor={showText ? Colors.text.primary : Colors.text.placeholder}
+                textColor={Colors.text.primary}
                 borderColor={Colors.neutral[300]}
-                
-              
+                editable={false}
                 iconRight={
                   <Pressable
                     onPress={handleDatePress}
@@ -157,7 +156,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateIconPressable: {
-    padding: 0,
+    padding: 10,
     justifyContent: "center",
     alignItems: "center",
   },

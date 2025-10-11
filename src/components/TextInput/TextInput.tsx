@@ -1,8 +1,9 @@
+import React from "react";
 import { View, TextInput, StyleSheet, Platform } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 
-type TextInputComponentProps = {
+interface TextInputComponentProps {
   value?: string;
   onChangeText?: (text: string) => void;
   placeholder?: string;
@@ -12,35 +13,29 @@ type TextInputComponentProps = {
   borderColor?: string;
   multiline?: boolean;
   numberOfLines?: number;
-  keyboardType?: string;
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "number-pad";
+  editable?: boolean;
   style?: any;
   iconRight?: React.ReactNode;
-};
+}
 
-const TextInputComponent = ({
+const TextInputComponent: React.FC<TextInputComponentProps> = ({
   value = "",
   onChangeText = () => {},
-  placeholder = "Số điện thoại hoặc biển số xe",
+  placeholder = "Nhập thông tin",
   secureTextEntry = false,
   placeholderTextColor = Colors.text.placeholder,
   textColor = Colors.text.primary,
-  borderColor = Colors.border,
+  borderColor = Colors.neutral[300],
   multiline = false,
   numberOfLines = 1,
-  keyboardType,
+  keyboardType = "default",
+  editable = true,
   style,
   iconRight,
-}: TextInputComponentProps) => {
-  const inputHeight = multiline 
-    ? Math.max((numberOfLines || 1) * 24 + 20, 100)
-    : 46;
-
+}) => {
   return (
-    <View style={[
-      styles.container, 
-      { height: inputHeight },
-      style
-    ]}>
+    <View style={[styles.container, style]}>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -49,30 +44,18 @@ const TextInputComponent = ({
         secureTextEntry={secureTextEntry}
         multiline={multiline}
         numberOfLines={numberOfLines}
-        textAlignVertical={multiline ? "top" : "center"}
+        keyboardType={keyboardType}
+        editable={editable}
         style={[
           styles.input,
           {
             color: textColor,
             borderColor: borderColor,
-            textAlignVertical: multiline ? "top" : "center",
             paddingRight: iconRight ? 40 : 12,
-            paddingTop: multiline ? 12 : Platform.select({
-              ios: 14,
-              android: 12,
-            }),
-            paddingBottom: multiline ? 8 : Platform.select({
-              ios: 14,
-              android: 12,
-            }),
-            paddingLeft: 12,
-            // Bỏ gạch chân (underline)
-            textDecorationLine: 'none',
-            textDecorationStyle: 'solid',
-            textDecorationColor: 'transparent',
+            textAlignVertical: multiline ? "top" : "center",
           },
         ]}
-        underlineColorAndroid="transparent" // Android: Bỏ gạch chân
+        underlineColorAndroid="transparent"
       />
       {iconRight && (
         <View style={styles.iconRightContainer}>
@@ -85,20 +68,23 @@ const TextInputComponent = ({
 
 const styles = StyleSheet.create({
   container: {
+    marginBottom: 14,
     width: "100%",
     position: "relative",
   },
   input: {
     flex: 1,
     fontSize: Typography.size.sm,
-    fontWeight: Typography.weight.medium,
     fontFamily: Typography.fontFamily.medium,
     borderRadius: 16,
     borderWidth: 1,
-    
-    // Đảm bảo không có gạch chân
-    textDecorationLine: 'none',
     backgroundColor: Colors.background.light,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.select({
+      ios: 14,
+      android: 12,
+    }),
+    minHeight: 46,
   },
   iconRightContainer: {
     position: "absolute",

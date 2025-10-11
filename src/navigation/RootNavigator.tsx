@@ -1,4 +1,4 @@
-// navigation/RootNavigator.tsx
+// navigation/RootNavigator.tsx - Root navigator with navigation reference
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -9,6 +9,7 @@ import AuthNavigator from "./AuthNavigator";
 import AppNavigator from "./AppNavigator";
 import Loading from "../components/Loading/Loading";
 import { useSelector } from "react-redux";
+import { navigationRef } from "./RootNavigation";
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -24,7 +25,7 @@ function AppContent() {
   console.log('RootNavigator debug - isLoggedIn from persist:', isLoggedIn); // Debug persist state
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Loading visible={isLoading} text={message} />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isLoggedIn ? (

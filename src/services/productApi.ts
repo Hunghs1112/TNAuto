@@ -1,4 +1,17 @@
-// src/services/productApi.ts (Fixed: Export Product and ProductImage interfaces)
+// src/services/productApi.ts - Product API with Image Management
+// 
+// IMPORTANT: Product schema has changed!
+// - Products NO LONGER have image_url field
+// - Use primary_image from response (populated from ProductImages)
+// - To add images: Use createProductImage after creating product
+// - To manage images: Use createProductImage/deleteProductImage endpoints
+//
+// Usage flow:
+// 1. Create product (no image): createProduct({ name, price, description })
+// 2. Add primary image: createProductImage({ product_id, image_url, is_primary: true })
+// 3. Add more images: createProductImage({ product_id, image_url, is_primary: false })
+// 4. Products will automatically include primary_image in response
+
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_BASE_URL } from '../constants/config';
@@ -13,7 +26,8 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
-  image_url?: string;
+  category_id?: number;
+  primary_image?: string; // URL of primary image (from images array)
   images?: ProductImage[];
 }
 
@@ -40,7 +54,7 @@ export const productApi = createApi({
         return response.data;
       },
     }),
-    createProduct: builder.mutation<{ id: number }, { name: string; price: number; description?: string; image_url?: string }>({
+    createProduct: builder.mutation<{ id: number }, { name: string; price: number; description?: string; category_id?: number }>({
       query: (body) => ({ 
         url: ENDPOINTS.createProduct.path, 
         method: 'POST', 
@@ -53,7 +67,7 @@ export const productApi = createApi({
         return { id: response.product_id! };
       },
     }),
-    updateProduct: builder.mutation<void, { id: number; name?: string; description?: string; price?: number; image_url?: string }>({
+    updateProduct: builder.mutation<void, { id: number; name?: string; description?: string; price?: number; category_id?: number }>({
       query: ({ id, ...body }) => ({ 
         url: buildEndpointUrl('updateProduct', { id: id.toString() }), 
         method: 'PATCH', 

@@ -53,6 +53,13 @@ export const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 20, // Thêm margin bottom sau inputs
   },
+  helperText: {
+    fontSize: Typography.size.xs,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.text.secondary,
+    marginTop: -8,
+    marginLeft: 4,
+  },
   
   customerLink: {
     marginTop: 20,

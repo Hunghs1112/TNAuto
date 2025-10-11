@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, Image } from "react-native";
-import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
+import { Colors } from "../constants/colors";
+import { Typography } from "../constants/typo";
 
 type ItemProps = {
   title: string;
@@ -18,7 +18,12 @@ const Item = ({ title, description, imageUri, onPress, isPressable = true }: Ite
     <View style={styles.cardShadowBox}>
       <View style={styles.contentRow}>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.image} />
+          <Image 
+            source={{ uri: imageUri }} 
+            style={styles.image}
+            resizeMode="cover"
+            onError={(error) => console.log('Item - Image load error:', error.nativeEvent.error)}
+          />
         ) : (
           <View style={styles.imagePlaceholder} />
         )}

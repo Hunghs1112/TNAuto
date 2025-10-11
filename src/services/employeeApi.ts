@@ -1,57 +1,14 @@
-// src/services/employeeApi.ts (Updated: Added avatar_url to Employee interface)
+// src/services/employeeApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_BASE_URL } from '../constants/config';
-
-interface Employee {
-  id: string;
-  name: string;
-  phone: string;
-  avatar_url?: string;
-  created_at?: string;
-}
-
-interface LoginEmployeeResponse {
-  success: boolean;
-  employee_id: string;
-  employee?: Employee;
-}
-
-interface Image {
-  image_url: string;
-  description?: string;
-  status_at_time: string;
-  created_at?: string;
-}
-
-interface ServiceOrder {
-  id: string;
-  customer_id: number;
-  employee_id?: number;
-  service_id: number;
-  license_plate: string;
-  vehicle_type?: string | null;
-  receiver_name?: string;
-  receiver_phone?: string;
-  address?: string;
-  receive_date: string;
-  delivery_date?: string;
-  status: string;
-  note?: string;
-  created_at: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_license_plate: string;
-  service_name: string;
-  service_description: string;
-  estimated_time: number;
-  images?: Image[]; // Optional to handle undefined
-  employee_name?: string;
-  warranty_period?: number;
-  warranty_start?: string;
-  warranty_end?: string;
-  warranty_note?: string | null;
-}
+import {
+  Employee,
+  ServiceOrder,
+  LoginEmployeeResponse,
+  ApiResponse,
+  UpdateOrderStatusRequest,
+} from '../types/api.types';
 
 export const employeeApi = createApi({
   reducerPath: 'employeeApi' as const,
@@ -67,10 +24,33 @@ export const employeeApi = createApi({
     }),
     getEmployeeOrderDetails: builder.query<ServiceOrder, string>({
       query: (id) => buildEndpointUrl('getEmployeeOrderDetails', { id }),
+      providesTags: (result, error, id) => [{ type: 'ServiceOrder' as const, id }],
+      transformResponse: (response: any) => {
+        console.log('getEmployeeOrderDetails response:', response); // Debug
+        // Backend trả về { success: true, data: {...} } hoặc trực tiếp {...}
+        if (response.success && response.data) {
+          return {
+            ...response.data,
+            images: response.data.images || [],
+          };
+        }
+        // Nếu backend trả về trực tiếp object
+        return {
+          ...response,
+          images: response.images || [],
+        };
+      },
     }),
-    getAssignedOrders: builder.query<ServiceOrder[], { employee_id: string; status?: string }>({
+    getAssignedOrders: builder.query<ApiResponse<ServiceOrder[]>, { employee_id: string; status?: string }>({
       query: (params) => ({ url: ENDPOINTS.getAssignedOrders.path, params }),
       providesTags: ['ServiceOrder'],
+      transformResponse: (response: any) => {
+        // Backend có thể trả về array trực tiếp hoặc object với data
+        if (Array.isArray(response)) {
+          return { success: true, data: response };
+        }
+        return response;
+      },
     }),
     createEmployee: builder.mutation<{ id: string; employee: Employee }, { name: string; phone: string; password: string }>({
       query: (body) => ({ url: ENDPOINTS.createEmployee.path, method: 'POST', body }),
@@ -101,3 +81,6 @@ export const {
   useUpdateEmployeeMutation,
   useDeleteEmployeeMutation,
 } = employeeApi;
+
+// Re-export types
+export type { Employee, ServiceOrder, LoginEmployeeResponse } from '../types/api.types';

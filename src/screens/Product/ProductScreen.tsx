@@ -1,132 +1,109 @@
-// src/screens/Product/ProductScreen.tsx
-import React, { useEffect } from "react";
-import { View, Text, StatusBar, ActivityIndicator, FlatList, Alert, RefreshControl } from "react-native";
+// src/screens/Product/ProductScreen.tsx (Optimized with new loading pattern)
+import React, { useMemo } from "react";
+import { View, FlatList, RefreshControl, StatusBar } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
-import Header from "../../components/Header/Header";
-import Item from "../../components/Item/Item";
+import Header from "../../components/Header";
+import Item from "../../components/Item";
+import { QueryWrapper, ScreenLoader } from "../../components/Loading";
 import { AppStackParamList } from "../../navigation/AppNavigator";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Product, useGetProductsQuery } from "../../services/productApi";
-import { useDispatch } from 'react-redux';
-import { setProducts, setError, setLoading } from "../../redux/slices/productSlice";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+type ProductScreenRouteProp = RouteProp<AppStackParamList, 'Product'>;
 
 const ProductScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const dispatch = useDispatch();
-  const { refreshing, onRefresh } = useAutoRefresh();
-  const { data: products = [], isLoading, error } = useGetProductsQuery();
+  const route = useRoute<ProductScreenRouteProp>();
+  const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Product'] });
+  const query = useGetProductsQuery();
+  
+  // Get category filter from route params
+  const categoryId = route.params?.categoryId;
+  const categoryName = route.params?.categoryName;
 
-  useEffect(() => {
-    console.log('ProductScreen: Products fetched:', products); // Debug
-    if (isLoading) {
-      dispatch(setLoading(true));
-    } else if (products.length > 0) {
-      dispatch(setProducts(products));
-    } else if (error) {
-      console.error('ProductScreen fetch error:', error); // Debug
-      dispatch(setError('Failed to load products'));
-      Alert.alert('Error', 'Failed to load products');
+  // Determine the header title
+  const headerTitle = categoryName || "Sản phẩm";
+
+  // Filter products by category if categoryId is provided
+  const filteredProducts = useMemo(() => {
+    if (!query.data) return [];
+    if (categoryId) {
+      return query.data.filter((product: Product) => product.category_id === categoryId);
     }
-  }, [products, isLoading, error, dispatch]);
+    return query.data;
+  }, [query.data, categoryId]);
 
-  console.log('ProductScreen debug - data:', products);
-  console.log('ProductScreen debug - isLoading:', isLoading);
-  console.log('ProductScreen debug - error:', error);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
-          <Header title="Sản phẩm" />
-        </View>
-        <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
-          <ActivityIndicator size="large" color={Colors.text.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (error) {
-    return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
-          <Header title="Sản phẩm" />
-        </View>
-        <View style={styles.whiteSection}>
-          <View style={styles.body}>
-            <Text>Lỗi tải sản phẩm</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const productItems = products.map((product: Product) => ({
-    id: product.id,
-    title: product.name,
-    description: `Giá: ${product.price} - Hình: ${product.images?.length || 0}`,
-    onPress: () => console.log(`Product ${product.id} pressed`),
-  }));
-
-  console.log('ProductScreen debug - productItems:', productItems);
-
-  if (productItems.length === 0) {
-    return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
-          <Header title="Sản phẩm" />
-        </View>
-        <View style={styles.whiteSection}>
-          <View style={styles.body}>
-            <View style={styles.emptyContainer}>
-              <Ionicons name="cube-outline" size={48} color={Colors.text.secondary} />
-              <Text style={styles.emptyText}>Chưa có sản phẩm nào</Text>
-            </View>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  console.log('ProductScreen: Rendering', {
+    isLoading: query.isLoading,
+    totalProducts: query.data?.length,
+    filteredCount: filteredProducts.length,
+    categoryId,
+    categoryName
+  });
 
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
       
       <View style={styles.redSection}>
-        <Header title="Sản phẩm" />
+        <Header title={headerTitle} />
       </View>
       
       <View style={styles.whiteSection}>
         <View style={styles.body}>
-          <View style={styles.form}>
-            <FlatList
-              data={productItems}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <Item
-                  key={item.id}
-                  title={item.title}
-                  description={item.description}
-                  onPress={item.onPress}
-                />
-              )}
-              ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
-              showsVerticalScrollIndicator={false}
-              style={styles.servicesContainer}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            />
-          </View>
+          <QueryWrapper
+            query={query}
+            errorMessage="Lỗi tải sản phẩm"
+            checkEmpty={() => filteredProducts.length === 0}
+            emptyMessage={categoryId ? "Chưa có sản phẩm trong danh mục này" : "Chưa có sản phẩm nào"}
+            emptyIcon="cube-outline"
+            loadingComponent={
+              <View style={[styles.form, { justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
+                <ScreenLoader />
+              </View>
+            }
+          >
+            {() => {
+              const productItems = filteredProducts.map((product: Product) => ({
+                id: product.id,
+                title: product.name,
+                description: product.description || (product.images?.length ? `${product.images.length} ảnh` : 'Xem chi tiết'),
+                onPress: () => {
+                  console.log(`Navigate to ProductDetail for product ${product.id}`);
+                  navigation.navigate('ProductDetail', { product });
+                },
+                image: product.primary_image, // Use primary_image from backend
+              }));
+
+              return (
+                <View style={styles.form}>
+                  <FlatList
+                    data={productItems}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => (
+                      <Item
+                        key={item.id}
+                        title={item.title}
+                        description={item.description}
+                        onPress={item.onPress}
+                      />
+                    )}
+                    ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+                    showsVerticalScrollIndicator={false}
+                    style={styles.servicesContainer}
+                    refreshControl={
+                      <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                  />
+                </View>
+              );
+            }}
+          </QueryWrapper>
           
           <View style={styles.bar}>
             <View style={styles.barInner} />

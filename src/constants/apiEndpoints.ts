@@ -29,6 +29,20 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Customer login by phone (required body: phone)',
     body: ['phone'],
   },
+  updateProfile: {
+    method: 'PUT',
+    path: '/customers/profile',
+    description: 'Update customer profile (required param: phone; optional body: name, email, avatar_url)',
+    params: ['phone'],
+    body: ['name', 'email', 'avatar_url'],
+  },
+  deleteAccount: {
+    method: 'DELETE',
+    path: '/customers/account',
+    description: 'Delete customer account (required param: phone; required body: confirm)',
+    params: ['phone'],
+    body: ['confirm'],
+  },
   getServices: {
     method: 'GET',
     path: '/customers/services',
@@ -237,6 +251,30 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     path: '/notifications/:id/read',
     description: 'Mark notification as read (required param: id; no body)',
   },
+  // FCM Token Management
+  registerFcmToken: {
+    method: 'POST',
+    path: '/fcm-tokens/register',
+    description: 'Register/Update FCM token (required body: user_id, user_type, token, device_info)',
+    body: ['user_id', 'user_type', 'token', 'device_info'],
+  },
+  getUserFcmTokens: {
+    method: 'GET',
+    path: '/fcm-tokens/user',
+    description: 'Get all FCM tokens for a user (required params: user_id, user_type)',
+    params: ['user_id', 'user_type'],
+  },
+  deleteFcmToken: {
+    method: 'DELETE',
+    path: '/fcm-tokens',
+    description: 'Delete FCM token on logout (required body: token)',
+    body: ['token'],
+  },
+  getActiveFcmTokens: {
+    method: 'GET',
+    path: '/fcm-tokens/active',
+    description: 'Get all active FCM tokens (admin only)',
+  },
   // Service Order Image
   uploadServiceOrderImage: {
     method: 'POST',
@@ -276,6 +314,79 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     method: 'DELETE',
     path: '/offers/:id',
     description: 'Delete offer (required param: id; no body)',
+  },
+  // Categories
+  getCategories: {
+    method: 'GET',
+    path: '/categories',
+    description: 'Get all categories (no body)',
+  },
+  createCategory: {
+    method: 'POST',
+    path: '/categories',
+    description: 'Create category (required body: name)',
+    body: ['name'],
+  },
+  getCategoryById: {
+    method: 'GET',
+    path: '/categories/:id',
+    description: 'Get category by ID with products (required param: id; no body)',
+  },
+  updateCategory: {
+    method: 'PATCH',
+    path: '/categories/:id',
+    description: 'Update category (required param: id; optional body: name, description, image_url)',
+    body: ['name', 'description', 'image_url'],
+  },
+  deleteCategory: {
+    method: 'DELETE',
+    path: '/categories/:id',
+    description: 'Delete category (required param: id; no body)',
+  },
+  // Vehicle
+  getCustomerVehicles: {
+    method: 'GET',
+    path: '/customers/vehicles',
+    description: 'Get customer vehicles (required param: phone; no body)',
+    params: ['phone'],
+  },
+  getVehicleById: {
+    method: 'GET',
+    path: '/vehicles/:id',
+    description: 'Get vehicle by ID (required param: id; no body)',
+  },
+  createVehicle: {
+    method: 'POST',
+    path: '/vehicles',
+    description: 'Create vehicle (required body: customer_id, license_plate)',
+    body: ['customer_id', 'license_plate'],
+  },
+  updateVehicle: {
+    method: 'PUT',
+    path: '/vehicles/:id',
+    description: 'Update vehicle (required param: id; optional body: model, image_url)',
+    body: ['model', 'image_url'],
+  },
+  deleteVehicle: {
+    method: 'DELETE',
+    path: '/vehicles/:id',
+    description: 'Delete vehicle (required param: id; no body)',
+  },
+  // Upload Image
+  uploadSingleImage: {
+    method: 'POST',
+    path: '/upload/single',
+    description: 'Upload single image file (multipart/form-data with field: image)',
+  },
+  uploadMultipleImages: {
+    method: 'POST',
+    path: '/upload/multiple',
+    description: 'Upload multiple image files (max 10, multipart/form-data with field: images)',
+  },
+  deleteUploadedImage: {
+    method: 'DELETE',
+    path: '/upload/:filename',
+    description: 'Delete uploaded image file (required param: filename; no body)',
   },
 };
 

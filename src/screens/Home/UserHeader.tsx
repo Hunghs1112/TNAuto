@@ -14,6 +14,8 @@ interface UserHeaderProps {
 const UserHeader: React.FC<UserHeaderProps> = ({ userName, notificationCount, onNotificationPress }) => {
   const showBadge = notificationCount && notificationCount > 0;
 
+  console.log('UserHeader rendered with userName:', userName, 'notificationCount:', notificationCount);
+
   return (
     <View style={styles.container}>
       <View style={styles.headerContent}>
@@ -75,16 +77,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   notificationButton: {
-    width: 28,
-    height: 28,
+    width: 44, // Tăng kích thước vùng bấm
+    height: 44, // Tăng kích thước vùng bấm
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
+    padding: 10, // Thêm padding để mở rộng vùng chạm
   },
   badge: {
     position: "absolute",
-    top: -2,
-    right: -2,
+    top: 2, // Điều chỉnh vị trí badge cho phù hợp
+    right: 2, // Điều chỉnh vị trí badge cho phù hợp
     minWidth: 16,
     height: 16,
     borderRadius: 8,

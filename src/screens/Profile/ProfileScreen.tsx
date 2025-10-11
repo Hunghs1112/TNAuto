@@ -1,10 +1,10 @@
-// screens/ProfileScreen.tsx
+// screens/ProfileScreen.tsx - Profile screen with FCM token cleanup on logout
 import React from "react";
 import { View, Text, Pressable, Image, StatusBar } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
-import Header from "../../components/Header/Header";
+import Header from "../../components/Header";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { styles } from "./styles";
@@ -15,6 +15,8 @@ import { logout } from "../../redux/slices/authSlice";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { clearAuthStorage } from "../../utils/authStorage";
+import { unregisterFCMTokenOnLogout } from "../../utils/fcmTokenManager";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -28,33 +30,57 @@ const ProfileScreen = () => {
 
   console.log('ProfileScreen debug - userType:', userType, 'avatarUrl from auth:', avatarUrl); // Debug avatar
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log('ProfileScreen debug - Logging out user:', userName); // Debug trước logout
-    dispatch(logout());
+    
+    // Unregister FCM token first
+    try {
+      await unregisterFCMTokenOnLogout();
+      console.log('ProfileScreen: FCM token unregistered successfully');
+    } catch (error) {
+      console.error('ProfileScreen: Failed to unregister FCM token:', error);
+      // Continue with logout even if FCM unregistration fails
+    }
+    
+    await clearAuthStorage(); // Xóa dữ liệu persist trước
+    dispatch(logout()); // Dispatch logout action
     console.log('ProfileScreen debug - Logout dispatched, state reset to initial'); // Debug sau dispatch
   };
 
   const renderMenuItems = () => {
-    const commonItems = [
-      { icon: 'calendar-outline', text: 'Đổi mật khẩu', onPress: () => console.log("Đổi mật khẩu") },
+    // Customer menu items (không có đổi mật khẩu)
+    const customerItems = [
+      { icon: 'person-outline', text: 'Thông tin tài khoản', onPress: () => navigation.navigate('AccountInfo') },
       { icon: 'notifications-outline', text: 'Cài đặt thông báo', onPress: () => console.log("Cài đặt thông báo") },
-      { icon: 'person-outline', text: 'Thông tin tài khoản', onPress: () => console.log("Thông tin tài khoản") },
+      { icon: 'help-circle-outline', text: 'Trợ giúp & Hỗ trợ', onPress: () => console.log("Trợ giúp") },
     ];
 
+    // Employee menu items (có đổi mật khẩu)
     const employeeItems = [
+      { icon: 'person-outline', text: 'Thông tin tài khoản', onPress: () => navigation.navigate('AccountInfo') },
+      { icon: 'key-outline', text: 'Đổi mật khẩu', onPress: () => console.log("Đổi mật khẩu") },
       { icon: 'list-outline', text: 'Quản lý đơn hàng', onPress: () => console.log("Quản lý đơn hàng") },
+      { icon: 'notifications-outline', text: 'Cài đặt thông báo', onPress: () => console.log("Cài đặt thông báo") },
     ];
 
-    return [...commonItems, ...(userType === 'employee' ? employeeItems : [])].map((item, index) => (
+    const items = userType === 'employee' ? employeeItems : customerItems;
+
+    return items.map((item, index) => (
       <View key={index} style={styles.menuItemWrapper}>
-        <Pressable style={styles.menuItem} onPress={item.onPress}>
+        <Pressable 
+          style={({ pressed }) => [
+            styles.menuItem,
+            { backgroundColor: pressed ? Colors.neutral[50] : 'transparent' }
+          ]} 
+          onPress={item.onPress}
+        >
           <View style={styles.menuContent}>
             <Ionicons name={item.icon} size={20} color={Colors.text.primary} />
             <Text style={styles.menuText}>{item.text}</Text>
           </View>
           <Ionicons name="chevron-forward-outline" size={20} color={Colors.text.secondary} />
         </Pressable>
-        <View style={styles.divider} />
+        {index < items.length - 1 && <View style={styles.divider} />}
       </View>
     ));
   };
@@ -71,6 +97,8 @@ const ProfileScreen = () => {
             <Image 
               source={{ uri: avatarUrl }} 
               style={styles.avatar}
+              resizeMode="cover"
+              onError={(error) => console.log('ProfileScreen - Avatar load error:', error.nativeEvent.error)}
             />
           </View>
           
@@ -82,7 +110,7 @@ const ProfileScreen = () => {
             <View style={styles.spacer} />
             <Pressable style={styles.logoutItem} onPress={handleLogout}>
               <View style={styles.logoutIconContainer}>
-                <Ionicons name="log-out-outline" size={16} color={Colors.error} />
+                <Ionicons name="log-out-outline" size={16} color={Colors.background.red} />
               </View>
               <Text style={styles.logoutText}>Đăng xuất</Text>
             </Pressable>
