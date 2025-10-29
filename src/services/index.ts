@@ -1,5 +1,6 @@
 // src/services/index.ts
 // Re-export all API services and their hooks
+export * from './authApi';
 export * from './customerApi';
 export * from './employeeApi';
 export * from './serviceOrderApi';

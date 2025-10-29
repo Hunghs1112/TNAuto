@@ -1,8 +1,5 @@
-"use client"
-
-import type React from "react"
-import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, ScrollView, Alert } from "react-native"
+import React, { useState, useEffect, useCallback } from "react"
+import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import { useSelector, useDispatch } from "react-redux"
 import TextInputComponent from "../../components/TextInput/TextInput"
@@ -15,6 +12,7 @@ import { Typography } from "../../constants/typo"
 import type { RootState } from "../../redux/types"
 import { setServices } from "../../redux/slices/servicesSlice"
 import { useGetServicesQuery, useCreateOrderMutation } from "../../services"
+import { getCurrentDate, getDateAfterDays, formatDateForAPI } from "../../utils/dateHelpers"
 
 interface QuickBookingFormProps {
   onConfirm?: () => void
@@ -35,7 +33,7 @@ interface InputFieldWithLabelProps {
   editable?: boolean
 }
 
-const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = ({
+const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
   value,
   onChangeText,
   placeholder,
@@ -66,7 +64,7 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = ({
       />
     </View>
   </View>
-)
+));
 
 const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const dispatch = useDispatch()
@@ -75,8 +73,8 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const [licensePlate, setLicensePlate] = useState(userLicensePlate)
   const [vehicleType, setVehicleType] = useState("")
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null)
-  const [deliveryDate, setDeliveryDate] = useState("11/11/1111")
-  const [receiveDate, setReceiveDate] = useState("11/11/1111")
+  const [deliveryDate, setDeliveryDate] = useState(getCurrentDate()) // Ngày hiện tại
+  const [receiveDate, setReceiveDate] = useState(getDateAfterDays(7)) // 7 ngày sau
   const [note, setNote] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -89,29 +87,19 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
     }
   }, [servicesData, dispatch])
 
-  console.log("Auth data:", { userName, userPhone, userLicensePlate })
-
-  const formatDate = (dateStr: string): string => {
-    if (!dateStr || dateStr === "11/11/1111") return new Date().toISOString().split("T")[0]
-    const [d, m, y] = dateStr.split("/").map(Number)
-    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
-  }
-
-  // InputFieldWithLabel moved outside component to prevent re-creation
-
-  const handleServiceSelect = (option: ServiceItem) => {
+  const handleServiceSelect = useCallback((option: ServiceItem) => {
     setSelectedService(option)
-  }
+  }, [])
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     if (!licensePlate || !vehicleType || !selectedService || !receiveDate) {
       Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc!")
       return
     }
     setIsLoading(true)
     try {
-      const formattedReceiveDate = formatDate(receiveDate)
-      const formattedDeliveryDate = formatDate(deliveryDate)
+      const formattedReceiveDate = formatDateForAPI(receiveDate)
+      const formattedDeliveryDate = formatDateForAPI(deliveryDate)
       const body = {
         receiver_name: userName,
         receiver_phone: userPhone,
@@ -122,7 +110,6 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
         delivery_date: formattedDeliveryDate,
         note,
       }
-      console.log("Booking data:", body)
       const result = await createOrder(body).unwrap()
       if (result.success) {
         Alert.alert("Thành công", "Đặt lịch thành công!")
@@ -131,79 +118,84 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
         Alert.alert("Lỗi", "Đặt lịch thất bại!")
       }
     } catch (error) {
-      console.error("Booking error:", error)
       Alert.alert("Lỗi", "Đặt lịch thất bại!")
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, onConfirm])
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Đặt lịch dịch vụ nhanh</Text>
-      <ScrollView
-        style={styles.formContainer}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
-      >
-        <InputFieldWithLabel
-          value={userName}
-          onChangeText={() => {}}
-          placeholder="Tên khách hàng"
-          label="Tên khách hàng"
-          icon="person-outline"
-          editable={false}
-        />
-        <InputFieldWithLabel
-          value={userPhone}
-          onChangeText={() => {}}
-          placeholder="Số điện thoại"
-          label="Số điện thoại"
-          icon="call-outline"
-          keyboardType="phone-pad"
-          editable={false}
-        />
-        <InputFieldWithLabel
-          value={licensePlate}
-          onChangeText={setLicensePlate}
-          placeholder="Biển số xe"
-          label="Biển số xe"
-          icon="car-outline"
-        />
-        <InputFieldWithLabel
-          value={vehicleType}
-          onChangeText={setVehicleType}
-          placeholder="Loại xe"
-          label="Loại xe"
-          icon="car-sport-outline"
-        />
-        <SelectInput
-          value={selectedService?.name || ""}
-          placeholder="Chọn dịch vụ"
-          label="Loại dịch vụ"
-          icon="construct-outline"
-          options={services}
-          onSelect={handleServiceSelect}
-          disabled={servicesLoading}
-        />
-        <View style={styles.dateRowContainer}>
-          <DateInput value={deliveryDate} onChangeText={setDeliveryDate} placeholder="11/11/1111" label="Ngày giao" />
-          <DateInput value={receiveDate} onChangeText={setReceiveDate} placeholder="11/11/1111" label="Ngày nhận" />
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>Đặt lịch dịch vụ nhanh</Text>
+        <ScrollView
+          style={styles.formContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scrollContent}
+        >
+          <InputFieldWithLabel
+            value={userName}
+            onChangeText={() => {}}
+            placeholder="Tên khách hàng"
+            label="Tên khách hàng"
+            icon="person-outline"
+            editable={false}
+          />
+          <InputFieldWithLabel
+            value={userPhone}
+            onChangeText={() => {}}
+            placeholder="Số điện thoại"
+            label="Số điện thoại"
+            icon="call-outline"
+            keyboardType="phone-pad"
+            editable={false}
+          />
+          <InputFieldWithLabel
+            value={licensePlate}
+            onChangeText={setLicensePlate}
+            placeholder="Biển số xe"
+            label="Biển số xe"
+            icon="car-outline"
+          />
+          <InputFieldWithLabel
+            value={vehicleType}
+            onChangeText={setVehicleType}
+            placeholder="Loại xe"
+            label="Loại xe"
+            icon="car-sport-outline"
+          />
+          <SelectInput
+            value={selectedService?.name || ""}
+            placeholder="Chọn dịch vụ"
+            label="Loại dịch vụ"
+            icon="construct-outline"
+            options={services}
+            onSelect={handleServiceSelect}
+            disabled={servicesLoading}
+          />
+          <View style={styles.dateRowContainer}>
+            <DateInput value={deliveryDate} onChangeText={setDeliveryDate} placeholder={getCurrentDate()} label="Ngày giao" />
+            <DateInput value={receiveDate} onChangeText={setReceiveDate} placeholder={getDateAfterDays(7)} label="Ngày nhận" />
+          </View>
+          <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
+        </ScrollView>
+        <View style={styles.confirmButtonContainer}>
+          <ConfirmButton
+            title="Xác nhận"
+            onPress={handleConfirm}
+            loading={isLoading}
+            disabled={isLoading}
+            height={44}
+            borderRadius={15}
+          />
         </View>
-        <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
-      </ScrollView>
-      <View style={styles.confirmButtonContainer}>
-        <ConfirmButton
-          title="Xác nhận"
-          onPress={handleConfirm}
-          loading={isLoading}
-          disabled={isLoading}
-          height={44}
-          borderRadius={15}
-        />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
 
@@ -283,4 +275,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default QuickBookingForm
+export default React.memo(QuickBookingForm)

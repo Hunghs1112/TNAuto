@@ -55,11 +55,8 @@ const ProductDetailScreen = () => {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <View style={styles.redSection}>
-        <Header title="Chi tiết sản phẩm" />
-      </View>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <Header title="Chi tiết sản phẩm" />
       
       <ScrollView style={styles.whiteSection} showsVerticalScrollIndicator={false}>
         <View style={styles.body}>

@@ -1,7 +1,10 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet, Image } from "react-native";
+import React, { useCallback, useRef } from "react";
+import { View, Text, Pressable, StyleSheet, Animated } from "react-native";
+import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typo";
+import { OptimizedImage } from "./OptimizedImage";
+import { HapticFeedback } from "../utils/haptics";
 
 type ItemProps = {
   title: string;
@@ -12,60 +15,105 @@ type ItemProps = {
 };
 
 const Item = ({ title, description, imageUri, onPress, isPressable = true }: ItemProps) => {
-  console.log('Item rendered:', { title, description, hasImage: !!imageUri }); // Debug
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    if (isPressable) {
+      HapticFeedback.light();
+      Animated.spring(scaleValue, {
+        toValue: 0.97,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+    }
+  }, [isPressable, scaleValue]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  }, [scaleValue]);
 
   const content = (
-    <View style={styles.cardShadowBox}>
-      <View style={styles.contentRow}>
-        {imageUri ? (
-          <Image 
-            source={{ uri: imageUri }} 
-            style={styles.image}
-            resizeMode="cover"
-            onError={(error) => console.log('Item - Image load error:', error.nativeEvent.error)}
-          />
-        ) : (
-          <View style={styles.imagePlaceholder} />
-        )}
-        <View style={styles.textContainer}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <Text style={styles.description} numberOfLines={2}>{description}</Text>
+    <Animated.View style={[styles.card, { transform: [{ scale: scaleValue }] }]}>
+      <LinearGradient
+        colors={[Colors.primary, Colors.primaryLight]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.accentBar}
+      />
+      <View style={styles.cardShadowBox}>
+        <View style={styles.contentRow}>
+          {imageUri ? (
+            <OptimizedImage 
+              source={{ uri: imageUri }} 
+              width={52}
+              height={52}
+              borderRadius={26}
+              style={styles.image}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <LinearGradient
+                colors={[Colors.primarySoft, Colors.background.light]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.placeholderGradient}
+              />
+            </View>
+          )}
+          <View style={styles.textContainer}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={styles.description} numberOfLines={2}>{description}</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 
   return isPressable ? (
-    <Pressable style={styles.card} onPress={onPress} accessible={true} accessibilityRole="button">
+    <Pressable 
+      onPress={onPress} 
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessible={true} 
+      accessibilityRole="button"
+    >
       {content}
     </Pressable>
   ) : (
-    <View style={styles.card}>
-      {content}
-    </View>
+    content
   );
 };
 
 const styles = StyleSheet.create({
   card: {
     width: "100%",
-    height: 112,
-    borderRadius: 12,
+    height: 120,
+    borderRadius: 16,
     backgroundColor: Colors.background.light,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.neutral[300],
+    borderWidth: 1.5,
+    borderColor: Colors.neutral[200],
+    flexDirection: "row",
+  },
+  accentBar: {
+    width: 5,
+    height: "100%",
   },
   cardShadowBox: {
-    width: "100%",
-    height: "100%",
-    padding: 16,
+    flex: 1,
+    padding: 18,
     justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   contentRow: {
     flexDirection: "row",
@@ -73,37 +121,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   image: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   imagePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.neutral[200],
-    marginRight: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginRight: 16,
+    overflow: 'hidden',
+  },
+  placeholderGradient: {
+    width: "100%",
+    height: "100%",
+    borderWidth: 2,
+    borderColor: 'rgba(218, 28, 18, 0.2)',
+    borderRadius: 26,
   },
   textContainer: {
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 6,
   },
   title: {
-    fontSize: Typography.size.base,
+    fontSize: Typography.size.lg,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.text.primary,
-    lineHeight: 20,
-    marginBottom: 2,
+    lineHeight: 22,
   },
   description: {
-    fontSize: 12,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.regular,
     color: Colors.text.secondary,
-    lineHeight: 16,
+    lineHeight: 18,
   },
 });
 
-export default Item;
+export default React.memo(Item);

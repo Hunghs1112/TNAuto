@@ -164,7 +164,7 @@ const WarrantyScreen: React.FC = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Bảo hành" />
         </View>
@@ -179,7 +179,7 @@ const WarrantyScreen: React.FC = () => {
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Bảo hành" />
         </View>
@@ -196,7 +196,7 @@ const WarrantyScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       
       <View style={styles.header}>
         <Header title="Bảo hành" />

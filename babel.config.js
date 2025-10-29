@@ -5,6 +5,6 @@ module.exports = {
       moduleName: '@env',
       path: '.env',
     }],
-    'react-native-worklets/plugin', // phải để cuối cùng
+    'react-native-worklets/plugin', // plugin này phải đặt cuối cùng
   ],
 };

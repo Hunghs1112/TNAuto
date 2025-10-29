@@ -1,21 +1,31 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
+import { Typography } from "../../constants/typo";
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White background
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.primary, // Red for top safe area (matches UserHeader)
+  },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White background for content
   },
   scrollContainer: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 14,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 100,
+    gap: 20,
   },
   section: {
-    gap: 14,
+    gap: 16,
     width: "100%",
   },
   servicesContainer: {
@@ -41,18 +51,5 @@ export const styles = StyleSheet.create({
     marginTop: 12,
     color: Colors.text.secondary,
     fontSize: 16,
-  },
-  viewMoreButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 16,
-    backgroundColor: Colors.background.red,
-    borderRadius: 8,
-    width: '100%',
-  },
-  viewMoreText: {
-    color: Colors.background.light,
-    fontSize: 16,
-    fontFamily: 'System',
   },
 });

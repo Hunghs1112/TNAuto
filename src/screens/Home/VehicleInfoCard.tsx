@@ -1,12 +1,15 @@
 import type React from "react"
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import Ionicons from "react-native-vector-icons/Ionicons"
+import LinearGradient from 'react-native-linear-gradient'
 import { useNavigation } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import { Colors } from "../../constants/colors"
 import { Typography } from "../../constants/typo"
 import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi"
 import { AppStackParamList } from "../../navigation/AppNavigator"
+import { VehicleCardSkeleton } from "../../components/SkeletonLoader"
+import { OptimizedImage } from "../../components/OptimizedImage"
 
 interface VehicleInfoCardProps {
   userId: string
@@ -36,11 +39,7 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
   });
 
   if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={Colors.background.light} />
-      </View>
-    );
+    return <VehicleCardSkeleton />;
   }
 
   // Check for API errors
@@ -52,17 +51,27 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
     
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.vehicleTitleContainer}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="car-sport" size={28} color={Colors.background.light} />
-            </View>
-            <Text style={styles.vehicleTitle}>Thông tin xe</Text>
-          </View>
+      <View style={styles.header}>
+        <View style={styles.vehicleTitleContainer}>
+          <LinearGradient
+            colors={[Colors.primary, Colors.primaryLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.iconContainer}
+          >
+            <Ionicons name="car-sport" size={28} color={Colors.background.light} />
+          </LinearGradient>
+          <Text style={styles.vehicleTitle}>Thông tin xe</Text>
         </View>
-        <View style={styles.divider} />
-        <View style={styles.emptyContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.background.light} />
+      </View>
+      <LinearGradient
+        colors={['rgba(218, 28, 18, 0)', 'rgba(218, 28, 18, 0.15)', 'rgba(218, 28, 18, 0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.divider}
+      />
+      <View style={styles.emptyContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.primary} />
           <Text style={styles.emptyText}>{errorMessage}</Text>
           <Text style={[styles.emptyText, { fontSize: 11, marginTop: 8, opacity: 0.7 }]}>
             Vui lòng kiểm tra backend API
@@ -81,17 +90,27 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
     });
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.vehicleTitleContainer}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="car-sport" size={28} color={Colors.background.light} />
-            </View>
-            <Text style={styles.vehicleTitle}>Thông tin xe</Text>
-          </View>
+      <View style={styles.header}>
+        <View style={styles.vehicleTitleContainer}>
+          <LinearGradient
+            colors={[Colors.primary, Colors.primaryLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.iconContainer}
+          >
+            <Ionicons name="car-sport" size={28} color={Colors.background.light} />
+          </LinearGradient>
+          <Text style={styles.vehicleTitle}>Thông tin xe</Text>
         </View>
-        <View style={styles.divider} />
-        <View style={styles.emptyContainer}>
-          <Ionicons name="car-outline" size={48} color={Colors.background.light} />
+      </View>
+      <LinearGradient
+        colors={['rgba(218, 28, 18, 0)', 'rgba(218, 28, 18, 0.15)', 'rgba(218, 28, 18, 0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.divider}
+      />
+      <View style={styles.emptyContainer}>
+        <Ionicons name="car-outline" size={48} color={Colors.primary} />
           <Text style={styles.emptyText}>Chưa có thông tin xe</Text>
           <Text style={[styles.emptyText, { fontSize: 12, marginTop: 8, opacity: 0.7 }]}>
             Xe sẽ tự động được thêm khi tạo đơn dịch vụ
@@ -125,42 +144,53 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
     >
       <View style={styles.header}>
         <View style={styles.vehicleTitleContainer}>
-          <View style={styles.iconContainer}>
+          <LinearGradient
+            colors={[Colors.primary, Colors.primaryLight]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.iconContainer}
+          >
             <Ionicons name="car-sport" size={28} color={Colors.background.light} />
-          </View>
+          </LinearGradient>
           <Text style={styles.vehicleTitle}>Thông tin xe</Text>
         </View>
         <View style={styles.chevronContainer}>
-          <Ionicons name="chevron-forward" size={20} color={Colors.background.light} />
+          <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
         </View>
       </View>
 
-      <View style={styles.divider} />
+      <LinearGradient
+        colors={['rgba(218, 28, 18, 0)', 'rgba(218, 28, 18, 0.15)', 'rgba(218, 28, 18, 0)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.divider}
+      />
 
       <View style={styles.vehicleContent}>
         <View style={styles.avatarContainer}>
           {firstVehicle.image_url ? (
-            <Image 
+            <OptimizedImage 
               source={{ uri: firstVehicle.image_url }} 
+              width={88}
+              height={88}
+              borderRadius={44}
               style={styles.vehicleAvatar}
-              resizeMode="cover"
-              onError={(error) => console.log('VehicleInfoCard - Image load error:', error.nativeEvent.error)}
             />
           ) : (
             <View style={[styles.vehicleAvatar, styles.placeholderFrame]}>
-              <Ionicons name="camera-outline" size={32} color={Colors.background.light} />
+              <Ionicons name="camera-outline" size={32} color={Colors.primary} />
             </View>
           )}
         </View>
 
         <View style={styles.vehicleInfo}>
           <View style={styles.infoRow}>
-            <Ionicons name="document-text-outline" size={16} color={Colors.background.light} />
+            <Ionicons name="document-text-outline" size={16} color={Colors.primary} />
             <Text style={styles.licensePlate}>{firstVehicle.license_plate}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="car-outline" size={16} color={Colors.background.light} />
+            <Ionicons name="car-outline" size={16} color={Colors.text.secondary} />
             <Text style={styles.vehicleType}>{firstVehicle.model || 'Chưa cập nhật'}</Text>
           </View>
 
@@ -189,7 +219,7 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
           <Text style={styles.viewAllText}>
             Xem tất cả xe ({vehiclesData.data.length})
           </Text>
-          <Ionicons name="arrow-forward" size={16} color={Colors.background.light} />
+          <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -198,21 +228,16 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.background.red,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: Colors.neutral[400],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 0.5,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-  },
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 200,
+    backgroundColor: Colors.background.light,
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   emptyContainer: {
     alignItems: "center",
@@ -220,9 +245,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.background.light,
+    color: Colors.text.secondary,
     marginTop: 12,
-    opacity: 0.8,
   },
   viewAllButton: {
     flexDirection: "row",
@@ -231,13 +255,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.2)",
+    borderTopColor: Colors.neutral[200],
     gap: 8,
   },
   viewAllText: {
     fontSize: 15,
     fontWeight: "600",
-    color: Colors.background.light,
+    color: Colors.primary,
     fontFamily: Typography.fontFamily.bold,
   },
   header: {
@@ -251,18 +275,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   vehicleTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: Colors.background.light,
+    color: Colors.text.primary,
     fontFamily: Typography.fontFamily.bold,
     letterSpacing: 0.5,
   },
@@ -270,14 +293,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: Colors.primarySoft,
     justifyContent: "center",
     alignItems: "center",
   },
   divider: {
     height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
-    marginVertical: 16,
+    marginVertical: 20,
   },
   vehicleContent: {
     flexDirection: "row",
@@ -291,11 +313,11 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 44,
     borderWidth: 3,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: Colors.primary,
   },
   placeholderFrame: {
     borderStyle: "dashed",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: Colors.primarySoft,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -311,15 +333,14 @@ const styles = StyleSheet.create({
   licensePlate: {
     fontSize: 18,
     fontWeight: "600",
-    color: Colors.background.light,
+    color: Colors.primary,
     marginLeft: 8,
     letterSpacing: 0.3,
   },
   vehicleType: {
     fontSize: 16,
-    color: Colors.background.light,
+    color: Colors.text.secondary,
     marginLeft: 8,
-    opacity: 0.9,
   },
   statusText: {
     fontSize: 16,

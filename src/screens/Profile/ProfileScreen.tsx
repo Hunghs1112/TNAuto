@@ -86,40 +86,42 @@ const ProfileScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <Header title="Cài đặt" />
-      
-      <View style={styles.body}>
-        <View style={styles.form}>
-          <View style={styles.avatarContainer}>
-            <Image 
-              source={{ uri: avatarUrl }} 
-              style={styles.avatar}
-              resizeMode="cover"
-              onError={(error) => console.log('ProfileScreen - Avatar load error:', error.nativeEvent.error)}
-            />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        
+        <Header title="Cài đặt" />
+        
+        <View style={styles.body}>
+          <View style={styles.form}>
+            <View style={styles.avatarContainer}>
+              <Image 
+                source={{ uri: avatarUrl }} 
+                style={styles.avatar}
+                resizeMode="cover"
+                onError={(error) => console.log('ProfileScreen - Avatar load error:', error.nativeEvent.error)}
+              />
+            </View>
+            
+            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.userTypeText}>{userType === 'customer' ? 'Khách hàng' : 'Nhân viên'}</Text>
+            
+            <View style={styles.menuContainer}>
+              {renderMenuItems()}
+              <View style={styles.spacer} />
+              <Pressable style={styles.logoutItem} onPress={handleLogout}>
+                <View style={styles.logoutIconContainer}>
+                  <Ionicons name="log-out-outline" size={16} color={Colors.background.red} />
+                </View>
+                <Text style={styles.logoutText}>Đăng xuất</Text>
+              </Pressable>
+            </View>
           </View>
-          
-          <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.userTypeText}>{userType === 'customer' ? 'Khách hàng' : 'Nhân viên'}</Text>
-          
-          <View style={styles.menuContainer}>
-            {renderMenuItems()}
-            <View style={styles.spacer} />
-            <Pressable style={styles.logoutItem} onPress={handleLogout}>
-              <View style={styles.logoutIconContainer}>
-                <Ionicons name="log-out-outline" size={16} color={Colors.background.red} />
-              </View>
-              <Text style={styles.logoutText}>Đăng xuất</Text>
-            </Pressable>
-          </View>
+
+
         </View>
-
-
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 

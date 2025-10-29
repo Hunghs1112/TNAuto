@@ -4,14 +4,18 @@ import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White for bottom safe area
+  },
   root: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
   },
   body: {
     flex: 1,
     width: "100%",
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.background.light,
   },
   scrollContent: {
     flexGrow: 1,

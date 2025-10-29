@@ -7,12 +7,13 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_HEIGHT = SCREEN_WIDTH * 0.8;
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White for bottom safe area
+  },
   root: {
     flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  redSection: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.gradients.primary[0], // Red for top safe area
   },
   whiteSection: {
     flex: 1,

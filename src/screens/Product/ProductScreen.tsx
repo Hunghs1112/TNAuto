@@ -1,5 +1,5 @@
 // src/screens/Product/ProductScreen.tsx (Optimized with new loading pattern)
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { View, FlatList, RefreshControl, StatusBar } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Product, useGetProductsQuery } from "../../services/productApi";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { ListItemSkeleton } from "../../components/SkeletonLoader";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type ProductScreenRouteProp = RouteProp<AppStackParamList, 'Product'>;
@@ -38,6 +39,48 @@ const ProductScreen = () => {
     return query.data;
   }, [query.data, categoryId]);
 
+  // Optimized FlatList callbacks
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: 112 + 16, // item height + separator
+      offset: (112 + 16) * index,
+      index,
+    }),
+    []
+  );
+
+  const keyExtractor = useCallback((item: any) => item.id.toString(), []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <Item
+        key={item.id}
+        title={item.title}
+        description={item.description}
+        imageUri={item.image}
+        onPress={item.onPress}
+      />
+    ),
+    []
+  );
+
+  const renderSeparator = useCallback(() => <View style={{ height: 16 }} />, []);
+
+  const renderListEmpty = useCallback(() => {
+    if (query.isLoading) {
+      return (
+        <View>
+          <ListItemSkeleton />
+          <View style={{ height: 16 }} />
+          <ListItemSkeleton />
+          <View style={{ height: 16 }} />
+          <ListItemSkeleton />
+        </View>
+      );
+    }
+    return null;
+  }, [query.isLoading]);
+
   console.log('ProductScreen: Rendering', {
     isLoading: query.isLoading,
     totalProducts: query.data?.length,
@@ -47,14 +90,12 @@ const ProductScreen = () => {
   });
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <View style={styles.redSection}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title={headerTitle} />
-      </View>
-      
-      <View style={styles.whiteSection}>
+        
+        <View style={styles.whiteSection}>
         <View style={styles.body}>
           <QueryWrapper
             query={query}
@@ -84,21 +125,21 @@ const ProductScreen = () => {
                 <View style={styles.form}>
                   <FlatList
                     data={productItems}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
-                      <Item
-                        key={item.id}
-                        title={item.title}
-                        description={item.description}
-                        onPress={item.onPress}
-                      />
-                    )}
-                    ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderItem}
+                    getItemLayout={getItemLayout}
+                    ItemSeparatorComponent={renderSeparator}
+                    ListEmptyComponent={renderListEmpty}
                     showsVerticalScrollIndicator={false}
                     style={styles.servicesContainer}
                     refreshControl={
                       <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
+                    removeClippedSubviews={true}
+                    maxToRenderPerBatch={10}
+                    windowSize={21}
+                    initialNumToRender={10}
+                    updateCellsBatchingPeriod={50}
                   />
                 </View>
               );
@@ -110,7 +151,8 @@ const ProductScreen = () => {
           </View>
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 

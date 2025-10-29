@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.background.light,
   },
   header: {
-    backgroundColor: Colors.background.red,
+    backgroundColor: Colors.gradients.primary[0],
   },
   list: {
     padding: 16,

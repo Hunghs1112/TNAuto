@@ -1,10 +1,11 @@
 // src/screens/MyService/MyServiceScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
+import { PerformanceConfig } from "../../config/performance";
 import Header from "../../components/Header";
 import { styles } from "./styles";
 import SectionHeader from "../Home/SectionHeader";
@@ -19,32 +20,32 @@ import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-const MyServiceScreen = () => {
+const MyServiceScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { refreshing, onRefresh } = useAutoRefresh();
   const userPhone = useAppSelector((state: RootState) => state.auth.userPhone || '');
   const services = useAppSelector((state: RootState) => state.services.services);
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  console.log('MyServiceScreen debug - userPhone:', userPhone);
-
   const { data: ordersResponse, isLoading, error } = useGetCustomerOrdersQuery(userPhone, {
     skip: !userPhone,
   });
 
-  console.log('MyServiceScreen debug - ordersResponse:', ordersResponse);
-  console.log('MyServiceScreen debug - isLoading:', isLoading);
-  console.log('MyServiceScreen debug - error:', error);
-
   const orders = ordersResponse?.data || [];
 
-  // Sort orders by receive_date ascending
-  const sortedOrders = [...orders].sort((a, b) => new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime());
+  // Memoized sorted orders
+  const sortedOrders = useMemo(() => 
+    [...orders].sort((a, b) => new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime()),
+    [orders]
+  );
 
-  // Filter orders based on selected status
-  const filteredOrders = selectedStatus === 'all' 
-    ? sortedOrders 
-    : sortedOrders.filter(order => order.status === selectedStatus);
+  // Memoized filtered orders
+  const filteredOrders = useMemo(() => 
+    selectedStatus === 'all' 
+      ? sortedOrders 
+      : sortedOrders.filter(order => order.status === selectedStatus),
+    [sortedOrders, selectedStatus]
+  );
 
   const statusFilters = [
     { key: 'all', label: 'Tất cả' },
@@ -56,72 +57,91 @@ const MyServiceScreen = () => {
     { key: 'canceled', label: 'Đã hủy' },
   ];
 
-  const getSectionTitle = () => {
+  const sectionTitle = useMemo(() => {
     const filter = statusFilters.find(f => f.key === selectedStatus);
     return filter ? `${filter.label} dịch vụ` : 'Tất cả dịch vụ';
-  };
+  }, [selectedStatus, statusFilters]);
+
+  const handleStatusChange = useCallback((key: string) => {
+    setSelectedStatus(key);
+  }, []);
+
+  const handleOrderPress = useCallback((orderId: number | string) => {
+    navigation.navigate('OrderDetail', { id: orderId.toString() });
+  }, [navigation]);
+
+  const renderOrderItem = useCallback(({ item }: any) => {
+    const serviceName = services?.find((s: { id: number }) => s.id === Number(item.service_id))?.name || 'Dịch vụ không xác định';
+    const secondaryName = `Nhân viên: ${item.employee_name || 'Chưa giao'}`;
+    return (
+      <ServiceOrderCard
+        serviceName={serviceName}
+        secondaryName={secondaryName}
+        receiveDate={item.receive_date}
+        scheduleDate={item.delivery_date || 'Chưa xác định'}
+        status={item.status}
+        onPress={() => handleOrderPress(item.id)}
+      />
+    );
+  }, [services, handleOrderPress]);
+
+  const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Dịch vụ của tôi" />
-        </View>
-        <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
-          <ActivityIndicator size="large" color={Colors.text.primary} />
-        </View>
-      </SafeAreaView>
+          <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
+            <ActivityIndicator size="large" color={Colors.text.primary} />
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
   if (error || !ordersResponse?.success) {
     return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Dịch vụ của tôi" />
-        </View>
-        <View style={styles.whiteSection}>
-          <View style={styles.body}>
-            <Text>Lỗi tải dịch vụ</Text>
+          <View style={styles.whiteSection}>
+            <View style={styles.body}>
+              <Text>Lỗi tải dịch vụ</Text>
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
-  console.log('MyServiceScreen debug - sortedOrders:', sortedOrders);
-  console.log('MyServiceScreen debug - filteredOrders:', filteredOrders);
-  console.log('MyServiceScreen debug - selectedStatus:', selectedStatus);
-
   if (sortedOrders.length === 0) {
     return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Dịch vụ của tôi" />
-        </View>
-        <View style={styles.whiteSection}>
-          <View style={styles.body}>
-            <View style={styles.emptyContainer}>
-              <Ionicons name="document-outline" size={48} color={Colors.text.secondary} />
-              <Text style={styles.emptyText}>Chưa có đơn hàng nào</Text>
+          <View style={styles.whiteSection}>
+            <View style={styles.body}>
+              <View style={styles.emptyContainer}>
+                <Ionicons name="document-outline" size={48} color={Colors.text.secondary} />
+                <Text style={styles.emptyText}>Chưa có đơn hàng nào</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <View style={styles.redSection}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.gradients.primary[0]} />
         <Header title="Dịch vụ của tôi" />
-      </View>
-      
+        
       <View style={styles.whiteSection}>
         <View style={styles.body}>
           {/* Status Filter Tabs */}
@@ -139,10 +159,7 @@ const MyServiceScreen = () => {
                     styles.statusTab,
                     selectedStatus === filter.key && styles.statusTabActive
                   ]}
-                  onPress={() => {
-                    console.log('MyServiceScreen: Filter by status', filter.key);
-                    setSelectedStatus(filter.key);
-                  }}
+                  onPress={() => handleStatusChange(filter.key)}
                 >
                   <Text style={[
                     styles.statusTabText,
@@ -156,39 +173,27 @@ const MyServiceScreen = () => {
           </View>
           
           <View style={styles.form}>
-            <SectionHeader title={getSectionTitle()} />
+            <SectionHeader title={sectionTitle} />
             <FlatList
               data={filteredOrders}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => {
-                console.log('MyServiceScreen debug - mapping order:', item);
-                console.log('MyServiceScreen debug - service_id (raw):', item.service_id, 'type:', typeof item.service_id);
-                const serviceName = services?.find((s: { id: number; name: string; }) => s.id === Number(item.service_id))?.name || 'Dịch vụ không xác định';
-                const secondaryName = `Nhân viên: ${item.employee_name || 'Chưa giao'}`;
-                return (
-                  <ServiceOrderCard
-                    serviceName={serviceName}
-                    secondaryName={secondaryName}
-                    receiveDate={item.receive_date}
-                    scheduleDate={item.delivery_date || 'Chưa xác định'}
-                    status={item.status}
-                    onPress={() => {
-                      console.log('MyServiceScreen: Navigate to OrderDetail', item.id);
-                      navigation.navigate('OrderDetail', { id: item.id.toString() });
-                    }}
-                  />
-                );
-              }}
+              keyExtractor={keyExtractor}
+              renderItem={renderOrderItem}
               ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
               showsVerticalScrollIndicator={false}
               style={styles.servicesContainer}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
+              maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
+              windowSize={PerformanceConfig.flatList.windowSize}
+              removeClippedSubviews={PerformanceConfig.flatList.removeClippedSubviews}
+              updateCellsBatchingPeriod={PerformanceConfig.flatList.updateCellsBatchingPeriod}
             />
           </View>
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
-export default MyServiceScreen;
+export default React.memo(MyServiceScreen);

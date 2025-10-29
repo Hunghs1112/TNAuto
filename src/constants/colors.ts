@@ -2,6 +2,8 @@
 export const Colors = {
   // 🎨 Brand Colors - Màu thương hiệu chính
   primary: '#DA1C12',      // Đỏ chính
+  primaryLight: '#FF6B6B', // Đỏ nhạt cho gradients
+  primarySoft: '#FFF5F5',  // Đỏ rất nhạt cho backgrounds
   secondary: '#FF9500',    // Cam phụ
   
   // 🖼 Background Colors - Màu nền
@@ -69,7 +71,10 @@ export const Colors = {
   // 📦 UI Elements - Phần tử giao diện
   border: '#E5E7EB',       // Viền
   divider: '#D1D5DB',      // Đường phân cách
-  shadow: '#00000029',     // Bóng đổ
+  shadow: {
+    default: '#00000029',  // Bóng đổ mặc định
+    red: '#DA1C1220',      // Bóng đổ màu đỏ
+  },
   overlay: '#00000080',    // Lớp phủ
 
   // 🔘 Button Colors - Màu nút
@@ -85,5 +90,27 @@ export const Colors = {
     active: '#34C759',     // Còn hiệu lực
     expiring: '#FFCC00',   // Sắp hết hạn
     expired: '#FF3B30',    // Hết hạn
+  },
+
+  // 🌈 Gradients - Màu gradient
+  gradients: {
+    // Gradient đỏ cam chủ đạo
+    primary: ['#DA1C12', '#FF9500'],           // Đỏ → Cam
+    primaryReverse: ['#FF9500', '#DA1C12'],    // Cam → Đỏ
+    
+    // Gradient warm - ấm áp
+    warm: ['#FF9500', '#FEB052'],              // Cam → Vàng cam
+    sunset: ['#DA1C12', '#FF9500', '#FEB052'], // Đỏ → Cam → Vàng
+    
+    // Gradient cool - mát mẻ
+    ocean: ['#0A84FF', '#5856D6'],             // Xanh dương → Tím
+    success: ['#34C759', '#10B981'],           // Xanh lá
+    
+    // Gradient neutral
+    dark: ['#1F2937', '#111827'],              // Xám tối
+    light: ['#FFFFFF', '#F5F5F5'],             // Trắng → Xám nhạt
+    
+    // Gradient special effects
+    shimmer: ['#E5E7EB', '#F5F5F5', '#E5E7EB'], // Cho skeleton
   },
 };

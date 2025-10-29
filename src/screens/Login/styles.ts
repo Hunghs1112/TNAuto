@@ -3,14 +3,18 @@ import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White for bottom safe area
+  },
   root: {
     flex: 1,
-    backgroundColor: Colors.primary || Colors.background.light,
+    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
   },
   body: {
     flex: 1,
     width: "100%",
-    backgroundColor: Colors.primary || Colors.background.light,
+    backgroundColor: Colors.background.light,
   },
   form: {
     flex: 1,
@@ -47,8 +51,14 @@ export const styles = StyleSheet.create({
   
   // Input Container - Chỉ tăng gap giữa các input
   inputContainer: {
-    gap: 10, // Tăng gap giữa email và password lên 20px
+    gap: 10, // Gap giữa các input fields
     width: "100%",
+    marginBottom: 10, // Khoảng cách với nút đăng nhập
+  },
+  
+  // Single input style
+  inputWrapper: {
+    marginBottom: 10, // Khoảng cách với nút đăng nhập khi chỉ có 1 input
   },
   
   customerLink: {

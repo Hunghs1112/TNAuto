@@ -35,7 +35,7 @@ const Header = ({ title = "Đăng nhập", hideBackButton = false }: HeaderProps
     <View style={styles.container}>
       {!hideBackButton && navigation.canGoBack() && (
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Ionicons name="chevron-back-outline" size={32} color={Colors.text.inverted} />
+          <Ionicons name="chevron-back-outline" size={28} color={Colors.background.light} />
         </TouchableOpacity>
       )}
       <Text style={styles.title}>{title}</Text>
@@ -49,27 +49,34 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 56,
     paddingHorizontal: 16,
-    marginTop: '6%',
+    marginTop: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    backgroundColor: Colors.background.red,
+    backgroundColor: Colors.primary,
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButton: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   title: {
-    color: Colors.text.inverted,
+    color: Colors.background.light,
     fontSize: Typography.size.xl,
     fontWeight: Typography.weight.bold,
     fontFamily: Typography.fontFamily.bold,
-    marginLeft: 8,
+    marginLeft: 12,
   },
   spacer: {
-    width: 32,
+    width: 40,
   },
 });
 

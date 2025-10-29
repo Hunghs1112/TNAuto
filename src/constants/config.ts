@@ -10,4 +10,4 @@ export const Routes = {
   },
 };
 
-export const API_BASE_URL = 'http://103.200.20.253:3000/api'; // Android emulator; change to 'http://localhost:3000' for iOS
+export const API_BASE_URL = 'http://10.0.2.2:3000/api'; // Android emulator; change to 'http://localhost:3000' for iOS

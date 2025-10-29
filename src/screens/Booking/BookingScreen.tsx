@@ -1,6 +1,6 @@
 // src/screens/Booking/BookingScreen.tsx
-import React, { useState, useEffect } from "react";
-import { View, Text, StatusBar, ScrollView, Alert, ActivityIndicator, RefreshControl } from "react-native";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { View, Text, StatusBar, ScrollView, Alert, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
@@ -19,6 +19,7 @@ import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { RootState } from "../../redux/types";
 import { setServices } from "../../redux/slices/servicesSlice";
 import { useGetServicesQuery, useCreateOrderMutation } from "../../services/customerApi";
+import { getCurrentDate, getDateAfterDays, formatDateForAPI } from "../../utils/dateHelpers";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
@@ -39,7 +40,7 @@ interface InputFieldWithLabelProps {
   editable?: boolean;
 }
 
-const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = ({
+const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
   value,
   onChangeText,
   placeholder,
@@ -68,9 +69,9 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = ({
       />
     </View>
   </View>
-);
+));
 
-const BookingScreen = () => {
+const BookingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const { refreshing, onRefresh } = useAutoRefresh();
@@ -82,71 +83,60 @@ const BookingScreen = () => {
   const [licensePlate, setLicensePlate] = useState(userLicensePlate || '');
   const [vehicleType, setVehicleType] = useState('');
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
-  const [deliveryDate, setDeliveryDate] = useState('11/11/1111');
-  const [receiveDate, setReceiveDate] = useState('11/11/1111');
+  const [deliveryDate, setDeliveryDate] = useState(getCurrentDate()); // Ngày hiện tại
+  const [receiveDate, setReceiveDate] = useState(getDateAfterDays(7)); // 7 ngày sau
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    console.log('BookingScreen: Auth data:', { userName, userPhone, userLicensePlate });
     if (servicesData?.success && servicesData.data) {
       dispatch(setServices({ data: servicesData.data, count: servicesData.data.length }));
-      console.log('BookingScreen: Services loaded:', servicesData.data.length);
     }
   }, [servicesData, dispatch]);
 
   if (servicesIsLoading) {
     return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Đặt lịch dịch vụ" />
-        </View>
-        <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
-          <ActivityIndicator size="large" color={Colors.text.primary} />
-        </View>
-      </SafeAreaView>
+          <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
+            <ActivityIndicator size="large" color={Colors.text.primary} />
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
   if (servicesError || !servicesData?.success) {
     return (
-      <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Đặt lịch dịch vụ" />
-        </View>
-        <View style={styles.whiteSection}>
-          <View style={styles.body}>
-            <Text style={styles.errorText}>Lỗi tải dịch vụ</Text>
+          <View style={styles.whiteSection}>
+            <View style={styles.body}>
+              <Text style={styles.errorText}>Lỗi tải dịch vụ</Text>
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
-  const formatDate = (dateStr: string): string => {
-    if (!dateStr || dateStr === '11/11/1111') return new Date().toISOString().split('T')[0];
-    const [d, m, y] = dateStr.split('/').map(Number);
-    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  };
-
-  // Moved InputFieldWithLabel outside component to prevent re-creation
-
-  const handleServiceSelect = (option: ServiceItem) => {
+  const handleServiceSelect = useCallback((option: ServiceItem) => {
     setSelectedService(option);
-    console.log('BookingScreen: Service selected:', option);
-  };
+  }, []);
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     if (!licensePlate || !vehicleType || !selectedService || !receiveDate) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin bắt buộc!');
       return;
     }
     setIsLoading(true);
     try {
-      const formattedReceiveDate = formatDate(receiveDate);
-      const formattedDeliveryDate = formatDate(deliveryDate);
+      const formattedReceiveDate = formatDateForAPI(receiveDate);
+      const formattedDeliveryDate = formatDateForAPI(deliveryDate);
       const body = {
         receiver_name: userName,
         receiver_phone: userPhone,
@@ -157,7 +147,6 @@ const BookingScreen = () => {
         delivery_date: formattedDeliveryDate,
         note,
       };
-      console.log('BookingScreen: Booking data:', body);
       const result = await createOrder(body).unwrap();
       if (result.success) {
         Alert.alert('Thành công', 'Đặt lịch thành công!');
@@ -168,37 +157,38 @@ const BookingScreen = () => {
             navigation.navigate('Home');
           }
         } catch (navError) {
-          console.error('BookingScreen: Navigation error after booking:', navError);
           navigation.navigate('Home');
         }
       } else {
         Alert.alert('Lỗi', 'Đặt lịch thất bại!');
       }
     } catch (error) {
-      console.error('BookingScreen: Booking error:', error);
       Alert.alert('Lỗi', 'Đặt lịch thất bại!');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, navigation]);
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <View style={styles.redSection}>
-        <Header title="Đặt lịch dịch vụ" />
-      </View>
-      
-      <View style={styles.whiteSection}>
-        <View style={styles.body}>
-          <ScrollView
-            style={styles.form}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          >
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.gradients.primary[0]} />
+          <Header title="Đặt lịch dịch vụ" />
+          
+          <View style={styles.whiteSection}>
+            <View style={styles.body}>
+              <ScrollView
+                style={styles.form}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              >
             <InputFieldWithLabel
               value={userName || ''}
               onChangeText={() => {}}
@@ -240,25 +230,27 @@ const BookingScreen = () => {
               disabled={servicesLoading}
             />
             <View style={styles.dateRowContainer}>
-              <DateInput value={deliveryDate} onChangeText={setDeliveryDate} placeholder="11/11/1111" label="Ngày giao" />
-              <DateInput value={receiveDate} onChangeText={setReceiveDate} placeholder="11/11/1111" label="Ngày nhận" />
+              <DateInput value={deliveryDate} onChangeText={setDeliveryDate} placeholder={getCurrentDate()} label="Ngày giao" />
+              <DateInput value={receiveDate} onChangeText={setReceiveDate} placeholder={getDateAfterDays(7)} label="Ngày nhận" />
             </View>
-            <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
-          </ScrollView>
-          <View style={styles.confirmButtonContainer}>
-            <ConfirmButton
-              title="Xác nhận đặt lịch"
-              onPress={handleConfirm}
-              loading={isLoading}
-              disabled={isLoading}
-              height={44}
-              borderRadius={15}
-            />
+                <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
+              </ScrollView>
+              <View style={styles.confirmButtonContainer}>
+                <ConfirmButton
+                  title="Xác nhận đặt lịch"
+                  onPress={handleConfirm}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  height={44}
+                  borderRadius={15}
+                />
+              </View>
+            </View>
           </View>
-        </View>
+        </SafeAreaView>
       </View>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
-export default BookingScreen;
+export default React.memo(BookingScreen);

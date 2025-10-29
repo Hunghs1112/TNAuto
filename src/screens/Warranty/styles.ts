@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.background.light,
   },
   header: {
-    backgroundColor: Colors.background.red,
+    backgroundColor: Colors.gradients.primary[0],
   },
   content: {
     flex: 1,

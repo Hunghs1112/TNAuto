@@ -5,15 +5,34 @@ import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typo";
 
 export const sharedStyles = StyleSheet.create({
-  // Root container
-  root: {
+  // Container - White background for bottom safe area
+  container: {
     flex: 1,
+    backgroundColor: Colors.background.light,
   },
   
-  // Header section (red)
-  redSection: {
+  // Root container - Red background for top safe area
+  root: {
+    flex: 1,
     backgroundColor: Colors.background.red,
-    height: 80,
+  },
+  
+  // SafeAreaView with red top and white bottom (deprecated - use container + root)
+  safeAreaRedTop: {
+    flex: 1,
+    backgroundColor: Colors.background.red, // Red for top safe area (notch/status bar)
+  },
+  
+  // SafeAreaView with white background
+  safeAreaWhite: {
+    flex: 1,
+    backgroundColor: Colors.background.light,
+  },
+  
+  // Container for screens with red top safe area and white bottom
+  containerWhiteBottom: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White for bottom safe area
   },
   
   // Content section (white)

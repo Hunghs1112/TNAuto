@@ -48,6 +48,25 @@ const notificationSlice = createSlice({
         console.log('notificationSlice: Marked as read, new unreadCount:', state.unreadCount); // Debug
       }
     },
+    markAllAsRead: (state) => {
+      state.notifications.forEach(n => {
+        n.read = true;
+      });
+      state.unreadCount = 0;
+      console.log('notificationSlice: Marked all as read'); // Debug
+    },
+    deleteNotification: (state, action: PayloadAction<string>) => {
+      const notification = state.notifications.find(n => n.id === action.payload);
+      if (notification && !notification.read) {
+        state.unreadCount -= 1;
+      }
+      state.notifications = state.notifications.filter(n => n.id !== action.payload);
+      console.log('notificationSlice: Deleted notification, new count:', state.notifications.length); // Debug
+    },
+    setUnreadCount: (state, action: PayloadAction<number>) => {
+      state.unreadCount = action.payload;
+      console.log('notificationSlice: Set unreadCount:', state.unreadCount); // Debug
+    },
     clearNotifications: (state) => {
       state.notifications = [];
       state.unreadCount = 0;
@@ -68,6 +87,9 @@ export const {
   setNotifications, 
   addNotification, 
   markAsRead, 
+  markAllAsRead,
+  deleteNotification,
+  setUnreadCount,
   clearNotifications, 
   setLoading, 
   setError 

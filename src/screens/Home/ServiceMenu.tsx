@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import { useNavigation } from "@react-navigation/native";
@@ -66,15 +67,25 @@ const ServiceMenu: React.FC = () => {
           accessibilityLabel={item.title}
         >
           <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons name={item.icon} size={24} color={Colors.background.red} />
-            </View>
+            <LinearGradient
+              colors={[Colors.primarySoft, Colors.background.light]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconCircle}
+            >
+              <Ionicons name={item.icon} size={28} color={Colors.primary} />
+            </LinearGradient>
             {item.id === 1 && showOfferBadge && (
-              <View style={styles.badge}>
+              <LinearGradient
+                colors={[Colors.primary, Colors.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.badge}
+              >
                 <Text style={styles.badgeText}>
                   {offerCount > 99 ? '99+' : offerCount}
                 </Text>
-              </View>
+              </LinearGradient>
             )}
           </View>
           <Text style={styles.title}>{item.title}</Text>
@@ -87,61 +98,64 @@ const ServiceMenu: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    gap: 13,
+    gap: 14,
     justifyContent: "space-between",
     width: "100%",
   },
   menuItem: {
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     flex: 1,
-    paddingVertical: 10, // Thêm padding dọc để mở rộng vùng bấm
-    paddingHorizontal: 8, // Thêm padding ngang để mở rộng vùng bấm
+    paddingVertical: 12,
+    paddingHorizontal: 8,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.background.light,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.neutral[300],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     position: "relative",
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.background.light,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: Colors.background.light,
+    borderColor: 'rgba(218, 28, 18, 0.1)',
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   title: {
-    color: Colors.text.secondary,
-    fontFamily: Typography.fontFamily.regular,
+    color: Colors.text.primary,
+    fontFamily: Typography.fontFamily.medium,
     fontSize: 14,
     textAlign: "center",
     lineHeight: 18,
+    fontWeight: Typography.weight.medium,
   },
   badge: {
     position: "absolute",
-    top: 4,
-    right: 4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: Colors.background.red,
+    top: 2,
+    right: 2,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     borderWidth: 2,
     borderColor: Colors.background.light,
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   badgeText: {
     color: Colors.text.inverted,

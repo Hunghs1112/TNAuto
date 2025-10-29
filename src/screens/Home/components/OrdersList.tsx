@@ -1,8 +1,9 @@
 // src/screens/Home/components/OrdersList.tsx
 import React, { memo, useCallback } from 'react';
-import { View, Text, ActivityIndicator, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, FlatList } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../../constants/colors';
+import { PerformanceConfig } from '../../../config/performance';
 import ServiceOrderCard from '../../../components/ServiceOrderCard';
 import { styles } from '../styles';
 
@@ -25,8 +26,6 @@ interface OrdersListProps {
   services: Array<{ id: number; name: string }>;
   userType: 'customer' | 'employee';
   onOrderPress: (id: string) => void;
-  onViewMore?: () => void;
-  showViewMore?: boolean;
   emptyMessage?: string;
 }
 
@@ -36,8 +35,6 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
   services,
   userType,
   onOrderPress,
-  onViewMore,
-  showViewMore = false,
   emptyMessage = 'Chưa có đơn hàng nào',
 }) => {
   const getServiceName = useCallback((item: Order) => {
@@ -92,23 +89,18 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
   }
 
   return (
-    <View>
-      <FlatList
-        data={orders}
-        keyExtractor={keyExtractor}
-        renderItem={renderOrderItem}
-        showsVerticalScrollIndicator={false}
-        style={styles.servicesContainer}
-        initialNumToRender={5}
-        maxToRenderPerBatch={5}
-        windowSize={5}
-      />
-      {showViewMore && onViewMore && (
-        <TouchableOpacity style={styles.viewMoreButton} onPress={onViewMore}>
-          <Text style={styles.viewMoreText}>Xem thêm</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+    <FlatList
+      data={orders}
+      keyExtractor={keyExtractor}
+      renderItem={renderOrderItem}
+      showsVerticalScrollIndicator={false}
+      style={styles.servicesContainer}
+      initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
+      maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
+      windowSize={PerformanceConfig.flatList.windowSize}
+      removeClippedSubviews={PerformanceConfig.flatList.removeClippedSubviews}
+      updateCellsBatchingPeriod={PerformanceConfig.flatList.updateCellsBatchingPeriod}
+    />
   );
 });
 

@@ -10,6 +10,7 @@ import AppNavigator from "./AppNavigator";
 import Loading from "../components/Loading/Loading";
 import { useSelector } from "react-redux";
 import { navigationRef } from "./RootNavigation";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -25,16 +26,18 @@ function AppContent() {
   console.log('RootNavigator debug - isLoggedIn from persist:', isLoggedIn); // Debug persist state
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Loading visible={isLoading} text={message} />
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
-          <Stack.Screen name="App" component={AppNavigator} />
-        ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ErrorBoundary>
+      <NavigationContainer ref={navigationRef}>
+        <Loading visible={isLoading} text={message} />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {isLoggedIn ? (
+            <Stack.Screen name="App" component={AppNavigator} />
+          ) : (
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ErrorBoundary>
   );
 }
 

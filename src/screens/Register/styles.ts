@@ -3,14 +3,18 @@ import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White for bottom safe area
+  },
   root: {
     flex: 1,
-    backgroundColor: Colors.primary || Colors.background.light,
+    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
   },
   body: {
     flex: 1,
     width: "100%",
-    backgroundColor: Colors.primary || Colors.background.light,
+    backgroundColor: Colors.background.light,
   },
   form: {
     flex: 1,

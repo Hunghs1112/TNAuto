@@ -24,10 +24,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
-          <Header title="Phiếu dịch vụ" />
-        </View>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        <Header title="Phiếu dịch vụ" />
         <View style={[styles.whiteSection, styles.centerContent]}>
           <ActivityIndicator size="large" color={Colors.text.primary} />
         </View>
@@ -38,10 +36,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   if (error || !orderData) {
     return (
       <SafeAreaView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-        <View style={styles.redSection}>
-          <Header title="Phiếu dịch vụ" />
-        </View>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        <Header title="Phiếu dịch vụ" />
         <View style={styles.whiteSection}>
           <View style={styles.body}>
             <Text style={styles.errorText}>Không tìm thấy đơn hàng</Text>
@@ -151,11 +147,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <View style={styles.redSection}>
-        <Header title="Phiếu dịch vụ" />
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <Header title="Phiếu dịch vụ" />
       
       <View style={styles.whiteSection}>
         <View style={styles.body}>

@@ -1,9 +1,11 @@
 // src/components/ServiceOrderCard/ServiceOrderCard.tsx
-import type React from "react"
-import { View, Text, Pressable, StyleSheet } from "react-native"
+import React, { useCallback, useRef, useMemo } from "react"
+import { View, Text, Pressable, StyleSheet, Animated } from "react-native"
 import Ionicons from "react-native-vector-icons/Ionicons"
+import LinearGradient from 'react-native-linear-gradient'
 import { Colors } from "../../constants/colors"
 import { Typography } from "../../constants/typo"
+import { HapticFeedback } from "../../utils/haptics"
 
 interface ServiceOrderCardProps {
   serviceName: string
@@ -14,67 +16,96 @@ interface ServiceOrderCardProps {
   onPress?: () => void
 }
 
-const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, onPress }) => {
-  const getStatusText = (status?: string) => {
-    switch (status) {
-      case 'received':
-        return 'Đã đặt lịch';
-      case 'ready_for_pickup':
-        return 'Chờ xác nhận';
-      case 'in_progress':
-        return 'Đang xử lý';
-      case 'completed':
-        return 'Hoàn thành';
-      case 'cancelled':
-        return 'Đã hủy';
-      case 'canceled':
-        return 'Đã hủy';
-      default:
-        return status || '';
-    }
-  };
+const getStatusText = (status?: string) => {
+  switch (status) {
+    case 'received':
+      return 'Đã đặt lịch';
+    case 'ready_for_pickup':
+      return 'Chờ xác nhận';
+    case 'in_progress':
+      return 'Đang xử lý';
+    case 'completed':
+      return 'Hoàn thành';
+    case 'cancelled':
+    case 'canceled':
+      return 'Đã hủy';
+    default:
+      return status || '';
+  }
+};
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'received':
-        return Colors.background.yellow;
-      case 'ready_for_pickup':
-        return Colors.background.orange;
-      case 'in_progress':
-        return Colors.background.red;
-      case 'completed':
-        return Colors.background.green;
-      case 'cancelled':
-        return Colors.background.gray;
-      case 'canceled':
-        return Colors.background.gray;
-      default:
-        return Colors.background.yellow;
-    }
-  };
+const getStatusColor = (status?: string) => {
+  switch (status) {
+    case 'received':
+      return Colors.background.yellow;
+    case 'ready_for_pickup':
+      return Colors.background.orange;
+    case 'in_progress':
+      return Colors.background.red;
+    case 'completed':
+      return Colors.background.green;
+    case 'cancelled':
+    case 'canceled':
+      return Colors.background.gray;
+    default:
+      return Colors.background.yellow;
+  }
+};
+
+const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, onPress }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const statusText = useMemo(() => getStatusText(status), [status]);
+  const statusColor = useMemo(() => getStatusColor(status), [status]);
+
+  const handlePressIn = useCallback(() => {
+    HapticFeedback.light();
+    Animated.spring(scaleValue, {
+      toValue: 0.98,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  }, [scaleValue]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  }, [scaleValue]);
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={`${serviceName} - ${secondaryName} - ${getStatusText(status)}`}
+      accessibilityLabel={`${serviceName} - ${secondaryName} - ${statusText}`}
     >
+      <Animated.View style={[styles.container, { transform: [{ scale: scaleValue }] }]}>
       <View style={styles.content}>
         <View style={styles.upperSection}>
           <View style={styles.header}>
             <View style={styles.serviceInfo}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="settings" size={26} color={Colors.text.primary} />
-              </View>
+              <LinearGradient
+                colors={[Colors.primary, Colors.primaryLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconContainer}
+              >
+                <Ionicons name="settings" size={28} color={Colors.background.light} />
+              </LinearGradient>
               <View style={styles.textContainer}>
                 <View style={styles.serviceText}>
                   <Text style={styles.serviceName}>{serviceName}</Text>
                   <Text style={styles.secondaryName}>{secondaryName}</Text>
                   {status && (
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
-                      <Text style={styles.statusText}>{getStatusText(status)}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                      <Text style={styles.statusText}>{statusText}</Text>
                     </View>
                   )}
                 </View>
@@ -90,43 +121,42 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, second
 
         <View style={styles.footer}>
           <View style={styles.dateItem}>
-            <View style={styles.dateIconContainer}>
-              <Ionicons name="calendar-outline" size={18} color={Colors.background.yellow} />
+            <View style={[styles.dateIconContainer, styles.receiveDateIcon]}>
+              <Ionicons name="calendar-outline" size={18} color={Colors.secondary} />
             </View>
             <Text style={styles.receiveDate}>{receiveDate}</Text>
           </View>
           <View style={styles.dateItem}>
-            <View style={styles.dateIconContainer}>
-              <Ionicons name="calendar" size={18} color={Colors.background.indigo} />
+            <View style={[styles.dateIconContainer, styles.scheduleDateIcon]}>
+              <Ionicons name="calendar" size={18} color={Colors.primary} />
             </View>
             <Text style={styles.scheduleDate}>{scheduleDate}</Text>
           </View>
         </View>
       </View>
+      </Animated.View>
     </Pressable>
   )
 }
 
+export default React.memo(ServiceOrderCard)
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.background.light,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: Colors.neutral[200],
     width: "100%",
-    minHeight: 180,
-    shadowColor: Colors.neutral[400],
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  pressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
+    minHeight: 190,
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
   },
   content: {
-    padding: 20,
+    padding: 24,
     flex: 1,
     justifyContent: "space-between",
   },
@@ -145,19 +175,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.neutral[100],
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.neutral[300],
-    shadowColor: Colors.neutral[300],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: Colors.shadow.red,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   arrowContainer: {
     padding: 4,
@@ -201,7 +228,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.divider,
     marginHorizontal: 0,
-    marginVertical: 16,
+    marginVertical: 18,
   },
   footer: {
     flex: 1,
@@ -220,25 +247,27 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.neutral[50],
     justifyContent: "center",
     alignItems: "center",
   },
+  receiveDateIcon: {
+    backgroundColor: 'rgba(255, 149, 0, 0.1)', // Orange soft background
+  },
+  scheduleDateIcon: {
+    backgroundColor: 'rgba(218, 28, 18, 0.1)', // Red soft background
+  },
   receiveDate: {
-    color: Colors.background.yellow,
+    color: Colors.secondary,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
     flex: 1,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   scheduleDate: {
-    color: Colors.background.indigo,
+    color: Colors.primary,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.sm,
     flex: 1,
-    fontWeight: "500",
+    fontWeight: "600",
   },
 })
-
-export default ServiceOrderCard
-

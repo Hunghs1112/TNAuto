@@ -1,6 +1,6 @@
 // src/screens/AccountInfo/AccountInfoScreen.tsx
 import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, Image, StatusBar, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, Image, StatusBar, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
@@ -206,13 +206,19 @@ const AccountInfoScreen = () => {
   const isLoading = isUpdating || isDeleting || isUploadingAvatar;
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <Header title="Thông tin tài khoản" showBackButton />
-      
-      <ScrollView style={styles.body} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.form}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+          
+          <Header title="Thông tin tài khoản" showBackButton />
+          
+          <ScrollView style={styles.body} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.form}>
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <Pressable onPress={handleAvatarPress} style={styles.avatarContainer}>
@@ -304,9 +310,11 @@ const AccountInfoScreen = () => {
               )}
             </Pressable>
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 

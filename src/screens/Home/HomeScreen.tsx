@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useCallback } from 'react';
 import { View, StatusBar, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
+import { PerformanceConfig } from '../../config/performance';
 import Navbar from '../../components/Navbar';
 import { styles } from './styles';
 import UserHeader from './UserHeader';
@@ -11,10 +12,11 @@ import ServiceMenu from './ServiceMenu';
 import SectionHeader from './SectionHeader';
 import QuickBookingForm from './QuickBookingForm';
 import OrdersList from './components/OrdersList';
+import ViewMoreButton from './ViewMoreButton';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { RootState } from '../../redux/types';
-import { useGetNotificationsQuery } from '../../services/notificationApi';
-import { setNotifications } from '../../redux/slices/notificationSlice';
+import { useGetNotificationsQuery, useGetUnreadCountQuery } from '../../services/notificationApi';
+import { setNotifications, setUnreadCount } from '../../redux/slices/notificationSlice';
 import { useNavigation } from '@react-navigation/native';
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -51,8 +53,13 @@ export default function HomeScreen() {
     currentEmployeeId: currentEmployee?.id,
   });
 
-  // Fetch notifications
+  // Fetch notifications and unread count
   const { data: notifications } = useGetNotificationsQuery(
+    { recipient_id: userId, recipient_type: userType },
+    { skip: !userId }
+  );
+
+  const { data: apiUnreadCount } = useGetUnreadCountQuery(
     { recipient_id: userId, recipient_type: userType },
     { skip: !userId }
   );
@@ -63,6 +70,13 @@ export default function HomeScreen() {
       dispatch(setNotifications(notifications));
     }
   }, [notifications, dispatch]);
+
+  // Sync unread count to Redux
+  useEffect(() => {
+    if (apiUnreadCount !== undefined) {
+      dispatch(setUnreadCount(apiUnreadCount));
+    }
+  }, [apiUnreadCount, dispatch]);
 
   // Navigation handlers
   const handleNotificationPress = useCallback(() => {
@@ -121,10 +135,11 @@ export default function HomeScreen() {
             services={services}
             userType={userType}
             onOrderPress={handleOrderPress}
-            onViewMore={userType === 'customer' ? handleViewMore : undefined}
-            showViewMore={userType === 'customer' && sortedOrders.length > 2}
             emptyMessage={userType === 'customer' ? 'Chưa có đơn hàng nào' : 'Chưa có đơn giao nào'}
           />
+          {userType === 'customer' && sortedOrders.length > 2 && (
+            <ViewMoreButton onPress={handleViewMore} title="Xem tất cả đơn hàng" />
+          )}
         </View>
       ),
     });
@@ -171,23 +186,29 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background.light} />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
-      <FlatList
-        data={sections}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-        scrollIndicatorInsets={{ right: 1 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={3}
-        windowSize={5}
-      />
+        <View style={styles.contentWrapper}>
+          <FlatList
+            data={sections}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.contentContainer}
+            scrollIndicatorInsets={{ right: 1 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            removeClippedSubviews={PerformanceConfig.flatList.removeClippedSubviews}
+            maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
+            windowSize={PerformanceConfig.flatList.windowSize}
+            initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
+            updateCellsBatchingPeriod={PerformanceConfig.flatList.updateCellsBatchingPeriod}
+          />
 
-      <Navbar />
-    </SafeAreaView>
+          <Navbar />
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }

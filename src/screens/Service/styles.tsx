@@ -3,12 +3,13 @@ import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.light, // White for bottom safe area
+  },
   root: {
     flex: 1,
-  },
-  redSection: {
-    backgroundColor: Colors.background.red,
-    height: 80, // Đủ để chứa Header (56px) + marginTop của Header (6% ~ 48px)
+    backgroundColor: Colors.gradients.primary[0], // Red for top safe area
   },
   whiteSection: {
     flex: 1,

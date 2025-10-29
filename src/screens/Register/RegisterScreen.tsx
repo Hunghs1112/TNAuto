@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StatusBar, TouchableOpacity, Image, Alert } from "react-native";
+import { View, Text, StatusBar, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors } from "../../constants/colors";
 import ConfirmButton from "../../components/ConfirmButton";
@@ -144,63 +144,71 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background.light} />
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <View style={styles.container}>
+        <SafeAreaView style={styles.root}>
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
-      <Header title="Đăng ký" />
+          <Header title="Đăng ký" />
 
-      <View style={styles.body}>
-        <View style={styles.form}>
-          <Text style={styles.welcomeText}>Chào mừng đến với TN Auto</Text>
-          <Text style={styles.subtitle}>Đăng ký tại đây</Text>
+          <View style={styles.body}>
+            <View style={styles.form}>
+              <Text style={styles.welcomeText}>Chào mừng đến với TN Auto</Text>
+              <Text style={styles.subtitle}>Đăng ký tại đây</Text>
 
-          <Image
-            style={styles.logo}
-            source={require('../../assets/logo.png')}
-            resizeMode="cover"
-          />
+              <Image
+                style={styles.logo}
+                source={require('../../assets/logo.png')}
+                resizeMode="cover"
+              />
 
-          <View style={styles.inputContainer}>
-            <TextInputComponent
-              value={name}
-              onChangeText={setName}
-              placeholder="Họ và tên *"
-              placeholderTextColor={Colors.text.placeholder}
-            />
-            <TextInputComponent
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Số điện thoại * (VD: 0909123456)"
-              placeholderTextColor={Colors.text.placeholder}
-              keyboardType="phone-pad"
-              maxLength={11}
-            />
-            <TextInputComponent
-              value={licensePlate}
-              onChangeText={(text) => setLicensePlate(text.toUpperCase())}
-              placeholder="Biển số xe (VD: 29A-12345)"
-              placeholderTextColor={Colors.text.placeholder}
-              autoCapitalize="characters"
-            />
-            <Text style={styles.helperText}>* Trường bắt buộc</Text>
+              <View style={styles.inputContainer}>
+                <TextInputComponent
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Họ và tên *"
+                  placeholderTextColor={Colors.text.placeholder}
+                />
+                <TextInputComponent
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Số điện thoại * (VD: 0909123456)"
+                  placeholderTextColor={Colors.text.placeholder}
+                  keyboardType="phone-pad"
+            
+                />
+                <TextInputComponent
+                  value={licensePlate}
+                  onChangeText={(text) => setLicensePlate(text.toUpperCase())}
+                  placeholder="Biển số xe (VD: 29A-12345)"
+                  placeholderTextColor={Colors.text.placeholder}
+               
+                />
+                <Text style={styles.helperText}>* Trường bắt buộc</Text>
+              </View>
+
+              <ConfirmButton
+                title="Đăng ký"
+                onPress={handleRegister}
+                loading={isLoading}
+                buttonColor={Colors.button.primary}
+                textColor={Colors.text.inverted}
+              />
+
+              <View style={styles.signup}>
+                <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
+                <TouchableOpacity onPress={handleLogin}>
+                  <Text style={styles.registerLink}>Đăng nhập</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-
-          <ConfirmButton
-            title="Đăng ký"
-            onPress={handleRegister}
-            loading={isLoading}
-            buttonColor={Colors.button.primary}
-            textColor={Colors.text.inverted}
-          />
-
-          <View style={styles.signup}>
-            <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
-            <TouchableOpacity onPress={handleLogin}>
-              <Text style={styles.registerLink}>Đăng nhập</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </SafeAreaView>
       </View>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }

@@ -27,14 +27,12 @@ const CategoryScreen = () => {
   });
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background.red} />
-      
-      <View style={styles.redSection}>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Danh mục sản phẩm" />
-      </View>
-      
-      <View style={styles.whiteSection}>
+        
+        <View style={styles.whiteSection}>
         <View style={styles.body}>
           <QueryWrapper
             query={query}
@@ -47,8 +45,7 @@ const CategoryScreen = () => {
                 <ScreenLoader />
               </View>
             }
-          >
-            {(categories: Category[]) => {
+            children={(categories: Category[]) => {
               const categoryItems = categories.map((category: Category) => ({
                 id: category.id,
                 title: category.name,
@@ -85,14 +82,15 @@ const CategoryScreen = () => {
                 </View>
               );
             }}
-          </QueryWrapper>
+          />
           
           <View style={styles.bar}>
             <View style={styles.barInner} />
           </View>
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 

@@ -1,8 +1,9 @@
 // src/navigation/AppNavigator.tsx (Updated: Added Warranty route)
 import React from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createNativeStackNavigator, NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/types";
+import { Platform } from "react-native";
 import HomeScreen from "../screens/Home/HomeScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
 import ServiceScreen from "../screens/Service/ServiceScreen";
@@ -53,8 +54,17 @@ export default function AppNavigator() {
 
   const initialRouteName = userType === 'employee' ? 'Home' : 'Home';
 
+  // Smooth screen transition configuration - Slide từ phải qua trái
+  const screenOptions: NativeStackNavigationOptions = {
+    headerShown: false,
+    animation: Platform.OS === 'ios' ? 'default' : 'slide_from_right',
+    animationDuration: 250,
+    gestureEnabled: true,
+    fullScreenGestureEnabled: true,
+  };
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRouteName}>
+    <Stack.Navigator screenOptions={screenOptions} initialRouteName={initialRouteName}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />

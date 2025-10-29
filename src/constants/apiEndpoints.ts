@@ -237,7 +237,13 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
   getNotifications: {
     method: 'GET',
     path: '/notifications',
-    description: 'Get notifications (required params: recipient_id, recipient_type; no body)',
+    description: 'Get notifications (required params: recipient_id, recipient_type; optional params: is_read, limit, offset)',
+    params: ['recipient_id', 'recipient_type', 'is_read', 'limit', 'offset'],
+  },
+  getUnreadCount: {
+    method: 'GET',
+    path: '/notifications/count',
+    description: 'Count unread notifications (required params: recipient_id, recipient_type)',
     params: ['recipient_id', 'recipient_type'],
   },
   createNotification: {
@@ -250,6 +256,17 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     method: 'PATCH',
     path: '/notifications/:id/read',
     description: 'Mark notification as read (required param: id; no body)',
+  },
+  markAllNotificationsRead: {
+    method: 'PATCH',
+    path: '/notifications/mark-all-read',
+    description: 'Mark all notifications as read (required body: recipient_id, recipient_type)',
+    body: ['recipient_id', 'recipient_type'],
+  },
+  deleteNotification: {
+    method: 'DELETE',
+    path: '/notifications/:id',
+    description: 'Delete notification (required param: id; no body)',
   },
   // FCM Token Management
   registerFcmToken: {

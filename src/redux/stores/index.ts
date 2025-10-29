@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authApi } from '../../services/authApi';
 import { customerApi } from '../../services/customerApi';
 import { offerApi } from '../../services/offerApi';
 import { productApi } from '../../services/productApi';
@@ -28,13 +29,14 @@ import imageReducer from '../slices/imageSlice';
 import notificationReducer from '../slices/notificationSlice';
 import warrantyReducer from '../slices/warrantySlice'; // Added
 
-const persistConfig = {
-  key: 'root',
+// Cấu hình persist riêng cho auth reducer
+const authPersistConfig = {
+  key: 'auth',
   storage: AsyncStorage,
-  whitelist: ['auth'], // Chỉ persist auth để tránh lưu dữ liệu transient như RTK Query
+  timeout: 10000, // 10 giây timeout thay vì mặc định
 };
 
-const persistedAuthReducer = persistReducer(persistConfig, authReducer);
+const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 
 export const store = configureStore({
   reducer: {
@@ -50,6 +52,7 @@ export const store = configureStore({
     image: imageReducer,
     notification: notificationReducer,
     warranty: warrantyReducer, // Added
+    [authApi.reducerPath]: authApi.reducer,
     [customerApi.reducerPath]: customerApi.reducer,
     [offerApi.reducerPath]: offerApi.reducer,
     [productApi.reducerPath]: productApi.reducer,
@@ -67,7 +70,9 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE', 'persist/REGISTER'],
       },
+      immutableCheck: false, // Tắt immutable check để tăng performance
     }).concat(
+      authApi.middleware,
       customerApi.middleware, 
       offerApi.middleware, 
       productApi.middleware,
