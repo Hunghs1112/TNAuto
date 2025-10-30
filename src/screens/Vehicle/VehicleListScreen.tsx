@@ -1,7 +1,7 @@
 // src/screens/Vehicle/VehicleListScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootView } from '../../components/layout';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -91,19 +91,19 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <View style={styles.header}>
           <Header title="Danh sách xe" />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
       <View style={styles.header}>
         <Header title="Danh sách xe" />
       </View>
@@ -132,7 +132,7 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
           />
         )}
       </View>
-    </SafeAreaView>
+    </RootView>
   );
 };
 

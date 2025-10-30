@@ -1,7 +1,7 @@
 // src/screens/Booking/BookingScreen.tsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, Text, StatusBar, ScrollView, Alert, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
@@ -176,7 +176,7 @@ const BookingScreen: React.FC = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.container}>
-        <SafeAreaView style={styles.root}>
+        <RootView style={styles.root}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.gradients.primary[0]} />
           <Header title="Đặt lịch dịch vụ" />
           
@@ -247,7 +247,7 @@ const BookingScreen: React.FC = () => {
               </View>
             </View>
           </View>
-        </SafeAreaView>
+        </RootView>
       </View>
     </KeyboardAvoidingView>
   );

@@ -10,4 +10,9 @@ export const Routes = {
   },
 };
 
-export const API_BASE_URL = 'http://10.0.2.2:3000/api'; // Android emulator; change to 'http://localhost:3000' for iOS
+import { Platform } from 'react-native';
+
+export const API_BASE_URL = Platform.select({
+  ios: 'http://127.0.0.1:3000/api',
+  android: 'http://10.0.2.2:3000/api',
+}) as string;

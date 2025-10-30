@@ -24,6 +24,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.background.light || "#FFFFFF",
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 24,
   },
   textSection: {
     marginBottom: 20,
@@ -51,11 +52,11 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
   },
   
-  // Input Container - Tăng gap giữa các inputs
+  // Input Container - unified spacing
   inputContainer: {
-    gap: 20, // Tăng gap giữa các input lên 20px
+    gap: 16,
     width: "100%",
-    marginBottom: 20, // Thêm margin bottom sau inputs
+    marginBottom: 24,
   },
   helperText: {
     fontSize: Typography.size.xs,
@@ -83,6 +84,11 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
+  },
+  // Actions area (buttons)
+  actions: {
+    marginTop: 8,
+    marginBottom: 4,
   },
   registerPrompt: {
     fontSize: Typography.size.sm,

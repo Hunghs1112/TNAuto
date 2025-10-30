@@ -1,7 +1,7 @@
 // src/screens/OrderDetail/EmployeeOrderDetailScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, StatusBar, FlatList, Image, ActivityIndicator, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
@@ -38,19 +38,19 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Xử lí yêu cầu" />
         <View style={[styles.whiteSection, styles.centerContent]}>
           <ActivityIndicator size="large" color={Colors.text.primary} />
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
   if (error || !orderData) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Xử lí yêu cầu" />
         <View style={styles.whiteSection}>
@@ -58,7 +58,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
             <Text style={styles.errorText}>Không tìm thấy đơn hàng</Text>
           </View>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
@@ -256,7 +256,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const isCompleted = orderData.status === 'completed';
 
   return (
-    <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <Header title="Phiếu dịch vụ" />
       
@@ -356,7 +356,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
           </ScrollView>
         </View>
       </View>
-    </SafeAreaView>
+    </RootView>
   );
 };
 

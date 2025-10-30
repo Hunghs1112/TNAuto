@@ -1,7 +1,7 @@
 // src/screens/Vehicle/VehicleDetailScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootView } from '../../components/layout';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -128,27 +128,27 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <View style={styles.header}>
           <Header title={licensePlate} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
   if (!vehicle) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <View style={styles.header}>
           <Header title={licensePlate} />
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Không tìm thấy thông tin xe</Text>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
@@ -158,7 +158,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
   }) || [];
 
   return (
-    <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
       <View style={styles.header}>
         <Header title={vehicle.license_plate} />
       </View>
@@ -281,7 +281,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </RootView>
   );
 };
 

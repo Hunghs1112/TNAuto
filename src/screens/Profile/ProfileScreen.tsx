@@ -1,7 +1,7 @@
 // screens/ProfileScreen.tsx - Profile screen with FCM token cleanup on logout
 import React from "react";
 import { View, Text, Pressable, Image, StatusBar } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import Header from "../../components/Header";
@@ -87,7 +87,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         
         <Header title="Cài đặt" />
@@ -120,7 +120,7 @@ const ProfileScreen = () => {
 
 
         </View>
-      </SafeAreaView>
+      </RootView>
     </View>
   );
 };

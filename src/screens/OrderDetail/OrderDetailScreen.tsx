@@ -1,7 +1,7 @@
 // src/screens/OrderDetail/OrderDetailScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, StatusBar, FlatList, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootView } from '../../components/layout';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
@@ -23,19 +23,19 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Phiếu dịch vụ" />
         <View style={[styles.whiteSection, styles.centerContent]}>
           <ActivityIndicator size="large" color={Colors.text.primary} />
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
   if (error || !orderData) {
     return (
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Phiếu dịch vụ" />
         <View style={styles.whiteSection}>
@@ -43,7 +43,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
             <Text style={styles.errorText}>Không tìm thấy đơn hàng</Text>
           </View>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
@@ -146,7 +146,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   console.log('Warranty expired:', isWarrantyExpired, warrantyEndDate);
 
   return (
-    <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <Header title="Phiếu dịch vụ" />
       
@@ -304,7 +304,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
           )}
         </View>
       </Modal>
-    </SafeAreaView>
+    </RootView>
   );
 };
 

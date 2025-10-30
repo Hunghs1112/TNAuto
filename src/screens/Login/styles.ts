@@ -24,6 +24,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.background.light || "#FFFFFF",
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 24,
   },
  
   welcomeText: {
@@ -49,16 +50,20 @@ export const styles = StyleSheet.create({
     alignSelf: "center",
   },
   
-  // Input Container - Chỉ tăng gap giữa các input
+  // Input area spacing
   inputContainer: {
-    gap: 10, // Gap giữa các input fields
+    gap: 16,
     width: "100%",
-    marginBottom: 10, // Khoảng cách với nút đăng nhập
+    marginBottom: 24,
   },
-  
-  // Single input style
+  // Backward compatible: single input wrapper
   inputWrapper: {
-    marginBottom: 10, // Khoảng cách với nút đăng nhập khi chỉ có 1 input
+    marginBottom: 16,
+  },
+  // Actions area (buttons)
+  actions: {
+    marginTop: 8,
+    marginBottom: 4,
   },
   
   customerLink: {

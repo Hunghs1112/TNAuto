@@ -14,7 +14,7 @@ import { Colors } from "../../constants/colors";
 import Header from "../../components/Header";
 import Item from "../../components/Item";
 import { styles } from "./styles";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
@@ -99,7 +99,7 @@ const NotificationScreen: React.FC = () => {
   // Show loading only on initial load (no data yet)
   if (isLoading && !notifications) {
     return (
-      <SafeAreaView style={styles.container}>
+      <RootView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Thông báo" />
@@ -108,7 +108,7 @@ const NotificationScreen: React.FC = () => {
           <ActivityIndicator size="large" color={Colors.text.primary} />
           <Text style={styles.loadingText}>Đang tải thông báo...</Text>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
@@ -116,7 +116,7 @@ const NotificationScreen: React.FC = () => {
   if (error && !notifications) {
     console.log('NotificationScreen: Showing error, error:', error); // Debug
     return (
-      <SafeAreaView style={styles.container}>
+      <RootView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Thông báo" />
@@ -124,7 +124,7 @@ const NotificationScreen: React.FC = () => {
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Lỗi tải thông báo</Text>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
@@ -132,7 +132,7 @@ const NotificationScreen: React.FC = () => {
   if (!notifications || notifications.length === 0) {
     console.log('NotificationScreen: No notifications available'); // Debug
     return (
-      <SafeAreaView style={styles.container}>
+      <RootView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Thông báo" />
@@ -140,7 +140,7 @@ const NotificationScreen: React.FC = () => {
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Chưa có thông báo nào</Text>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
@@ -192,7 +192,7 @@ const NotificationScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <RootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <View style={styles.header}>
         <Header title={headerTitle} />
@@ -211,7 +211,7 @@ const NotificationScreen: React.FC = () => {
         removeClippedSubviews={PerformanceConfig.flatList.removeClippedSubviews}
         updateCellsBatchingPeriod={PerformanceConfig.flatList.updateCellsBatchingPeriod}
       />
-    </SafeAreaView>
+    </RootView>
   );
 };
 

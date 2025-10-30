@@ -1,7 +1,7 @@
 // src/screens/Login/EmployeePasswordScreen.tsx
 import React, { useState } from "react";
 import { View, Text, StatusBar, Alert, Image, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import ConfirmButton from "../../components/ConfirmButton";
 import TextInputComponent from "../../components/TextInput/TextInput";
@@ -93,7 +93,7 @@ export default function EmployeePasswordScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.container}>
-        <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
           <Header title="Đăng nhập nhân viên" showBackButton />
@@ -137,7 +137,7 @@ export default function EmployeePasswordScreen() {
               />
             </View>
           </View>
-        </SafeAreaView>
+    </RootView>
       </View>
     </KeyboardAvoidingView>
   );

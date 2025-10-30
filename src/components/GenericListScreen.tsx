@@ -2,7 +2,7 @@
 // Generic reusable component for list screens to reduce code duplication
 import React, { useMemo, useCallback } from 'react';
 import { View, Text, StatusBar, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootView } from '../components/layout';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../constants/colors';
 import { PerformanceConfig } from '../config/performance';
@@ -61,13 +61,13 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   if (isLoading) {
     return (
       <View style={sharedStyles.container}>
-        <SafeAreaView style={sharedStyles.root}>
+        <RootView style={sharedStyles.root}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
           <View style={[sharedStyles.whiteSection, sharedStyles.centeredContent]}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        </SafeAreaView>
+        </RootView>
       </View>
     );
   }
@@ -76,7 +76,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   if (error) {
     return (
       <View style={sharedStyles.container}>
-        <SafeAreaView style={sharedStyles.root}>
+        <RootView style={sharedStyles.root}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
           <View style={sharedStyles.whiteSection}>
@@ -87,7 +87,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
               </View>
             </View>
           </View>
-        </SafeAreaView>
+        </RootView>
       </View>
     );
   }
@@ -96,7 +96,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   if (items.length === 0) {
     return (
       <View style={sharedStyles.container}>
-        <SafeAreaView style={sharedStyles.root}>
+        <RootView style={sharedStyles.root}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
           <View style={sharedStyles.whiteSection}>
@@ -107,7 +107,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
               </View>
             </View>
           </View>
-        </SafeAreaView>
+        </RootView>
       </View>
     );
   }
@@ -115,7 +115,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   // List state
   return (
     <View style={sharedStyles.container}>
-      <SafeAreaView style={sharedStyles.root}>
+      <RootView style={sharedStyles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title={title} />
         
@@ -147,7 +147,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
             </View>
           </View>
         </View>
-      </SafeAreaView>
+      </RootView>
     </View>
   );
 });

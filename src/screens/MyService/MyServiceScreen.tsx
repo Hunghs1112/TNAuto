@@ -1,7 +1,7 @@
 // src/screens/MyService/MyServiceScreen.tsx
 import React, { useState, useCallback, useMemo } from "react";
 import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
@@ -138,7 +138,7 @@ const MyServiceScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.gradients.primary[0]} />
         <Header title="Dịch vụ của tôi" />
         
@@ -191,7 +191,7 @@ const MyServiceScreen: React.FC = () => {
           </View>
         </View>
       </View>
-      </SafeAreaView>
+      </RootView>
     </View>
   );
 };

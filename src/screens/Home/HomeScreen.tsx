@@ -1,7 +1,7 @@
 // src/screens/Home/HomeScreen.tsx (Optimized)
 import React, { useEffect, useMemo, useCallback } from 'react';
 import { View, StatusBar, FlatList, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootView } from '../../components/layout';
 import { Colors } from '../../constants/colors';
 import { PerformanceConfig } from '../../config/performance';
 import Navbar from '../../components/Navbar';
@@ -187,7 +187,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <RootView style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
         <View style={styles.contentWrapper}>
@@ -208,7 +208,7 @@ export default function HomeScreen() {
 
           <Navbar />
         </View>
-      </SafeAreaView>
+      </RootView>
     </View>
   );
 }

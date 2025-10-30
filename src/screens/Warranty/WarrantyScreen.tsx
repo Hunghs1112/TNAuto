@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RootView } from '../../components/layout';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
@@ -163,7 +163,7 @@ const WarrantyScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <RootView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Bảo hành" />
@@ -172,13 +172,13 @@ const WarrantyScreen: React.FC = () => {
           <ActivityIndicator size="large" color={Colors.text.primary} />
           <Text style={styles.loadingText}>Đang tải thông tin bảo hành...</Text>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <RootView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <View style={styles.header}>
           <Header title="Bảo hành" />
@@ -190,12 +190,12 @@ const WarrantyScreen: React.FC = () => {
             <Text style={styles.retryButtonText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </RootView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <RootView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       
       <View style={styles.header}>
@@ -224,7 +224,7 @@ const WarrantyScreen: React.FC = () => {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </RootView>
   );
 };
 

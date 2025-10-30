@@ -1,7 +1,7 @@
 // src/screens/AccountInfo/AccountInfoScreen.tsx
 import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, Image, StatusBar, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import Header from "../../components/Header";
@@ -212,7 +212,7 @@ const AccountInfoScreen = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.container}>
-        <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           
           <Header title="Thông tin tài khoản" showBackButton />
@@ -312,7 +312,7 @@ const AccountInfoScreen = () => {
           </View>
             </View>
           </ScrollView>
-        </SafeAreaView>
+    </RootView>
       </View>
     </KeyboardAvoidingView>
   );

@@ -9,7 +9,7 @@ import {
   Dimensions,
   TouchableOpacity 
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import Header from "../../components/Header";
 import ConfirmButton from "../../components/ConfirmButton";
@@ -54,7 +54,7 @@ const ProductDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.root}>
+    <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <Header title="Chi tiết sản phẩm" />
       
@@ -185,7 +185,7 @@ const ProductDetailScreen = () => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </RootView>
   );
 };
 

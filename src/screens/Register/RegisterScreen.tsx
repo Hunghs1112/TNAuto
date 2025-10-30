@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, StatusBar, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, StatusBar, TouchableOpacity, Image, Alert, Platform, TouchableWithoutFeedback, Keyboard, ScrollView, Animated, Easing } from "react-native";
+const AnimatedContainer: React.ComponentType<any> = Animated.createAnimatedComponent(View as any) as any;
+import { RootView } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import ConfirmButton from "../../components/ConfirmButton";
 import TextInputComponent from "../../components/TextInput/TextInput";
@@ -30,6 +31,8 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [headerOffset, setHeaderOffset] = useState(0);
+  const translateY = React.useRef(new Animated.Value(0)).current;
 
   const [registerCustomer] = useRegisterCustomerMutation();
 
@@ -143,20 +146,60 @@ export default function RegisterScreen() {
     navigation.navigate("Login");
   };
 
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: any) => {
+      const keyboardHeight = e?.endCoordinates?.height || 0;
+      const duration = e?.duration || 250;
+      const safeOffset = 0; // user preference (Register)
+      const moveUp = Math.max(0, keyboardHeight - safeOffset);
+      Animated.timing(translateY, {
+        toValue: -moveUp,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const onHide = (e: any) => {
+      const duration = e?.duration || 250;
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, [translateY]);
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <View style={styles.container}>
-        <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+    <View style={styles.container}>
+      <RootView style={styles.root}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
+        <View onLayout={(e) => setHeaderOffset(e.nativeEvent.layout.height)}>
           <Header title="Đăng ký" />
+        </View>
 
-          <View style={styles.body}>
-            <View style={styles.form}>
+        <View style={styles.body}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <AnimatedContainer style={{ flex: 1, transform: [{ translateY }] }}>
+              <ScrollView
+                contentContainerStyle={{ flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+                bounces={false}
+              >
+                <View style={styles.form}>
               <Text style={styles.welcomeText}>Chào mừng đến với TN Auto</Text>
               <Text style={styles.subtitle}>Đăng ký tại đây</Text>
 
@@ -179,36 +222,38 @@ export default function RegisterScreen() {
                   placeholder="Số điện thoại * (VD: 0909123456)"
                   placeholderTextColor={Colors.text.placeholder}
                   keyboardType="phone-pad"
-            
                 />
                 <TextInputComponent
                   value={licensePlate}
                   onChangeText={(text) => setLicensePlate(text.toUpperCase())}
                   placeholder="Biển số xe (VD: 29A-12345)"
                   placeholderTextColor={Colors.text.placeholder}
-               
                 />
                 <Text style={styles.helperText}>* Trường bắt buộc</Text>
               </View>
 
-              <ConfirmButton
-                title="Đăng ký"
-                onPress={handleRegister}
-                loading={isLoading}
-                buttonColor={Colors.button.primary}
-                textColor={Colors.text.inverted}
-              />
-
-              <View style={styles.signup}>
-                <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
-                <TouchableOpacity onPress={handleLogin}>
-                  <Text style={styles.registerLink}>Đăng nhập</Text>
-                </TouchableOpacity>
+              <View style={styles.actions}>
+                <ConfirmButton
+                  title="Đăng ký"
+                  onPress={handleRegister}
+                  loading={isLoading}
+                  buttonColor={Colors.button.primary}
+                  textColor={Colors.text.inverted}
+                />
               </View>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
-    </KeyboardAvoidingView>
+
+                  <View style={styles.signup}>
+                    <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
+                    <TouchableOpacity onPress={handleLogin}>
+                      <Text style={styles.registerLink}>Đăng nhập</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </AnimatedContainer>
+          </TouchableWithoutFeedback>
+        </View>
+      </RootView>
+    </View>
   );
 }

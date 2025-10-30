@@ -1,7 +1,7 @@
 // src/screens/Category/CategoryScreen.tsx (Optimized with new loading pattern)
 import React from "react";
 import { View, FlatList, RefreshControl, StatusBar } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { RootView } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import Header from "../../components/Header";
 import Item from "../../components/Item";
@@ -28,7 +28,7 @@ const CategoryScreen = () => {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.root}>
+      <RootView style={styles.root}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Danh mục sản phẩm" />
         
@@ -89,7 +89,7 @@ const CategoryScreen = () => {
           </View>
         </View>
       </View>
-      </SafeAreaView>
+      </RootView>
     </View>
   );
 };
