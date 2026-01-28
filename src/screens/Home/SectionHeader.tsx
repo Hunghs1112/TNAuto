@@ -3,6 +3,9 @@ import { View, Text, StyleSheet } from "react-native";
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
+import { spacing } from "../../design-system/spacing";
+import { borderRadius } from "../../design-system/borders";
+import { textStyles } from "../../design-system/typography";
 
 interface SectionHeaderProps {
   title: string;
@@ -12,7 +15,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ title }) => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
+        colors={Colors.gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.leftBar}
@@ -27,22 +30,23 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 4,
+    paddingVertical: spacing.xs,
   },
   leftBar: {
     width: 4,
     height: 28,
-    borderRadius: 2,
-    marginRight: 12,
+    borderRadius: borderRadius.xs / 2,
+    marginRight: spacing.md,
   },
   title: {
     color: Colors.text.primary,
+    ...textStyles.h3,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
-    fontSize: 19,
-    lineHeight: 24,
     letterSpacing: 0.2,
   },
 });
 
-export default SectionHeader;
+SectionHeader.displayName = 'SectionHeader';
+
+export default React.memo(SectionHeader);

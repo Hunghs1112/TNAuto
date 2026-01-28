@@ -1,4 +1,13 @@
-// src/services/NotificationService.ts - Notifee display and navigation handling
+/**
+ * NotificationService - Notifee display and navigation handling
+ * 
+ * Handles:
+ * - Displaying notifications using Notifee (works in all app states)
+ * - Navigation when user taps notification
+ * - Badge count management (iOS)
+ * - Notification channels (Android)
+ */
+
 import notifee, { 
   AndroidImportance, 
   Notification, 
@@ -6,12 +15,15 @@ import notifee, {
   Event
 } from '@notifee/react-native';
 import { Platform } from 'react-native';
+import { Colors } from '../constants/colors';
 import * as RootNavigation from '../navigation/RootNavigation';
 import { store } from '../redux/stores';
 
 interface NotificationData {
   type?: string;
   order_id?: string;
+  service_id?: string;
+  warranty_id?: string;
   status?: string;
   employee_id?: string;
   warranty_period?: string;
@@ -27,13 +39,14 @@ class NotificationService {
 
   /**
    * Initialize notification service and create channels
+   * Must be called before displaying any notifications
    */
   async initialize() {
     console.log('🔔 NotificationService: Initializing...');
     
     try {
       if (Platform.OS === 'android') {
-        // Create default channel
+        // Create default channel (required for Android 8.0+)
         this.channelId = await notifee.createChannel({
           id: 'default',
           name: 'Thông báo chung',
@@ -41,6 +54,8 @@ class NotificationService {
           importance: AndroidImportance.HIGH,
           sound: 'default',
           vibration: true,
+          lights: true,
+          lightColor: Colors.primary,
         });
 
         // Create order channel
@@ -51,6 +66,8 @@ class NotificationService {
           importance: AndroidImportance.HIGH,
           sound: 'default',
           vibration: true,
+          lights: true,
+          lightColor: Colors.primary,
         });
 
         // Create warranty channel
@@ -60,13 +77,14 @@ class NotificationService {
           description: 'Thông báo về bảo hành',
           importance: AndroidImportance.DEFAULT,
           sound: 'default',
+          vibration: true,
         });
 
         this.channelCreated = true;
         console.log('✅ NotificationService: Channels created');
       }
 
-      // Setup foreground event handler
+      // Setup event handlers for notification interactions
       this.setupEventHandlers();
 
       console.log('✅ NotificationService: Initialization complete');
@@ -77,25 +95,30 @@ class NotificationService {
 
   /**
    * Setup notification event handlers (press, dismiss, etc.)
+   * Handles both foreground and background events
    */
   setupEventHandlers() {
     console.log('👆 NotificationService: Setting up event handlers...');
 
-    // Foreground events
+    // Foreground events (when app is open)
     notifee.onForegroundEvent(({ type, detail }) => {
       console.log('📱 NotificationService: Foreground event:', type, detail);
 
       if (type === EventType.PRESS) {
         this.handleNotificationPress(detail.notification?.data);
+      } else if (type === EventType.DISMISS) {
+        console.log('📱 NotificationService: Notification dismissed');
       }
     });
 
-    // Background events
+    // Background events (when app is in background or terminated)
     notifee.onBackgroundEvent(async ({ type, detail }) => {
       console.log('🔵 NotificationService: Background event:', type, detail);
 
       if (type === EventType.PRESS) {
         this.handleNotificationPress(detail.notification?.data);
+      } else if (type === EventType.DISMISS) {
+        console.log('🔵 NotificationService: Notification dismissed');
       }
     });
 
@@ -104,15 +127,21 @@ class NotificationService {
 
   /**
    * Display notification using Notifee
+   * Works in all app states: foreground, background, terminated, locked
    */
   async displayNotification(title: string, body: string, data?: NotificationData) {
     console.log('🔔 NotificationService: Displaying notification', { title, body, data });
 
     try {
+      // Ensure channels are created (for Android)
+      if (Platform.OS === 'android' && !this.channelCreated) {
+        await this.initialize();
+      }
+
       // Determine channel based on notification type
       let channelId = this.channelId;
       if (data?.type) {
-        if (data.type.includes('order')) {
+        if (data.type.includes('order') || data.order_id) {
           channelId = 'orders';
         } else if (data.type.includes('warranty')) {
           channelId = 'warranty';
@@ -126,6 +155,8 @@ class NotificationService {
           channelId,
           importance: AndroidImportance.HIGH,
           smallIcon: 'ic_launcher',
+          // Large icon (optional - can be added later)
+          // largeIcon: require('../assets/logo.png'),
           pressAction: {
             id: 'default',
             launchActivity: 'default',
@@ -134,16 +165,37 @@ class NotificationService {
           vibrationPattern: [300, 500],
           showTimestamp: true,
           timestamp: Date.now(),
+          // Auto cancel when user taps
+          autoCancel: true,
+          // Show on lock screen
+          visibility: 1, // VISIBILITY_PUBLIC
         },
         ios: {
           sound: 'default',
-          criticalVolume: 1.0,
+          // Critical alert (bypasses Do Not Disturb on iOS 12+)
+          // Only use for critical notifications
+          // critical: true,
+          // criticalVolume: 1.0,
+          // Show badge
+          badge: true,
+          // Show in foreground
+          foregroundPresentationOptions: {
+            alert: true,
+            badge: true,
+            sound: true,
+          },
         },
         data: data as Record<string, string>,
       };
 
-      await notifee.displayNotification(notification);
-      console.log('✅ NotificationService: Notification displayed');
+      // Display notification
+      const notificationId = await notifee.displayNotification(notification);
+      console.log('✅ NotificationService: Notification displayed with ID:', notificationId);
+
+      // Increment badge count (iOS)
+      if (Platform.OS === 'ios') {
+        await this.incrementBadgeCount();
+      }
     } catch (error) {
       console.error('❌ NotificationService: Display notification error:', error);
     }
@@ -179,9 +231,44 @@ class NotificationService {
           }
           break;
 
-        case 'warranty_created':
-        case 'warranty_expiring':
-          RootNavigation.navigate('Warranty');
+        case 'warranty_reminder':
+          // Spec: open warranty detail, or order detail if order_id exists
+          if (notificationData.order_id) {
+            this.navigateToOrderDetail(notificationData.order_id, userType);
+          } else {
+            RootNavigation.navigate('Warranty');
+          }
+          break;
+
+        case 'service_reminder':
+          // Spec: open service detail (service_id) or suggest booking
+          if (notificationData.service_id) {
+            RootNavigation.navigate('ServiceDetail', { serviceId: Number(notificationData.service_id) });
+          } else {
+            RootNavigation.navigate('Service');
+          }
+          break;
+
+        case 'order_created':
+        case 'order_status_update':
+        case 'order_completed':
+          if (notificationData.order_id) {
+            this.navigateToOrderDetail(notificationData.order_id, userType);
+          } else {
+            RootNavigation.navigate('MyService');
+          }
+          break;
+
+        case 'order_assigned':
+          if (notificationData.order_id) {
+            if (userType === 'employee') {
+              RootNavigation.navigate('MyService');
+            } else {
+              this.navigateToOrderDetail(notificationData.order_id, userType);
+            }
+          } else {
+            RootNavigation.navigate('MyService');
+          }
           break;
 
         default:
@@ -296,5 +383,5 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
-// Initialize on import
+// Initialize on import (channels will be created)
 notificationService.initialize();

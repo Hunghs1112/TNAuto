@@ -1,6 +1,7 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
+import { spacing } from "../../design-system/spacing";
 
 export const styles = StyleSheet.create({
   container: {
@@ -22,9 +23,6 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     backgroundColor: Colors.background.light || "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 24,
   },
   textSection: {
     marginBottom: 20,
@@ -35,6 +33,7 @@ export const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.primary,
+    marginTop: spacing.md,
     marginBottom: 8,
   },
   subtitle: {

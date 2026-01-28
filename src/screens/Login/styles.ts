@@ -1,81 +1,60 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
+import { spacing } from "../../design-system/spacing";
+import { borderRadius } from "../../design-system/borders";
+import { textStyles } from "../../design-system/typography";
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.light, // White for bottom safe area
-  },
-  root: {
-    flex: 1,
-    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
-  },
-  body: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: Colors.background.light,
-  },
   form: {
     flex: 1,
-    marginTop: "2%",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: Colors.background.light || "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 24,
+    width: "100%",
   },
  
   welcomeText: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
+    ...textStyles.h2,
     color: Colors.primary,
-    marginBottom: 8,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: Typography.size.sm,
-    lineHeight: 16,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
+    ...textStyles.bodySmall,
     color: Colors.text.secondary,
+    marginBottom: spacing.xl,
   },
   logo: {
     width: 320,
     height: 140,
-    marginTop: 30,
-    marginBottom: 30,
+    marginTop: spacing['3xl'],
+    marginBottom: spacing['3xl'],
     alignSelf: "center",
   },
   
   // Input area spacing
   inputContainer: {
-    gap: 16,
+    gap: spacing.base,
     width: "100%",
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   // Backward compatible: single input wrapper
   inputWrapper: {
-    marginBottom: 16,
+    marginBottom: spacing.base,
   },
   // Actions area (buttons)
   actions: {
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   
   customerLink: {
     marginTop: 0,
-    marginBottom: 10,
+    marginBottom: spacing.base,
     alignItems: 'flex-end'
   },
 
   customerLinkText: {
-    marginTop: 10,
-    fontSize: Typography.size.sm,
-    lineHeight: 16,
+    marginTop: spacing.base,
+    ...textStyles.bodySmall,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.primary,
@@ -85,21 +64,18 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: spacing.lg,
   },
   registerPrompt: {
-    fontSize: Typography.size.sm,
-    lineHeight: 16,
-    fontFamily: Typography.fontFamily.regular,
+    ...textStyles.bodySmall,
     color: Colors.text.secondary,
   },
   registerLink: {
-    fontSize: Typography.size.sm,
-    lineHeight: 16,
+    ...textStyles.bodySmall,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.primary,
-    marginLeft: 5,
+    marginLeft: spacing.xs,
   },
   bar: {
     position: "absolute",
@@ -111,8 +87,8 @@ export const styles = StyleSheet.create({
   barInner: {
     width: 134,
     height: 5,
-    borderRadius: 100,
+    borderRadius: borderRadius.full,
     backgroundColor: Colors.text.placeholder,
-    marginBottom: 9,
+    marginBottom: spacing.sm,
   },
 });

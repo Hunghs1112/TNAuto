@@ -1,46 +1,60 @@
-import React from "react";
-import { View, ViewProps, StyleProp, ViewStyle, Platform, StatusBar } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../../constants/colors";
+/**
+ * RootView - Component đơn giản cho safe area
+ * Chỉ sử dụng khi cần wrapper cơ bản không có Screen component
+ */
 
-type RootViewBaseProps = ViewProps & {
+import React from "react";
+import { View, ViewProps, StatusBar } from "react-native";
+import LinearGradient from 'react-native-linear-gradient';
+import { Colors } from "../../constants/colors";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type RootViewProps = ViewProps & {
   topColor?: string;
   bottomColor?: string;
-  withScroll?: boolean;
-  contentContainerStyle?: StyleProp<ViewStyle>;
-  disableTopInset?: boolean;
-  disableBottomInset?: boolean;
 };
-type RootViewProps = React.PropsWithChildren<RootViewBaseProps>;
 
-export default function RootView(props: RootViewProps) {
-  const {
-    topColor = Colors.primary,
-    bottomColor = Colors.background.light,
-    style,
-    disableTopInset,
-    disableBottomInset,
-    children,
-    ...rest
-  } = props;
-
+export default function RootView({ 
+  topColor = Colors.primary,
+  bottomColor = Colors.background.light,
+  style,
+  children,
+  ...rest 
+}: RootViewProps) {
   const insets = useSafeAreaInsets();
-
-  // Fallback for environments without proper safe area (Android older versions)
-  const topInset = disableTopInset ? 0 : Math.max(insets.top, Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0);
-  const bottomInset = disableBottomInset ? 0 : insets.bottom;
+  const isGradientHeader = topColor === Colors.primary;
 
   return (
     <View style={[{ flex: 1, backgroundColor: bottomColor }, style]} {...rest}>
-      {topInset > 0 ? (
-        <View style={{ height: topInset, backgroundColor: topColor }} />
-      ) : null}
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={isGradientHeader ? Colors.primary : topColor}
+        translucent={false}
+      />
+      
+      {/* Top safe area */}
+      {insets.top > 0 && (
+        <View style={{ position: 'relative', zIndex: 1001, elevation: 11 }}>
+          {isGradientHeader ? (
+            <LinearGradient
+              colors={[...Colors.gradients.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ height: insets.top, width: '100%' }}
+            />
+          ) : (
+            <View style={{ height: insets.top, backgroundColor: topColor }} />
+          )}
+        </View>
+      )}
+      
+      {/* Content */}
       <View style={{ flex: 1 }}>{children}</View>
-      {bottomInset > 0 ? (
-        <View style={{ height: bottomInset, backgroundColor: bottomColor }} />
-      ) : null}
+      
+      {/* Bottom safe area */}
+      {insets.bottom > 0 && (
+        <View style={{ height: insets.bottom, backgroundColor: bottomColor }} />
+      )}
     </View>
   );
 }
-
-

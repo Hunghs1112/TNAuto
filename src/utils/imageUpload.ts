@@ -44,22 +44,39 @@ export const requestCameraPermission = async (): Promise<boolean> => {
       return requestResult === RESULTS.GRANTED;
     }
 
+    // On iOS, if permission is blocked, we can still try to open the camera
+    // as the system will handle it
+    if (Platform.OS === 'ios' && result === RESULTS.BLOCKED) {
+      // Still return true to allow trying to open camera
+      // The system will show appropriate message
+      return true;
+    }
+
     return false;
   } catch (error) {
     console.error('Error requesting camera permission:', error);
+    // On error, still allow trying to open camera on iOS
+    if (Platform.OS === 'ios') {
+      return true;
+    }
     return false;
   }
 };
 
 /**
  * Check and request photo library permission
+ * Note: On Android 13+ (API 33+), we use Photo Picker which doesn't require permissions
  */
 export const requestPhotoLibraryPermission = async (): Promise<boolean> => {
   try {
+    // On Android 13+ (API 33+), use Photo Picker which doesn't require permissions
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      // Photo Picker doesn't require permissions, return true to proceed
+      return true;
+    }
+
     const permission = Platform.select({
-      android: Platform.Version >= 33 
-        ? PERMISSIONS.ANDROID.READ_MEDIA_IMAGES 
-        : PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
+      android: PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
       ios: PERMISSIONS.IOS.PHOTO_LIBRARY,
     });
 
@@ -67,18 +84,32 @@ export const requestPhotoLibraryPermission = async (): Promise<boolean> => {
 
     const result = await check(permission);
     
-    if (result === RESULTS.GRANTED) {
+    // On iOS 14+, LIMITED status means user selected specific photos, which is acceptable
+    if (result === RESULTS.GRANTED || result === RESULTS.LIMITED) {
       return true;
     }
 
     if (result === RESULTS.DENIED) {
       const requestResult = await request(permission);
-      return requestResult === RESULTS.GRANTED;
+      // Accept both GRANTED and LIMITED on iOS
+      return requestResult === RESULTS.GRANTED || requestResult === RESULTS.LIMITED;
+    }
+
+    // On iOS, if permission is blocked, we can still try to open the picker
+    // as the system will handle it
+    if (Platform.OS === 'ios' && result === RESULTS.BLOCKED) {
+      // Still return true to allow trying to open picker
+      // The system will show appropriate message
+      return true;
     }
 
     return false;
   } catch (error) {
     console.error('Error requesting photo library permission:', error);
+    // On error, still allow trying to open picker on iOS and Android 13+
+    if (Platform.OS === 'ios' || (Platform.OS === 'android' && Platform.Version >= 33)) {
+      return true;
+    }
     return false;
   }
 };
@@ -90,6 +121,47 @@ export const pickImageFromCamera = async (
   options: ImageUploadOptions = {}
 ): Promise<Asset | null> => {
   try {
+    // On iOS, try to open camera even if permission check fails
+    // The system will handle permission request automatically
+    if (Platform.OS === 'ios') {
+      const mergedOptions = { ...DEFAULT_OPTIONS, ...options, selectionLimit: 1 };
+      
+      const response: ImagePickerResponse = await launchCamera({
+        mediaType: mergedOptions.mediaType,
+        maxWidth: mergedOptions.maxWidth,
+        maxHeight: mergedOptions.maxHeight,
+        quality: mergedOptions.quality,
+        includeBase64: mergedOptions.includeBase64,
+      });
+
+      if (response.didCancel) {
+        console.log('User cancelled camera picker');
+        return null;
+      }
+
+      if (response.errorCode) {
+        console.error('Camera Error:', response.errorMessage);
+        // Check if error is due to permission
+        if (response.errorCode === 'permission') {
+          Alert.alert(
+            'Quyền truy cập camera',
+            'Vui lòng cấp quyền truy cập camera trong cài đặt để sử dụng tính năng này.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Lỗi', response.errorMessage || 'Không thể chụp ảnh. Vui lòng thử lại.');
+        }
+        return null;
+      }
+
+      if (response.assets && response.assets.length > 0) {
+        return response.assets[0];
+      }
+
+      return null;
+    }
+
+    // For Android, check permission first
     const hasPermission = await requestCameraPermission();
     
     if (!hasPermission) {
@@ -118,7 +190,7 @@ export const pickImageFromCamera = async (
 
     if (response.errorCode) {
       console.error('Camera Error:', response.errorMessage);
-      Alert.alert('Lỗi', 'Không thể chụp ảnh. Vui lòng thử lại.');
+      Alert.alert('Lỗi', response.errorMessage || 'Không thể chụp ảnh. Vui lòng thử lại.');
       return null;
     }
 
@@ -141,19 +213,67 @@ export const pickImageFromGallery = async (
   options: ImageUploadOptions = {}
 ): Promise<Asset[]> => {
   try {
+    // On iOS, try to open picker even if permission check fails
+    // The system will handle permission request automatically
+    if (Platform.OS === 'ios') {
+      const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
+      
+      const response: ImagePickerResponse = await launchImageLibrary({
+        mediaType: mergedOptions.mediaType,
+        maxWidth: mergedOptions.maxWidth,
+        maxHeight: mergedOptions.maxHeight,
+        quality: mergedOptions.quality,
+        includeBase64: mergedOptions.includeBase64,
+        selectionLimit: mergedOptions.selectionLimit || 1,
+      });
+
+      if (response.didCancel) {
+        console.log('User cancelled gallery picker');
+        return [];
+      }
+
+      if (response.errorCode) {
+        console.error('Gallery Error:', response.errorMessage);
+        // Check if error is due to permission
+        if (response.errorCode === 'permission') {
+          Alert.alert(
+            'Quyền truy cập thư viện ảnh',
+            'Vui lòng cấp quyền truy cập thư viện ảnh trong cài đặt để sử dụng tính năng này.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Lỗi', response.errorMessage || 'Không thể chọn ảnh. Vui lòng thử lại.');
+        }
+        return [];
+      }
+
+      if (response.assets && response.assets.length > 0) {
+        return response.assets;
+      }
+
+      return [];
+    }
+
+    // For Android, check permission first (only needed for Android 12 and below)
+    // Android 13+ uses Photo Picker which doesn't require permissions
     const hasPermission = await requestPhotoLibraryPermission();
     
     if (!hasPermission) {
-      Alert.alert(
-        'Quyền truy cập thư viện ảnh',
-        'Vui lòng cấp quyền truy cập thư viện ảnh trong cài đặt để sử dụng tính năng này.',
-        [{ text: 'OK' }]
-      );
+      // Only show alert for Android 12 and below
+      if (Platform.OS === 'android' && Platform.Version < 33) {
+        Alert.alert(
+          'Quyền truy cập thư viện ảnh',
+          'Vui lòng cấp quyền truy cập thư viện ảnh trong cài đặt để sử dụng tính năng này.',
+          [{ text: 'OK' }]
+        );
+      }
       return [];
     }
 
     const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
     
+    // On Android 13+, react-native-image-picker will automatically use Photo Picker
+    // when READ_MEDIA_IMAGES permission is not declared in manifest
     const response: ImagePickerResponse = await launchImageLibrary({
       mediaType: mergedOptions.mediaType,
       maxWidth: mergedOptions.maxWidth,
@@ -170,7 +290,7 @@ export const pickImageFromGallery = async (
 
     if (response.errorCode) {
       console.error('Gallery Error:', response.errorMessage);
-      Alert.alert('Lỗi', 'Không thể chọn ảnh. Vui lòng thử lại.');
+      Alert.alert('Lỗi', response.errorMessage || 'Không thể chọn ảnh. Vui lòng thử lại.');
       return [];
     }
 

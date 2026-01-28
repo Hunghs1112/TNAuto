@@ -1,12 +1,22 @@
 // src/screens/AccountInfo/AccountInfoScreen.tsx
-import React, { useState, useEffect } from "react";
-import { View, Text, Pressable, Image, StatusBar, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
-import { RootView } from "../../components/layout";
+import React, { useState } from "react";
+import { 
+  View, 
+  Text, 
+  Pressable, 
+  Image, 
+  ScrollView, 
+  Alert, 
+  ActivityIndicator, 
+  Modal,
+  TouchableOpacity
+} from "react-native";
+import { Screen, FormContainer } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
-import Header from "../../components/Header";
 import TextInput from "../../components/TextInput/TextInput";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Button } from "../../components/ui";
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { styles } from "./styles";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { RootState } from "../../redux/stores";
@@ -15,7 +25,7 @@ import { logout, updateUserProfile } from "../../redux/slices/authSlice";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
-import { useUpdateProfileMutation, useDeleteAccountMutation } from "../../services/customerApi";
+import { useUpdateProfileMutation } from "../../services/customerApi";
 import { pickImageFromGallery, pickImageFromCamera, showImagePickerOptions, validateImageSize, createImageFormData } from "../../utils/imageUpload";
 import { Asset } from 'react-native-image-picker';
 import { API_BASE_URL } from "../../constants/config";
@@ -41,10 +51,10 @@ const AccountInfoScreen = () => {
 
   // API mutations
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
-  const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
 
   // Upload state
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Handle avatar selection
   const handleAvatarPress = () => {
@@ -150,173 +160,138 @@ const AccountInfoScreen = () => {
     }
   };
 
-  // Handle delete account with confirmation
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Xác nhận xóa tài khoản',
-      'Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác và sẽ xóa toàn bộ dữ liệu của bạn bao gồm:\n\n• Thông tin tài khoản\n• Danh sách xe\n• Lịch sử đơn hàng\n• Bảo hành\n• Thông báo\n\nLưu ý: Nếu bạn có đơn hàng đang xử lý, bạn không thể xóa tài khoản.',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa tài khoản',
-          style: 'destructive',
-          onPress: () => confirmDeleteAccount(),
-        },
-      ]
-    );
-  };
-
-  const confirmDeleteAccount = async () => {
-    try {
-      const result = await deleteAccount({ phone: userPhone, confirm: true }).unwrap();
-
-      if (result.success) {
-        Alert.alert(
-          'Tài khoản đã bị xóa',
-          `Tài khoản của bạn đã được xóa thành công.\n\nDữ liệu đã xóa:\n• Xe: ${result.deleted_data.vehicles_deleted}\n• Đơn hàng: ${result.deleted_data.orders_deleted}\n• Bảo hành: ${result.deleted_data.warranties_deleted}\n• Thông báo: ${result.deleted_data.notifications_deleted}`,
-          [
-            {
-              text: 'OK',
-              onPress: async () => {
-                await clearAuthStorage(); // Xóa dữ liệu persist
-                dispatch(logout());
-              },
-            },
-          ]
-        );
-      }
-    } catch (error: any) {
-      console.error('Error deleting account:', error);
-      
-      // Parse error message
-      const errorMessage = error.message || error.data?.error || 'Không thể xóa tài khoản.';
-      
-      if (errorMessage.includes('đơn hàng đang hoạt động') || errorMessage.includes('active orders')) {
-        Alert.alert(
-          'Không thể xóa tài khoản',
-          'Bạn có đơn hàng đang được xử lý. Vui lòng hoàn thành hoặc hủy các đơn hàng này trước khi xóa tài khoản.',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert('Lỗi', errorMessage);
-      }
-    }
-  };
-
-  const isLoading = isUpdating || isDeleting || isUploadingAvatar;
+  const isLoading = isUpdating || isUploadingAvatar;
+  const PLACEHOLDER_AVATAR = 'https://i.pravatar.cc/150?img=12';
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    <Screen
+      headerTitle="Thông tin tài khoản"
+      showBackButton
+      safeAreaTopColor={Colors.primary}
+      statusBarStyle="light-content"
     >
-      <View style={styles.container}>
-    <RootView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-          
-          <Header title="Thông tin tài khoản" showBackButton />
-          
-          <ScrollView style={styles.body} contentContainerStyle={styles.scrollContent}>
-            <View style={styles.form}>
+      <FormContainer
+        keyboardAvoiding
+        withScroll
+        padding={0}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        dismissKeyboardOnPress
+      >
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
-            <Pressable onPress={handleAvatarPress} style={styles.avatarContainer}>
-              <Image 
-                source={{ uri: selectedAvatar || 'https://i.pravatar.cc/150?img=12' }} 
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-              <View style={styles.avatarEditIcon}>
-                <Ionicons name="camera" size={20} color={Colors.background.light} />
+            <Pressable 
+              onPress={handleAvatarPress} 
+              onLongPress={() => {
+                if (!isUploadingAvatar && (selectedAvatar || PLACEHOLDER_AVATAR)) {
+                  setSelectedImage(selectedAvatar || PLACEHOLDER_AVATAR);
+                }
+                }}
+              style={styles.avatarPressable}
+              disabled={isUploadingAvatar}
+            >
+              <View style={styles.avatarContainer}>
+                {isUploadingAvatar ? (
+                  <View style={styles.avatarLoading}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                  </View>
+                ) : (
+                  <>
+                    <Image 
+                      source={{ uri: selectedAvatar || PLACEHOLDER_AVATAR }} 
+                      style={styles.avatar}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.avatarEditBadge}>
+                      <Ionicons name="camera" size={18} color={Colors.background.light} />
+                    </View>
+                  </>
+                )}
               </View>
             </Pressable>
             <Text style={styles.avatarHint}>Nhấn để thay đổi ảnh đại diện</Text>
           </View>
 
-          {/* Form Fields */}
-          <View style={styles.formSection}>
-            <Text style={styles.label}>Số điện thoại</Text>
-            <TextInput
-              value={userPhone}
-              editable={false}
-              placeholder="Số điện thoại"
-              style={styles.disabledInput}
-            />
-            <Text style={styles.hint}>Số điện thoại không thể thay đổi</Text>
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
+            
+            {/* Phone Field */}
+            <View style={styles.fieldContainer}>
+              <View style={styles.fieldLabelRow}>
+                <Ionicons name="call-outline" size={18} color={Colors.text.secondary} />
+                <Text style={styles.fieldLabel}>Số điện thoại</Text>
+              </View>
+              <View style={styles.disabledField}>
+                <Text style={styles.disabledFieldText}>{userPhone}</Text>
+              </View>
+              <Text style={styles.fieldHint}>Số điện thoại không thể thay đổi</Text>
+            </View>
 
-            <Text style={styles.label}>Họ và tên</Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Nhập họ và tên"
-            />
+            {/* Name Field */}
+            <View style={styles.fieldContainer}>
+              <View style={styles.fieldLabelRow}>
+                <Ionicons name="person-outline" size={18} color={Colors.text.secondary} />
+                <Text style={styles.fieldLabel}>Họ và tên</Text>
+              </View>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Nhập họ và tên"
+                style={styles.input}
+              />
+            </View>
 
-            <Text style={styles.label}>Email (tùy chọn)</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Nhập email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            {/* Email Field */}
+            <View style={styles.fieldContainer}>
+              <View style={styles.fieldLabelRow}>
+                <Ionicons name="mail-outline" size={18} color={Colors.text.secondary} />
+                <Text style={styles.fieldLabel}>Email (tùy chọn)</Text>
+              </View>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Nhập email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={styles.input}
+              />
+            </View>
           </View>
 
           {/* Save Button */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.saveButton,
-              pressed && styles.saveButtonPressed,
-              isLoading && styles.saveButtonDisabled,
-            ]}
-            onPress={handleSaveProfile}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={Colors.background.light} />
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.background.light} />
-                <Text style={styles.saveButtonText}>Lưu thay đổi</Text>
-              </>
-            )}
-          </Pressable>
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Delete Account Section */}
-          <View style={styles.dangerZone}>
-            <Text style={styles.dangerZoneTitle}>Vùng nguy hiểm</Text>
-            <Text style={styles.dangerZoneDescription}>
-              Xóa tài khoản sẽ xóa vĩnh viễn toàn bộ dữ liệu của bạn. Hành động này không thể hoàn tác.
-            </Text>
-            <Pressable
-              style={({ pressed }) => [
-                styles.deleteButton,
-                pressed && styles.deleteButtonPressed,
-                isLoading && styles.deleteButtonDisabled,
-              ]}
-              onPress={handleDeleteAccount}
+          <View style={styles.actionSection}>
+            <Button
+              title={isUpdating ? "Đang lưu..." : "Lưu thay đổi"}
+              onPress={handleSaveProfile}
               disabled={isLoading}
-            >
-              {isDeleting ? (
-                <ActivityIndicator color={Colors.error} />
-              ) : (
-                <>
-                  <Ionicons name="trash-outline" size={20} color={Colors.error} />
-                  <Text style={styles.deleteButtonText}>Xóa tài khoản</Text>
-                </>
-              )}
-            </Pressable>
+              loading={isUpdating}
+              variant="primary"
+              fullWidth
+            />
           </View>
-            </View>
-          </ScrollView>
-    </RootView>
-      </View>
-    </KeyboardAvoidingView>
+      </FormContainer>
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={() => setSelectedImage(null)}
+          >
+            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
+    </Screen>
   );
 };
 
 export default AccountInfoScreen;
-

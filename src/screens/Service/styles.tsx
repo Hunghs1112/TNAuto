@@ -22,9 +22,6 @@ export const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 20,
   },
   servicesContainer: {
     gap: 16,

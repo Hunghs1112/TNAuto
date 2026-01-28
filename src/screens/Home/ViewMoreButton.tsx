@@ -1,71 +1,82 @@
 // src/screens/Home/ViewMoreButton.tsx
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Pressable, View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
+import { spacing } from '../../design-system/spacing';
+import { borderRadius } from '../../design-system/borders';
+import { getShadowStyle } from '../../design-system/shadows';
+import LinearGradient from 'react-native-linear-gradient';
+import { selectPlatform } from '../../utils/platform';
+import { textStyles } from '../../design-system/typography';
 
 interface ViewMoreButtonProps {
   onPress: () => void;
   title?: string;
 }
 
-const ViewMoreButton: React.FC<ViewMoreButtonProps> = ({ 
-  onPress, 
-  title = 'Xem tất cả' 
+const ViewMoreButton: React.FC<ViewMoreButtonProps> = ({
+  onPress,
+  title = 'Xem tất cả',
 }) => {
   return (
-    <TouchableOpacity 
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.8}
       style={styles.container}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      accessibilityRole="button"
+      accessibilityLabel={title}
     >
       <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
+        colors={Colors.gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.gradient}
       >
-        <Text style={styles.text}>{title}</Text>
-        <Ionicons 
-          name="arrow-forward" 
-          size={20} 
-          color={Colors.background.light} 
-        />
+        <View style={styles.content}>
+          <Text style={styles.text}>{title}</Text>
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={Colors.background.light}
+          />
+        </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginTop: 16,
-    borderRadius: 12,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    alignSelf: 'stretch',
+    marginTop: spacing.md,
+    marginBottom: selectPlatform(spacing['2xl'], spacing.xl),
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    ...getShadowStyle('md'),
   },
   gradient: {
+    width: '100%',
+    minHeight: 48,
+  },
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: selectPlatform(14, 13),
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    width: '100%',
+    minHeight: 48,
   },
   text: {
     color: Colors.background.light,
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.regular,
-    fontWeight: Typography.weight.semibold,
-    letterSpacing: 0.3,
+    ...textStyles.button,
   },
 });
 
 export default React.memo(ViewMoreButton);
+
 

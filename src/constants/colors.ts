@@ -1,16 +1,16 @@
 // src/constants/colors.ts
 export const Colors = {
   // 🎨 Brand Colors - Màu thương hiệu chính
-  primary: '#DA1C12',      // Đỏ chính
-  primaryLight: '#FF6B6B', // Đỏ nhạt cho gradients
-  primarySoft: '#FFF5F5',  // Đỏ rất nhạt cho backgrounds
-  secondary: '#FF9500',    // Cam phụ
+  primary: '#0C7779',      // Xanh teal chính
+  primaryLight: '#3BC1A8', // Xanh teal nhạt cho gradients
+  primarySoft: '#E6F6F6',  // Xanh teal rất nhạt cho backgrounds
+  secondary: '#249E94',    // Xanh teal phụ
   
   // 🖼 Background Colors - Màu nền
   background: {
     light: '#FFFFFF',      // Trắng
-    dark: '#111111',       // Đen
-    muted: '#F5F5F5',      // Xám nhạt
+    dark: '#002A3A',       // Xanh đen
+    muted: '#F0F9F9',      // Xanh xám rất nhạt
     red: '#DA1C12',        // Đỏ (brand)
     yellow: '#FEB052',     // Vàng cam
     orange: '#FF9500',     // Cam
@@ -24,7 +24,7 @@ export const Colors = {
 
   // 📝 Text Colors - Màu chữ
   text: {
-    primary: '#111111',    // Đen chính
+    primary: '#005461',    // Xanh đen (thay cho đen)
     secondary: '#6B7280',  // Xám
     tertiary: '#9CA3AF',   // Xám nhạt
     inverted: '#FFFFFF',   // Trắng (cho nền tối)
@@ -39,7 +39,7 @@ export const Colors = {
     warning: '#FFCC00',    // Vàng - Cảnh báo
     info: '#0A84FF',       // Xanh dương - Thông tin
     pending: '#FEB052',    // Vàng cam - Đang chờ
-    inProgress: '#DA1C12', // Đỏ - Đang xử lý
+    inProgress: '#0C7779', // Xanh teal - Đang xử lý
     completed: '#34C759',  // Xanh lá - Hoàn thành
     cancelled: '#9CA3AF',  // Xám - Đã hủy
   },
@@ -73,14 +73,14 @@ export const Colors = {
   divider: '#D1D5DB',      // Đường phân cách
   shadow: {
     default: '#00000029',  // Bóng đổ mặc định
-    red: '#DA1C1220',      // Bóng đổ màu đỏ
+    primary: '#0C777920',  // Bóng đổ màu teal
   },
   overlay: '#00000080',    // Lớp phủ
 
   // 🔘 Button Colors - Màu nút
   button: {
-    primary: '#DA1C12',    // Nút chính
-    secondary: '#FF9500',  // Nút phụ
+    primary: '#0C7779',    // Nút chính
+    secondary: '#249E94',  // Nút phụ
     disabled: '#D1D5DB',   // Nút disabled
     text: '#FFFFFF',       // Chữ trên nút
   },
@@ -95,8 +95,8 @@ export const Colors = {
   // 🌈 Gradients - Màu gradient
   gradients: {
     // Gradient đỏ cam chủ đạo
-    primary: ['#DA1C12', '#FF9500'],           // Đỏ → Cam
-    primaryReverse: ['#FF9500', '#DA1C12'],    // Cam → Đỏ
+    primary: ['#0C7779', '#3BC1A8'],           // Teal → Teal nhạt
+    primaryReverse: ['#3BC1A8', '#0C7779'],    // Teal nhạt → Teal
     
     // Gradient warm - ấm áp
     warm: ['#FF9500', '#FEB052'],              // Cam → Vàng cam

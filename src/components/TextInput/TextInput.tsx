@@ -1,7 +1,11 @@
-import React from "react";
-import { View, TextInput, StyleSheet, Platform } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { View, TextInput, StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
+import { spacing } from "../../design-system/spacing";
+import { borderRadius, borderPresets } from "../../design-system/borders";
+import { selectPlatform } from "../../utils/platform";
+import { textStyles } from "../../design-system/typography";
 
 interface TextInputComponentProps {
   value?: string;
@@ -34,11 +38,24 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
   style,
   iconRight,
 }) => {
+  const handleChangeText = useCallback((text: string) => {
+    onChangeText(text);
+  }, [onChangeText]);
+
+  const inputStyle = useMemo(() => [
+    styles.input,
+    {
+      color: textColor,
+      borderColor: borderColor,
+      paddingRight: iconRight ? 40 : spacing.md,
+      textAlignVertical: multiline ? "top" : "center",
+    },
+  ], [textColor, borderColor, iconRight, multiline]);
   return (
     <View style={[styles.container, style]}>
       <TextInput
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={handleChangeText}
         placeholder={placeholder}
         placeholderTextColor={placeholderTextColor}
         secureTextEntry={secureTextEntry}
@@ -46,15 +63,7 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
         numberOfLines={numberOfLines}
         keyboardType={keyboardType}
         editable={editable}
-        style={[
-          styles.input,
-          {
-            color: textColor,
-            borderColor: borderColor,
-            paddingRight: iconRight ? 40 : 12,
-            textAlignVertical: multiline ? "top" : "center",
-          },
-        ]}
+        style={inputStyle}
         underlineColorAndroid="transparent"
       />
       {iconRight && (
@@ -68,31 +77,31 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 14,
+    marginBottom: spacing.md,
     width: "100%",
     position: "relative",
   },
   input: {
     flex: 1,
-    fontSize: Typography.size.sm,
+    ...textStyles.bodySmall,
     fontFamily: Typography.fontFamily.medium,
-    borderRadius: 16,
+    fontWeight: Typography.weight.medium,
+    borderRadius: borderPresets.input,
     borderWidth: 1,
     backgroundColor: Colors.background.light,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.select({
-      ios: 14,
-      android: 12,
-    }),
+    paddingHorizontal: spacing.md,
+    paddingVertical: selectPlatform(14, 12),
     minHeight: 46,
   },
   iconRightContainer: {
     position: "absolute",
-    right: 12,
+    right: spacing.md,
     top: "50%",
     transform: [{ translateY: -10 }],
     zIndex: 1,
   },
 });
 
-export default TextInputComponent;
+TextInputComponent.displayName = 'TextInputComponent';
+
+export default React.memo(TextInputComponent);

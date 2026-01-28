@@ -1,13 +1,14 @@
 // src/services/serviceApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 interface Service {
   id: string;
   name: string;
   description?: string;
-  estimated_time?: string;
+  estimated_time?: string | number; // giây
+  warranty_period?: number | null; // Thời gian bảo hành (giây) - có thể null nếu không có bảo hành
   image_url?: string;
 }
 
@@ -25,9 +26,15 @@ interface UpdateServiceRequest {
   image_url?: string;
 }
 
+interface GetServiceResponse {
+  success: boolean;
+  data: Service;
+}
+
 export const serviceApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'serviceApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Service'] as const,
   endpoints: (builder) => ({
     getServicesAdmin: builder.query<Service[], void>({
@@ -37,6 +44,15 @@ export const serviceApi = createApi({
         console.log('serviceApi: getServicesAdmin response:', response); // Debug
         if (!response.success || !response.data) throw new Error('Failed to fetch services');
         return response.data;
+      },
+    }),
+    getServiceById: builder.query<GetServiceResponse, number | string>({
+      query: (id) => buildEndpointUrl('getServiceById', { id: id.toString() }),
+      providesTags: (result, error, id) => [{ type: 'Service' as const, id: id.toString() }],
+      transformResponse: (response: GetServiceResponse) => {
+        console.log('serviceApi: getServiceById response:', response); // Debug
+        if (!response.success || !response.data) throw new Error('Failed to fetch service');
+        return response;
       },
     }),
     createService: builder.mutation<{ id: string }, CreateServiceRequest>({
@@ -69,6 +85,7 @@ export const serviceApi = createApi({
 
 export const {
   useGetServicesAdminQuery,
+  useGetServiceByIdQuery,
   useCreateServiceMutation,
   useUpdateServiceMutation,
   useDeleteServiceMutation,

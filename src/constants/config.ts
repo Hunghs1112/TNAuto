@@ -13,6 +13,6 @@ export const Routes = {
 import { Platform } from 'react-native';
 
 export const API_BASE_URL = Platform.select({
-  ios: 'http://127.0.0.1:3000/api',
-  android: 'http://10.0.2.2:3000/api',
+  ios: 'http://103.200.20.253:5000/api',
+  android: 'http://103.200.20.253:5000/api',
 }) as string;

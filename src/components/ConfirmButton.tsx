@@ -1,9 +1,8 @@
 import React, { useCallback } from "react"
-import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, Animated } from "react-native"
+import { View, TouchableOpacity, Text, ActivityIndicator, StyleSheet, Animated } from "react-native"
 import LinearGradient from 'react-native-linear-gradient'
 import { Colors } from "../constants/colors"
 import { Typography } from "../constants/typo"
-import { HapticFeedback } from "../utils/haptics"
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient)
 
@@ -37,7 +36,6 @@ const ConfirmButton = ({
 
   const handlePressIn = useCallback(() => {
     if (!disabled && !loading) {
-      HapticFeedback.light();
       Animated.spring(scaleValue, {
         toValue: 0.95,
         useNativeDriver: true,
@@ -70,40 +68,46 @@ const ConfirmButton = ({
       disabled={disabled || loading}
       activeOpacity={0.8}
     >
-      <AnimatedLinearGradient
-        colors={colors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[
-          styles.button,
-          {
-            height: height,
-            borderRadius: borderRadius,
-            opacity: disabled || loading ? 0.5 : 1,
-            transform: [{ scale: scaleValue }],
-          },
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color={textColor} />
-        ) : (
-          <Text style={[styles.buttonText, { color: textColor }]}>{title}</Text>
-        )}
-      </AnimatedLinearGradient>
+      <View style={styles.buttonShadow}>
+        <AnimatedLinearGradient
+          colors={colors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[
+            styles.button,
+            {
+              height: height,
+              borderRadius: borderRadius,
+              opacity: disabled || loading ? 0.5 : 1,
+              transform: [{ scale: scaleValue }],
+            },
+          ]}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={textColor} />
+          ) : (
+            <Text style={[styles.buttonText, { color: textColor }]}>{title}</Text>
+          )}
+        </AnimatedLinearGradient>
+      </View>
     </TouchableOpacity>
   )
 }
 
 const styles = StyleSheet.create({
-  button: {
+  buttonShadow: {
     width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 5,
+  },
+  button: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: 'hidden',
   },
   buttonText: {
     fontSize: Typography.size.base,

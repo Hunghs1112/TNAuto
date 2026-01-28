@@ -60,7 +60,6 @@ export const useAutoRefresh = (options: UseAutoRefreshOptions = {}) => {
     if (refreshing) return; // Prevent multiple simultaneous refreshes
     
     setRefreshing(true);
-    console.log('Manual refresh triggered', tags ? `for tags: ${tags.join(', ')}` : 'for all data');
     
     try {
       // If specific tags provided, only invalidate those
@@ -109,11 +108,14 @@ export const useAutoRefresh = (options: UseAutoRefreshOptions = {}) => {
         dispatch(warrantyApi.util.invalidateTags(['Warranty']));
       }
       
-      // Small delay to show refresh animation
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Set refreshing = false after invalidating tags
+      // The actual refreshing state will be managed by queries' isFetching in screens
+      // This allows the refresh indicator to show while queries are refetching
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 100);
     } catch (error) {
       console.error('Refresh error:', error);
-    } finally {
       setRefreshing(false);
     }
   }, [dispatch, tags, refreshing]);

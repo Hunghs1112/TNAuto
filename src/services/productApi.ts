@@ -12,9 +12,9 @@
 // 3. Add more images: createProductImage({ product_id, image_url, is_primary: false })
 // 4. Products will automatically include primary_image in response
 
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 export interface ProductImage {
   image_url: string;
@@ -28,6 +28,7 @@ export interface Product {
   price: number;
   category_id?: number;
   primary_image?: string; // URL of primary image (from images array)
+  video_url?: string | null; // URL video sản phẩm (có thể null)
   images?: ProductImage[];
 }
 
@@ -41,16 +42,38 @@ interface ApiResponse<T> {
 }
 
 export const productApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'productApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Product'] as const,
   endpoints: (builder) => ({
     getProducts: builder.query<Product[], void>({
       query: () => ENDPOINTS.getProducts.path,
-      providesTags: ['Product'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Product' as const, id })),
+              { type: 'Product' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Product' as const, id: 'LIST' }],
       transformResponse: (response: ApiResponse<Product[]>) => {
-        console.log('getProducts response:', response); // Debug
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch products');
+        return response.data;
+      },
+    }),
+    getProductById: builder.query<Product, number>({
+      query: (id) => buildEndpointUrl('getProductById', { id: id.toString() }),
+      providesTags: (result, error, id) => [{ type: 'Product' as const, id }],
+      transformResponse: (response: ApiResponse<Product>) => {
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch product');
+        return response.data;
+      },
+    }),
+    getProductImages: builder.query<ProductImage[], number>({
+      query: (productId) => buildEndpointUrl('getProductImages', { productId: productId.toString() }),
+      providesTags: (result, error, productId) => [{ type: 'Product' as const, id: productId }],
+      transformResponse: (response: ApiResponse<ProductImage[]>) => {
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch product images');
         return response.data;
       },
     }),
@@ -60,9 +83,8 @@ export const productApi = createApi({
         method: 'POST', 
         body 
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: [{ type: 'Product' as const, id: 'LIST' }],
       transformResponse: (response: ApiResponse<{ id: number }>) => {
-        console.log('createProduct response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to create product');
         return { id: response.product_id! };
       },
@@ -73,9 +95,11 @@ export const productApi = createApi({
         method: 'PATCH', 
         body 
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Product' as const, id }, 'Product'],
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Product' as const, id },
+        { type: 'Product' as const, id: 'LIST' },
+      ],
       transformResponse: (response: ApiResponse<void>) => {
-        console.log('updateProduct response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to update product');
       },
     }),
@@ -84,9 +108,8 @@ export const productApi = createApi({
         url: buildEndpointUrl('deleteProduct', { id: id.toString() }), 
         method: 'DELETE' 
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: [{ type: 'Product' as const, id: 'LIST' }],
       transformResponse: (response: ApiResponse<void>) => {
-        console.log('deleteProduct response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to delete product');
       },
     }),
@@ -96,9 +119,8 @@ export const productApi = createApi({
         method: 'POST', 
         body 
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: [{ type: 'Product' as const, id: 'LIST' }],
       transformResponse: (response: ApiResponse<{ id: number }>) => {
-        console.log('createProductImage response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to create product image');
         return { id: response.image_id! };
       },
@@ -108,9 +130,8 @@ export const productApi = createApi({
         url: buildEndpointUrl('deleteProductImage', { id: id.toString() }), 
         method: 'DELETE' 
       }),
-      invalidatesTags: ['Product'],
+      invalidatesTags: [{ type: 'Product' as const, id: 'LIST' }],
       transformResponse: (response: ApiResponse<void>) => {
-        console.log('deleteProductImage response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to delete product image');
       },
     }),
@@ -119,6 +140,8 @@ export const productApi = createApi({
 
 export const {
   useGetProductsQuery,
+  useGetProductByIdQuery,
+  useGetProductImagesQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,

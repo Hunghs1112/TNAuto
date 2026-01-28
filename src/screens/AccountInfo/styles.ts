@@ -6,50 +6,59 @@ import { Typography } from "../../constants/typo";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.light, // White for bottom safe area
+    backgroundColor: Colors.background.light,
   },
   root: {
     flex: 1,
-    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
+    backgroundColor: Colors.primary,
   },
   body: {
     flex: 1,
-    width: "100%",
     backgroundColor: Colors.background.light,
   },
   scrollContent: {
-    flexGrow: 1,
   },
-  form: {
-    flex: 1,
-    marginTop: "2%",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: Colors.background.light,
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 40,
-  },
+  
+  // Avatar Section
   avatarSection: {
     alignItems: "center",
-    marginBottom: 30,
-    marginTop: -60,
+    marginBottom: 24,
+    marginTop: 0,
+  },
+  avatarPressable: {
+    marginBottom: 12,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 10,
-  },
-  avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 4,
     borderColor: Colors.background.light,
+    backgroundColor: Colors.neutral[100],
+    overflow: 'hidden',
+    shadowColor: Colors.shadow.default,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  avatarEditIcon: {
+  avatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  avatarLoading: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.neutral[100],
+  },
+  avatarEditBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: 4,
+    right: 4,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -58,102 +67,110 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: Colors.background.light,
+    shadowColor: Colors.shadow.default,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   avatarHint: {
     fontSize: Typography.size.sm,
     color: Colors.text.secondary,
     textAlign: 'center',
   },
-  formSection: {
+  
+  // Profile Card
+  profileCard: {
+    backgroundColor: Colors.background.light,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 0,
+    borderWidth: 1.5,
+    borderColor: Colors.neutral[200],
+    shadowColor: Colors.shadow.default,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: Typography.size.xl,
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    color: Colors.text.primary,
+    marginBottom: 20,
+    letterSpacing: -0.3,
+  },
+  fieldContainer: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: Typography.size.base,
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  fieldLabel: {
+    fontSize: Typography.size.sm,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: Typography.weight.medium,
     color: Colors.text.primary,
-    marginBottom: 8,
-    marginTop: 12,
+    letterSpacing: -0.1,
   },
-  disabledInput: {
+  input: {
+    marginTop: 0,
+  },
+  disabledField: {
     backgroundColor: Colors.neutral[50],
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.neutral[200],
+  },
+  disabledFieldText: {
+    fontSize: Typography.size.base,
+    fontFamily: Typography.fontFamily.regular,
     color: Colors.text.secondary,
   },
-  hint: {
+  fieldHint: {
     fontSize: Typography.size.xs,
-    color: Colors.text.secondary,
-    marginTop: 4,
-    marginBottom: 8,
+    color: Colors.text.tertiary,
+    marginTop: 6,
+    marginLeft: 26,
   },
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  
+  // Action Section
+  actionSection: {
+    marginBottom: 0,
+  },
+  // Modal styles for full screen image
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  saveButtonPressed: {
-    opacity: 0.8,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.semibold,
-    fontWeight: Typography.weight.semibold,
-    color: Colors.background.light,
-    marginLeft: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginVertical: 30,
-  },
-  dangerZone: {
-    marginTop: 10,
-  },
-  dangerZoneTitle: {
-    fontSize: Typography.size.lg,
-    fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
-    color: Colors.error,
-    marginBottom: 10,
-  },
-  dangerZoneDescription: {
-    fontSize: Typography.size.sm,
-    color: Colors.text.secondary,
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  deleteButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.background.light,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.error,
   },
-  deleteButtonPressed: {
-    opacity: 0.8,
-    backgroundColor: Colors.error + '10',
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
   },
-  deleteButtonDisabled: {
-    opacity: 0.5,
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
   },
-  deleteButtonText: {
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.semibold,
-    fontWeight: Typography.weight.semibold,
-    color: Colors.error,
-    marginLeft: 8,
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
-

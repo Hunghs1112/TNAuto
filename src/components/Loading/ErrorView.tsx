@@ -1,7 +1,7 @@
 // src/components/Loading/ErrorView.tsx - Unified error display component
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
 

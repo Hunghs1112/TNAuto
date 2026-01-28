@@ -1,5 +1,5 @@
 // src/screens/Home/hooks/useOrdersData.ts
-import { useMemo } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { useGetCustomerOrdersQuery } from '../../../services/customerApi';
 import { useGetAssignedOrdersQuery } from '../../../services/employeeApi';
 
@@ -15,6 +15,8 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     data: ordersResponse,
     isLoading: ordersLoading,
     error: ordersError,
+    refetch: refetchCustomerOrders,
+    isFetching: isFetchingCustomerOrders,
   } = useGetCustomerOrdersQuery(userPhone, {
     skip: userType !== 'customer' || !userPhone,
   });
@@ -24,14 +26,66 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     data: assignedResponse,
     isLoading: assignedLoading,
     error: assignedError,
+    refetch: refetchAssignedOrders,
+    isFetching: isFetchingAssignedOrders,
   } = useGetAssignedOrdersQuery(
     { employee_id: currentEmployeeId || '' },
-    { skip: userType !== 'employee' || !currentEmployeeId },
+    { 
+      skip: userType !== 'employee' || !currentEmployeeId,
+    },
   );
+
+  // Log for debugging and error handling
+  useEffect(() => {
+    if (userType === 'employee') {
+      console.log('useOrdersData: Employee mode', {
+        currentEmployeeId,
+        hasAssignedResponse: !!assignedResponse,
+        assignedResponseType: assignedResponse ? typeof assignedResponse : 'null',
+        assignedResponseKeys: assignedResponse && typeof assignedResponse === 'object' ? Object.keys(assignedResponse) : null,
+        assignedLoading,
+        assignedError: assignedError ? JSON.stringify(assignedError, null, 2) : null,
+        skipCondition: userType !== 'employee' || !currentEmployeeId,
+      });
+      
+      // Log errors
+      if (assignedError) {
+        console.error('useOrdersData: Error fetching assigned orders:', assignedError);
+      }
+    }
+  }, [userType, currentEmployeeId, assignedResponse, assignedLoading, assignedError]);
 
   // Memoized orders data
   const orders = useMemo(() => ordersResponse?.data || [], [ordersResponse]);
-  const assignedOrders = useMemo(() => assignedResponse?.data || [], [assignedResponse]);
+  
+  // Handle different response formats for assigned orders
+  const assignedOrders = useMemo(() => {
+    if (!assignedResponse) {
+      console.log('useOrdersData: No assigned response');
+      return [];
+    }
+    
+    // Check if response is ApiResponse format
+    if (assignedResponse.success && assignedResponse.data) {
+      console.log('useOrdersData: Assigned orders (ApiResponse format):', assignedResponse.data.length);
+      return assignedResponse.data;
+    }
+    
+    // Check if response is array directly
+    if (Array.isArray(assignedResponse)) {
+      console.log('useOrdersData: Assigned orders (Array format):', assignedResponse.length);
+      return assignedResponse;
+    }
+    
+    // Check if response has data property
+    if (assignedResponse.data && Array.isArray(assignedResponse.data)) {
+      console.log('useOrdersData: Assigned orders (data property):', assignedResponse.data.length);
+      return assignedResponse.data;
+    }
+    
+    console.warn('useOrdersData: Unknown assigned response format:', assignedResponse);
+    return [];
+  }, [assignedResponse]);
 
   // Sort orders by receive_date ascending
   const sortedOrders = useMemo(
@@ -64,6 +118,22 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     };
   }, [orders]);
 
+  // Refetch function for customer orders
+  const refetchOrders = useCallback(async () => {
+    if (userType === 'customer' && userPhone && refetchCustomerOrders) {
+      return refetchCustomerOrders();
+    }
+    return Promise.resolve();
+  }, [userType, userPhone, refetchCustomerOrders]);
+
+  // Refetch function for assigned orders
+  const refetchAssigned = useCallback(async () => {
+    if (userType === 'employee' && currentEmployeeId && refetchAssignedOrders) {
+      return refetchAssignedOrders();
+    }
+    return Promise.resolve();
+  }, [userType, currentEmployeeId, refetchAssignedOrders]);
+
   return {
     // Customer data
     orders,
@@ -72,11 +142,15 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     ordersLoading,
     ordersError,
     vehicleInfo,
+    refetchOrders,
+    isFetchingOrders: isFetchingCustomerOrders,
     // Employee data
     assignedOrders,
     sortedAssignedOrders,
     assignedLoading,
     assignedError,
+    refetchAssignedOrders: refetchAssigned,
+    isFetchingAssignedOrders: isFetchingAssignedOrders,
   };
 };
 

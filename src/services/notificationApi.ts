@@ -6,21 +6,40 @@ import { API_BASE_URL } from '../constants/config';
 interface BackendNotification {
   id: string;
   recipient_id: string;
-  recipient_type: string;
-  message: string;
-  is_read: boolean;
-  image_url?: string;
+  recipient_type: 'customer' | 'employee' | string;
+  type?: string;
+  title?: string | null;
+  body?: string | null;
+  message?: string;
+  image_url?: string | null;
+  is_read: 0 | 1 | boolean;
+  status?: string;
+  scheduled_at?: string | null;
+  sent_at?: string | null;
+  canceled_at?: string | null;
+  ref_type?: string | null;
+  ref_id?: string | null;
+  priority?: number;
+  metadata?: any;
   created_at?: string;
 }
 
 interface Notification {
   id: string;
   recipient_id: string;
-  recipient_type: string;
-  message: string;
+  recipient_type: 'customer' | 'employee' | string;
+  type?: string;
+  title?: string | null;
+  body?: string | null;
+  message?: string;
+  image_url?: string | null;
+  is_read: 0 | 1;
   read: boolean;
-  image_url?: string;
+  status?: string;
+  ref_type?: string | null;
+  ref_id?: string | null;
   created_at?: string;
+  sent_at?: string | null;
 }
 
 interface ApiResponse<T> {
@@ -65,11 +84,16 @@ export const notificationApi = createApi({
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to fetch notifications');
         }
-        return response.data.map((item: BackendNotification) => ({
-          ...item,
-          read: item.is_read, // Map backend 'is_read' to frontend 'read'
-          image_url: item.image_url, // Map image_url
-        }));
+        return response.data.map((item: BackendNotification) => {
+          const isRead = (item.is_read === true || item.is_read === 1);
+          return {
+            ...item,
+            // Normalize legacy/new formats
+            is_read: (isRead ? 1 : 0),
+            read: isRead,
+            image_url: item.image_url ?? null,
+          };
+        });
       },
     }),
     getUnreadCount: builder.query<number, UnreadCountParams>({
@@ -103,7 +127,7 @@ export const notificationApi = createApi({
     markNotificationRead: builder.mutation<void, string>({
       query: (id) => ({ 
         url: buildEndpointUrl('markNotificationRead', { id }), 
-        method: 'PATCH' 
+        method: 'PUT' 
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {

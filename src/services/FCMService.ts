@@ -1,34 +1,32 @@
-// src/services/FCMService.ts - Complete FCM implementation with token management
+/**
+ * FCMService - Firebase Cloud Messaging Service
+ * 
+ * Handles all FCM operations:
+ * - Token management (get, register, delete)
+ * - Foreground message handling (when app is open)
+ * - Background/terminated message handling (via index.js)
+ * - Notification tap handling
+ * - Token refresh handling
+ */
+
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { notificationService } from './NotificationService';
-import { Platform } from 'react-native';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import { store } from '../redux/stores';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FCM_TOKEN_KEY = 'fcm_token';
 
-// Background message handler - MUST be at top level
-messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('🔵 FCMService: Background message received', remoteMessage);
-  
-  if (remoteMessage.notification) {
-    await notificationService.displayNotification(
-      remoteMessage.notification.title || 'Thông báo mới',
-      remoteMessage.notification.body || '',
-      remoteMessage.data
-    );
-  } else if (remoteMessage.data) {
-    // Data-only notification
-    const title = remoteMessage.data.title as string || 'Thông báo mới';
-    const body = remoteMessage.data.body as string || remoteMessage.data.message as string || '';
-    await notificationService.displayNotification(title, body, remoteMessage.data);
-  }
-});
+/**
+ * Note: Background message handler is registered in index.js (top level)
+ * This is required by React Native Firebase for background/terminated notifications
+ */
 
 class FCMService {
   private fcmToken: string | null = null;
   private unsubscribeForegroundListener: (() => void) | null = null;
   private unsubscribeTokenRefreshListener: (() => void) | null = null;
+  private unsubscribeAppStateListener: { remove: () => void } | null = null;
   private isInitialized: boolean = false;
 
   /**
@@ -38,7 +36,7 @@ class FCMService {
     console.log('🔔 FCMService: Requesting notification permission...');
     
     try {
-    const authStatus = await messaging().requestPermission();
+      const authStatus = await messaging().requestPermission();
       const enabled =
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
@@ -197,9 +195,9 @@ class FCMService {
     }
   }
 
-
   /**
    * Setup foreground message listener
+   * This handles notifications when app is open and visible
    */
   setupForegroundListener(): void {
     // Cleanup existing listener first
@@ -212,19 +210,38 @@ class FCMService {
     console.log('🔔 FCMService: Setting up foreground listener...');
     
     this.unsubscribeForegroundListener = messaging().onMessage(async remoteMessage => {
-      console.log('📱 FCMService: Foreground message received', remoteMessage);
+      console.log('📱 FCMService: Foreground message received', {
+        messageId: remoteMessage.messageId,
+        notification: remoteMessage.notification,
+        data: remoteMessage.data,
+      });
 
-      if (remoteMessage.notification) {
-        await notificationService.displayNotification(
-          remoteMessage.notification.title || 'Thông báo mới',
-          remoteMessage.notification.body || '',
-          remoteMessage.data
-        );
-      } else if (remoteMessage.data) {
-        // Data-only notification
-        const title = remoteMessage.data.title as string || 'Thông báo mới';
-        const body = remoteMessage.data.body as string || remoteMessage.data.message as string || '';
-        await notificationService.displayNotification(title, body, remoteMessage.data);
+      try {
+        // Extract notification content
+        let title = 'Thông báo mới';
+        let body = '';
+        let data = remoteMessage.data || {};
+
+        if (remoteMessage.notification) {
+          title = remoteMessage.notification.title || title;
+          body = remoteMessage.notification.body || body;
+        } else if (remoteMessage.data) {
+          // Data-only notification
+          const dataObj = remoteMessage.data as Record<string, any>;
+          title = dataObj.title || dataObj.notification?.title || title;
+          body = dataObj.body || 
+                 dataObj.message || 
+                 dataObj.notification?.body || 
+                 body;
+        }
+
+        // Display notification using Notifee
+        // This ensures notification is shown even when app is in foreground
+        await notificationService.displayNotification(title, body, data);
+        
+        console.log('✅ FCMService: Foreground notification displayed');
+      } catch (error) {
+        console.error('❌ FCMService: Error displaying foreground notification:', error);
       }
     });
 
@@ -233,6 +250,7 @@ class FCMService {
 
   /**
    * Setup token refresh listener
+   * FCM tokens can be refreshed by Firebase automatically
    */
   setupTokenRefreshListener(): void {
     // Cleanup existing listener first
@@ -267,37 +285,77 @@ class FCMService {
   }
 
   /**
-   * Handle notification opened from quit/background state
+   * Handle notification opened from quit/terminated state
+   * This is called when user taps notification and app was completely closed
    */
   async handleInitialNotification(): Promise<void> {
     console.log('🚀 FCMService: Checking initial notification...');
     
-    const remoteMessage = await messaging().getInitialNotification();
-    
-    if (remoteMessage) {
-      console.log('📬 FCMService: App opened from notification:', remoteMessage);
+    try {
+      const remoteMessage = await messaging().getInitialNotification();
       
-      // Wait for navigation to be ready, then handle navigation
-      setTimeout(() => {
-        notificationService.handleNotificationPress(remoteMessage.data);
-      }, 1000);
-    } else {
-      console.log('ℹ️ FCMService: No initial notification');
+      if (remoteMessage) {
+        console.log('📬 FCMService: App opened from terminated state via notification:', {
+          messageId: remoteMessage.messageId,
+          data: remoteMessage.data,
+        });
+        
+        // Wait for navigation to be ready, then handle navigation
+        setTimeout(() => {
+          notificationService.handleNotificationPress(remoteMessage.data);
+        }, 1500);
+      } else {
+        console.log('ℹ️ FCMService: No initial notification');
+      }
+    } catch (error) {
+      console.error('❌ FCMService: Error checking initial notification:', error);
     }
   }
 
   /**
-   * Setup notification opened listener (when user taps notification)
+   * Setup notification opened listener
+   * This handles when user taps notification and app is in background
    */
   setupNotificationOpenedListener(): void {
     console.log('👆 FCMService: Setting up notification opened listener...');
     
     messaging().onNotificationOpenedApp(remoteMessage => {
-      console.log('📬 FCMService: Notification opened app:', remoteMessage);
+      console.log('📬 FCMService: Notification opened app from background:', {
+        messageId: remoteMessage.messageId,
+        data: remoteMessage.data,
+      });
+      
+      // Handle navigation
       notificationService.handleNotificationPress(remoteMessage.data);
     });
 
     console.log('✅ FCMService: Notification opened listener setup complete');
+  }
+
+  /**
+   * Setup app state listener to handle device lock/unlock
+   */
+  setupAppStateListener(): void {
+    if (this.unsubscribeAppStateListener) {
+      this.unsubscribeAppStateListener.remove();
+      this.unsubscribeAppStateListener = null;
+    }
+
+    console.log('📱 FCMService: Setting up app state listener...');
+
+    this.unsubscribeAppStateListener = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      console.log('📱 FCMService: App state changed:', nextAppState);
+      
+      // When app comes to foreground, check for any pending notifications
+      if (nextAppState === 'active') {
+        // Check for initial notification in case it was missed
+        this.handleInitialNotification().catch(error => {
+          console.error('❌ FCMService: Error handling initial notification on app state change:', error);
+        });
+      }
+    });
+
+    console.log('✅ FCMService: App state listener setup complete');
   }
 
   /**
@@ -318,8 +376,9 @@ class FCMService {
       this.setupForegroundListener();
       this.setupTokenRefreshListener();
       this.setupNotificationOpenedListener();
+      this.setupAppStateListener();
 
-      // Handle initial notification
+      // Handle initial notification (if app was opened from terminated state)
       await this.handleInitialNotification();
 
       this.isInitialized = true;
@@ -343,6 +402,11 @@ class FCMService {
     if (this.unsubscribeTokenRefreshListener) {
       this.unsubscribeTokenRefreshListener();
       this.unsubscribeTokenRefreshListener = null;
+    }
+
+    if (this.unsubscribeAppStateListener) {
+      this.unsubscribeAppStateListener.remove();
+      this.unsubscribeAppStateListener = null;
     }
 
     this.isInitialized = false;

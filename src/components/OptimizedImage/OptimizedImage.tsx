@@ -22,8 +22,15 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
   const [error, setError] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
 
-  const containerStyle = useMemo(() => [{ width, height, borderRadius }, style], [width, height, borderRadius, style]);
-  const imageStyle = useMemo(() => [{ width, height, borderRadius }, style], [width, height, borderRadius, style]);
+  const containerStyle = useMemo(() => [
+    { width, height, borderRadius, overflow: 'hidden' }, 
+    style
+  ], [width, height, borderRadius, style]);
+  
+  const imageStyle = useMemo(() => [
+    { width, height, borderRadius }, 
+    style
+  ], [width, height, borderRadius, style]);
 
   const handleLoadStart = useCallback(() => {
     setLoading(true);
@@ -32,6 +39,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
 
   const handleLoadEnd = useCallback(() => {
     setLoading(false);
+    setError(false);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 200,
@@ -39,10 +47,17 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
     }).start();
   }, [fadeAnim]);
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((error: any) => {
+    console.log('OptimizedImage - Image load error:', error);
     setLoading(false);
     setError(true);
-  }, []);
+    // Still show the image even if there's an error, let React Native handle it
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
 
   return (
     <View style={containerStyle}>
@@ -51,7 +66,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
           <SkeletonLoader width={width} height={height} borderRadius={borderRadius} />
         </View>
       )}
-      <Animated.View style={{ opacity: fadeAnim }}>
+      <Animated.View style={[{ opacity: fadeAnim }, StyleSheet.absoluteFill]}>
         <Image
           {...props}
           style={imageStyle}
@@ -59,7 +74,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
           onLoadEnd={handleLoadEnd}
           onError={handleError}
           resizeMode="cover"
-          resizeMethod="resize"
         />
       </Animated.View>
     </View>

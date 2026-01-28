@@ -9,18 +9,15 @@ export interface Category {
   name: string;
   description?: string;
   image_url?: string;
+  product_count?: number; // Số lượng sản phẩm trong danh mục (tự động cập nhật bởi backend)
   created_at?: string;
   updated_at?: string;
 }
 
+import { Product } from './productApi';
+
 export interface CategoryWithProducts extends Category {
-  products?: Array<{
-    id: number;
-    name: string;
-    price: number;
-    description?: string;
-    image_url?: string;
-  }>;
+  products?: Product[];
 }
 
 export interface CreateCategoryRequest {
@@ -59,7 +56,6 @@ export const categoryApi = createApi({
     getCategories: builder.query<Category[], void>({
       query: () => ENDPOINTS.getCategories.path,
       transformResponse: (response: ApiResponse<Category[]>) => {
-        console.log('getCategories response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch categories');
         return response.data;
       },
@@ -77,7 +73,6 @@ export const categoryApi = createApi({
       query: (id) => buildEndpointUrl('getCategoryById', { id: id.toString() }),
       providesTags: (result, error, id) => [{ type: 'Category', id }],
       transformResponse: (response: ApiResponse<CategoryWithProducts>) => {
-        console.log('getCategoryById response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch category');
         return response.data;
       },
@@ -92,7 +87,6 @@ export const categoryApi = createApi({
       }),
       invalidatesTags: [{ type: 'Category', id: 'LIST' }],
       transformResponse: (response: ApiResponse<Category>) => {
-        console.log('createCategory response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to create category');
         return response.data;
       },
@@ -110,7 +104,6 @@ export const categoryApi = createApi({
         { type: 'Category', id: 'LIST' },
       ],
       transformResponse: (response: ApiResponse<Category>) => {
-        console.log('updateCategory response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to update category');
         return response.data;
       },
@@ -124,7 +117,6 @@ export const categoryApi = createApi({
       }),
       invalidatesTags: [{ type: 'Category', id: 'LIST' }],
       transformResponse: (response: ApiResponse<void>) => {
-        console.log('deleteCategory response:', response);
         if (!response.success) throw new Error(response.error || 'Failed to delete category');
         return { message: 'Category deleted successfully' };
       },

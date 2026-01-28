@@ -1,50 +1,44 @@
 // navigation/RootNavigator.tsx - Root navigator with navigation reference
-import React from "react";
+import React, { useMemo } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Provider } from "react-redux";
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor, RootState } from "../redux/stores";
-import AuthNavigator from "./AuthNavigator";
 import AppNavigator from "./AppNavigator";
 import Loading from "../components/Loading/Loading";
-import { useSelector } from "react-redux";
+import { useAppSelector } from "../redux/hooks/useAppSelector";
 import { navigationRef } from "./RootNavigation";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 
 export type RootStackParamList = {
-  Auth: undefined;
   App: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function AppContent() {
-  const isLoggedIn = useSelector((state: RootState) => state.auth.isLoggedIn);
-  const { isLoading, message } = useSelector((state: RootState) => state.loading);
-
-  console.log('RootNavigator debug - isLoggedIn from persist:', isLoggedIn); // Debug persist state
+const AppContent = React.memo(() => {
+  const loadingState = useAppSelector((state: RootState) => state.loading);
+  const { isLoading, message } = useMemo(() => loadingState, [loadingState]);
 
   return (
     <ErrorBoundary>
       <NavigationContainer ref={navigationRef}>
         <Loading visible={isLoading} text={message} />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {isLoggedIn ? (
-            <Stack.Screen name="App" component={AppNavigator} />
-          ) : (
-            <Stack.Screen name="Auth" component={AuthNavigator} />
-          )}
+          <Stack.Screen name="App" component={AppNavigator} />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>
   );
-}
+});
+
+AppContent.displayName = 'AppContent';
 
 export default function RootNavigator() {
   return (
     <Provider store={store}>
-      <PersistGate loading={<Loading visible={true} text="Đang tải..." />} persistor={persistor}>
+      <PersistGate loading={null} persistor={persistor}>
         <AppContent />
       </PersistGate>
     </Provider>

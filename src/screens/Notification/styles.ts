@@ -12,7 +12,6 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.gradients.primary[0],
   },
   list: {
-    padding: 16,
     flexGrow: 1,
   },
   loadingContainer: {
@@ -32,11 +31,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background.light,
-  },
-  errorText: {
-    color: Colors.text.secondary,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.base,
   },
   emptyContainer: {
     flex: 1,

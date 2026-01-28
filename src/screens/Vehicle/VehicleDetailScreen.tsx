@@ -1,17 +1,19 @@
 // src/screens/Vehicle/VehicleDetailScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { RootView } from '../../components/layout';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
 import Header from '../../components/Header';
 import { useGetVehicleByIdQuery } from '../../services/vehicleApi';
+import { useGetCustomerOrdersQuery, useGetServicesQuery } from '../../services/customerApi';
 import { ServiceOrder } from '../../types/api.types';
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
+import { useAppSelector } from '../../redux/hooks/useAppSelector';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -28,8 +30,70 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
   const { vehicleId, licensePlate } = route.params;
   const navigation = useNavigation<NavigationProp>();
   const { refreshing, onRefresh } = useAutoRefresh();
-  const { data: vehicle, isLoading, refetch } = useGetVehicleByIdQuery(vehicleId);
+  const userPhone = useAppSelector((state) => state.auth.userPhone);
+  const { data: vehicle, isLoading: vehicleLoading, refetch: refetchVehicle } = useGetVehicleByIdQuery(vehicleId);
+  
+  // Fetch all customer orders
+  const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetCustomerOrdersQuery(
+    userPhone || '',
+    { skip: !userPhone }
+  );
+  
+  // Fetch services to get service names
+  const { data: servicesData } = useGetServicesQuery();
+  
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Create service map: service_id -> service_name
+  const serviceMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (servicesData?.data) {
+      servicesData.data.forEach((service: any) => {
+        map.set(service.id, service.name);
+      });
+    }
+    return map;
+  }, [servicesData?.data]);
+
+  // Filter orders by vehicle license plate and enrich with service names
+  const vehicleOrders = useMemo(() => {
+    if (!ordersData?.data || !licensePlate) return [];
+    return ordersData.data
+      .filter((order: ServiceOrder) => 
+        order.license_plate?.toUpperCase() === licensePlate.toUpperCase()
+      )
+      .map((order: ServiceOrder) => {
+        // If service_name is missing, get it from serviceMap
+        if (!order.service_name && order.service_id && serviceMap.has(order.service_id)) {
+          return {
+            ...order,
+            service_name: serviceMap.get(order.service_id)
+          };
+        }
+        return order;
+      });
+  }, [ordersData?.data, licensePlate, serviceMap]);
+
+  // Filter orders by selected status
+  const filteredOrders = useMemo(() => {
+    if (selectedStatus === 'all') return vehicleOrders;
+    // Handle both 'cancelled' and 'canceled' status
+    if (selectedStatus === 'cancelled') {
+      return vehicleOrders.filter(order => order.status === 'cancelled' || order.status === 'canceled');
+    }
+    return vehicleOrders.filter(order => order.status === selectedStatus);
+  }, [vehicleOrders, selectedStatus]);
+
+  // Enhanced refresh handler
+  const handleRefresh = async () => {
+    onRefresh();
+    // Note: services are cached, no need to refetch unless needed
+    await Promise.all([
+      refetchVehicle(),
+      refetchOrders()
+    ]);
+  };
 
   const handleOrderPress = (orderId: string | number) => {
     navigation.navigate('OrderDetail', { id: orderId.toString() });
@@ -95,7 +159,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
           <View style={styles.orderInfoRow}>
             <Ionicons name="calendar-outline" size={14} color={Colors.text.secondary} />
             <Text style={styles.orderInfoText}>
-              Ngày nhận: {new Date(order.receive_date).toLocaleDateString('vi-VN')}
+              Ngày đặt lịch: {new Date(order.receive_date).toLocaleDateString('vi-VN')}
             </Text>
           </View>
 
@@ -103,7 +167,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
             <View style={styles.orderInfoRow}>
               <Ionicons name="checkmark-circle-outline" size={14} color={Colors.text.secondary} />
               <Text style={styles.orderInfoText}>
-                Ngày giao: {new Date(order.delivery_date).toLocaleDateString('vi-VN')}
+                Ngày nhận: {new Date(order.delivery_date).toLocaleDateString('vi-VN')}
               </Text>
             </View>
           )}
@@ -126,7 +190,9 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
     );
   };
 
-  if (isLoading) {
+  const isLoading = vehicleLoading || ordersLoading;
+
+  if (isLoading && !vehicle) {
     return (
       <RootView style={styles.root}>
         <View style={styles.header}>
@@ -152,11 +218,6 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
     );
   }
 
-  const filteredOrders = vehicle.orders?.filter(order => {
-    if (selectedStatus === 'all') return true;
-    return order.status === selectedStatus;
-  }) || [];
-
   return (
     <RootView style={styles.root}>
       <View style={styles.header}>
@@ -165,12 +226,17 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
 
       <ScrollView
         style={styles.body}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing || isLoading} onRefresh={handleRefresh} />}
       >
         {/* Vehicle Info Card */}
         <View style={styles.vehicleCard}>
-          <View style={styles.vehicleImageContainer}>
+          <TouchableOpacity 
+            style={styles.vehicleImageContainer}
+            onPress={() => vehicle.image_url && setSelectedImage(vehicle.image_url)}
+            activeOpacity={0.9}
+          >
             {vehicle.image_url ? (
               <Image 
                 source={{ uri: vehicle.image_url }} 
@@ -183,7 +249,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
                 <Ionicons name="car-outline" size={80} color={Colors.neutral[400]} />
               </View>
             )}
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.vehicleInfo}>
             <View style={styles.infoRow}>
@@ -230,7 +296,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Lịch sử dịch vụ</Text>
             <Text style={styles.orderCount}>
-              {vehicle.orders?.length || 0} đơn
+              {vehicleOrders.length} đơn
             </Text>
           </View>
 
@@ -246,6 +312,15 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
             >
               <Text style={[styles.filterText, selectedStatus === 'all' && styles.filterTextActive]}>
                 Tất cả
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.filterChip, selectedStatus === 'received' && styles.filterChipActive]}
+              onPress={() => setSelectedStatus('received')}
+            >
+              <Text style={[styles.filterText, selectedStatus === 'received' && styles.filterTextActive]}>
+                Đã đặt lịch
               </Text>
             </TouchableOpacity>
 
@@ -266,6 +341,15 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
                 Hoàn thành
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.filterChip, (selectedStatus === 'cancelled' || selectedStatus === 'canceled') && styles.filterChipActive]}
+              onPress={() => setSelectedStatus('cancelled')}
+            >
+              <Text style={[styles.filterText, (selectedStatus === 'cancelled' || selectedStatus === 'canceled') && styles.filterTextActive]}>
+                Đã hủy
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
 
           {/* Orders List */}
@@ -281,6 +365,26 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={() => setSelectedImage(null)}
+          >
+            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </RootView>
   );
 };
@@ -399,7 +503,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterTextActive: {
-    color: Colors.text.white,
+    color: Colors.background.light,
   },
   ordersList: {
     gap: 12,
@@ -430,7 +534,7 @@ const styles = StyleSheet.create({
   orderTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: '#000000',
     marginLeft: 8,
     flex: 1,
   },
@@ -442,7 +546,7 @@ const styles = StyleSheet.create({
   orderStatusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.text.white,
+    color: '#FFFFFF',
   },
   orderInfo: {
     gap: 8,
@@ -477,6 +581,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text.secondary,
     marginTop: 12,
+  },
+  // Modal styles for full screen image
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
 

@@ -42,13 +42,37 @@ export const employeeApi = createApi({
       },
     }),
     getAssignedOrders: builder.query<ApiResponse<ServiceOrder[]>, { employee_id: string; status?: string }>({
-      query: (params) => ({ url: ENDPOINTS.getAssignedOrders.path, params }),
+      query: (params) => {
+        console.log('employeeApi: getAssignedOrders query params:', params);
+        return { url: ENDPOINTS.getAssignedOrders.path, params };
+      },
       providesTags: ['ServiceOrder'],
       transformResponse: (response: any) => {
+        console.log('employeeApi: getAssignedOrders raw response:', response);
+        
         // Backend có thể trả về array trực tiếp hoặc object với data
         if (Array.isArray(response)) {
+          console.log('employeeApi: Response is array, converting to ApiResponse format');
           return { success: true, data: response };
         }
+        
+        // Nếu response đã có format ApiResponse
+        if (response && typeof response === 'object' && 'success' in response) {
+          console.log('employeeApi: Response is already ApiResponse format');
+          return response;
+        }
+        
+        // Nếu response có data property nhưng không có success
+        if (response && response.data && Array.isArray(response.data)) {
+          console.log('employeeApi: Response has data property, wrapping in ApiResponse');
+          return { success: true, data: response.data };
+        }
+        
+        console.warn('employeeApi: Unknown response format:', response);
+        return { success: false, data: [], error: 'Unknown response format' };
+      },
+      transformErrorResponse: (response: any) => {
+        console.error('employeeApi: getAssignedOrders error:', response);
         return response;
       },
     }),
@@ -68,6 +92,27 @@ export const employeeApi = createApi({
       query: (id) => ({ url: buildEndpointUrl('deleteEmployee', { id }), method: 'DELETE' }),
       invalidatesTags: ['Employee'],
     }),
+    updateEmployeeOrderStatus: builder.mutation<void, { id: string; status: string; employee_id: string }>({
+      query: ({ id, ...body }) => {
+        console.log('employeeApi: updateEmployeeOrderStatus', { id, body });
+        return { 
+          url: buildEndpointUrl('updateEmployeeOrderStatus', { id }), 
+          method: 'PUT', 
+          body 
+        };
+      },
+      invalidatesTags: (result, error, { id }) => [{ type: 'ServiceOrder' as const, id }, 'ServiceOrder'],
+      transformResponse: (response: any) => {
+        console.log('employeeApi: updateEmployeeOrderStatus response:', response);
+        if (response && !response.success && response.error) {
+          throw new Error(response.error || 'Failed to update order status');
+        }
+      },
+      transformErrorResponse: (response: any) => {
+        console.error('employeeApi: updateEmployeeOrderStatus error:', response);
+        return response;
+      },
+    }),
   }),
 });
 
@@ -80,6 +125,7 @@ export const {
   useGetEmployeesQuery,
   useUpdateEmployeeMutation,
   useDeleteEmployeeMutation,
+  useUpdateEmployeeOrderStatusMutation,
 } = employeeApi;
 
 // Re-export types

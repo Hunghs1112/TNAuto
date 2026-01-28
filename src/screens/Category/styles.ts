@@ -23,13 +23,10 @@ export const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 20,
   },
-  categoriesContainer: {
-    gap: 16,
-    marginTop: 20,
+  listContent: {
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   bar: {
     position: "absolute",

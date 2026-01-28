@@ -1,7 +1,7 @@
 // screens/Service/ServiceMenu.tsx
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
@@ -12,7 +12,7 @@ import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-type NoParamsRoute = 'Offer' | 'Category' | 'Warranty';
+type NoParamsRoute = 'Offer' | 'Category' | 'Warranty' | 'ServiceCategory';
 
 interface MenuItem {
   id: number;
@@ -25,14 +25,14 @@ const ServiceMenu: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const offerCount = useAppSelector((state) => state.offers.count);
   
-  const menuItems: MenuItem[] = [
+  const menuItems: MenuItem[] = useMemo(() => [
     { id: 1, title: "Ưu đãi", icon: "pricetag-outline", route: "Offer" },
     { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "Category" },
     { id: 3, title: "Tích điểm", icon: "star-outline" },
     { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline", route: "Warranty" },
-  ];
+  ], []);
 
-  const handlePress = (item: MenuItem) => {
+  const handlePress = useCallback((item: MenuItem) => {
     // Xử lý đặc biệt cho tính năng Tích điểm
     if (item.id === 3) {
       Alert.alert(
@@ -45,10 +45,9 @@ const ServiceMenu: React.FC = () => {
     
     // Xử lý các route khác
     if (item.route) {
-      console.log('ServiceMenu: Navigate to', item.route); // Debug
       navigation.navigate(item.route);
     }
-  };
+  }, [navigation]);
 
   const showOfferBadge = offerCount > 0;
 
@@ -57,35 +56,32 @@ const ServiceMenu: React.FC = () => {
       {menuItems.map((item) => (
         <Pressable
           key={item.id}
-          style={({ pressed }) => [
-            styles.menuItem,
-            { opacity: pressed ? 0.7 : 1 }, // Hiệu ứng khi bấm
-          ]}
+          style={styles.menuItem}
           onPress={() => handlePress(item)}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           accessible={true}
           accessibilityRole="button"
           accessibilityLabel={item.title}
         >
           <View style={styles.iconContainer}>
-            <LinearGradient
-              colors={[Colors.primarySoft, Colors.background.light]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconCircle}
-            >
-              <Ionicons name={item.icon} size={28} color={Colors.primary} />
-            </LinearGradient>
-            {item.id === 1 && showOfferBadge && (
+            <View style={styles.iconCircleShadow}>
               <LinearGradient
-                colors={[Colors.primary, Colors.primaryLight]}
+                colors={[Colors.primarySoft, Colors.background.light]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.badge}
+                style={styles.iconCircle}
               >
+                <View style={styles.iconWrapper}>
+                  <Ionicons name={item.icon} size={28} color={Colors.primary} />
+                </View>
+              </LinearGradient>
+            </View>
+            {item.id === 1 && showOfferBadge && (
+              <View style={styles.badge}>
                 <Text style={styles.badgeText}>
                   {offerCount > 99 ? '99+' : offerCount}
                 </Text>
-              </LinearGradient>
+              </View>
             )}
           </View>
           <Text style={styles.title}>{item.title}</Text>
@@ -108,28 +104,43 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 8,
+    borderRadius: 16,
+    backgroundColor: Colors.background.light,
   },
   iconContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
   },
+  iconCircleShadow: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    elevation: 6,
+  },
   iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: 'rgba(218, 28, 18, 0.1)',
-    shadowColor: Colors.shadow.red,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: 'rgba(12, 119, 121, 0.3)',
+    overflow: 'hidden',
+    backgroundColor: 'white',
+  },
+  iconWrapper: {
+    width: '100%',
+    height: '100%',
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     color: Colors.text.primary,
@@ -149,16 +160,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 5,
+    backgroundColor: Colors.primary,
     borderWidth: 2,
     borderColor: Colors.background.light,
-    shadowColor: Colors.shadow.red,
+    shadowColor: Colors.shadow.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   badgeText: {
-    color: Colors.text.inverted,
+    color: Colors.background.light,
     fontFamily: Typography.fontFamily.bold,
     fontSize: 10,
     fontWeight: 'bold',
@@ -166,4 +178,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ServiceMenu;
+ServiceMenu.displayName = 'ServiceMenu';
+
+export default React.memo(ServiceMenu);

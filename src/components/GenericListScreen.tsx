@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, Text, StatusBar, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
 import { RootView } from '../components/layout';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../constants/colors';
 import { PerformanceConfig } from '../config/performance';
 import Header from './Header';
@@ -15,6 +15,7 @@ export interface ListItem {
   id: number | string;
   title: string;
   description: string;
+  imageUri?: string;
   onPress: () => void;
 }
 
@@ -27,9 +28,11 @@ interface GenericListScreenProps {
   emptyMessage?: string;
   mapDataToItems: (data: any) => ListItem[];
   enableRefresh?: boolean;
+  onRefresh?: () => void | Promise<void>;
+  refreshing?: boolean;
 }
 
-const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
+const GenericListScreen: React.FC<GenericListScreenProps> = ({
   title,
   data,
   isLoading,
@@ -38,8 +41,14 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   emptyMessage = 'Chưa có dữ liệu',
   mapDataToItems,
   enableRefresh = true,
+  onRefresh: customOnRefresh,
+  refreshing: customRefreshing,
 }) => {
-  const { refreshing, onRefresh } = useAutoRefresh();
+  const { refreshing: autoRefreshing, onRefresh: autoOnRefresh } = useAutoRefresh();
+  
+  // Use custom refresh if provided, otherwise use auto refresh
+  const refreshing = customRefreshing !== undefined ? customRefreshing : autoRefreshing;
+  const onRefresh = customOnRefresh || autoOnRefresh;
 
   // Memoize items to prevent re-computation
   const items = useMemo(() => data ? mapDataToItems(data) : [], [data, mapDataToItems]);
@@ -50,6 +59,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
       key={item.id}
       title={item.title}
       description={item.description}
+      imageUri={item.imageUri}
       onPress={item.onPress}
     />
   ), []);
@@ -57,14 +67,24 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   // Memoize keyExtractor callback
   const keyExtractor = useCallback((item: ListItem) => item.id.toString(), []);
 
+  // Optimized getItemLayout for consistent item heights (110px item + 12px separator)
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: 110 + 12, // item minHeight + separator
+      offset: (110 + 12) * index,
+      index,
+    }),
+    []
+  );
+
   // Loading state
   if (isLoading) {
     return (
       <View style={sharedStyles.container}>
-        <RootView style={sharedStyles.root}>
+        <RootView style={{ backgroundColor: Colors.background.light }} bottomColor={Colors.background.light}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
-          <View style={[sharedStyles.whiteSection, sharedStyles.centeredContent]}>
+          <View style={[sharedStyles.whiteSection, sharedStyles.centeredContent, { paddingHorizontal: 16 }]}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         </RootView>
@@ -76,10 +96,10 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   if (error) {
     return (
       <View style={sharedStyles.container}>
-        <RootView style={sharedStyles.root}>
+        <RootView style={{ backgroundColor: Colors.background.light }} bottomColor={Colors.background.light}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
-          <View style={sharedStyles.whiteSection}>
+          <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
             <View style={sharedStyles.body}>
               <View style={sharedStyles.emptyContainer}>
                 <Ionicons name="alert-circle-outline" size={48} color={Colors.primary} />
@@ -96,10 +116,10 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   if (items.length === 0) {
     return (
       <View style={sharedStyles.container}>
-        <RootView style={sharedStyles.root}>
+        <RootView style={{ backgroundColor: Colors.background.light }} bottomColor={Colors.background.light}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
-          <View style={sharedStyles.whiteSection}>
+          <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
             <View style={sharedStyles.body}>
               <View style={sharedStyles.emptyContainer}>
                 <Ionicons name={emptyIcon} size={48} color={Colors.primary} />
@@ -115,20 +135,21 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
   // List state
   return (
     <View style={sharedStyles.container}>
-      <RootView style={sharedStyles.root}>
+      <RootView style={{ backgroundColor: Colors.background.light }} bottomColor={Colors.background.light}>
         <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title={title} />
         
-        <View style={sharedStyles.whiteSection}>
+        <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
           <View style={sharedStyles.body}>
             <View style={sharedStyles.form}>
               <FlatList
                 data={items}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
-                ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+                getItemLayout={getItemLayout}
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                 showsVerticalScrollIndicator={false}
-                style={sharedStyles.listContainer}
+                contentContainerStyle={sharedStyles.listContent}
                 refreshControl={
                   enableRefresh ? (
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -141,18 +162,13 @@ const GenericListScreen: React.FC<GenericListScreenProps> = React.memo(({
                 updateCellsBatchingPeriod={PerformanceConfig.flatList.updateCellsBatchingPeriod}
               />
             </View>
-            
-            <View style={sharedStyles.bar}>
-              <View style={sharedStyles.barInner} />
-            </View>
           </View>
         </View>
       </RootView>
     </View>
   );
-});
+};
 
 GenericListScreen.displayName = 'GenericListScreen';
 
-export default GenericListScreen;
-
+export default React.memo(GenericListScreen);

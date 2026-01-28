@@ -12,3 +12,5 @@ export * from './notificationApi';
 export * from './imageApi';
 export * from './offerApi';
 export * from './vehicleApi';
+export * from './productReviewApi';
+export * from './serviceCategoryApi';

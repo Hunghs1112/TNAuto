@@ -3,6 +3,10 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typo";
+import { spacing } from "../design-system/spacing";
+import { borderRadius } from "../design-system/borders";
+import { textStyles } from "../design-system/typography";
+import { layoutPresets } from "../design-system/layout";
 
 export const sharedStyles = StyleSheet.create({
   // Container - White background for bottom safe area
@@ -51,15 +55,14 @@ export const sharedStyles = StyleSheet.create({
   // Form container
   form: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: spacing.base,
+    paddingBottom: spacing.xl,
   },
   
-  // List container
-  listContainer: {
-    gap: 16,
-    marginTop: 20,
+  // List content container
+  listContent: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   
   // Bottom bar
@@ -74,36 +77,32 @@ export const sharedStyles = StyleSheet.create({
   barInner: {
     width: 134,
     height: 5,
-    borderRadius: 100,
+    borderRadius: borderRadius.full,
     backgroundColor: Colors.text.placeholder,
-    marginBottom: 9,
+    marginBottom: spacing.sm,
   },
   
   // Empty state
   emptyContainer: {
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: spacing['3xl'],
   },
   
   emptyText: {
-    marginTop: 12,
+    marginTop: spacing.md,
     color: Colors.text.secondary,
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.regular,
+    ...textStyles.body,
   },
   
   // Centered content (for loading/error states)
   centeredContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
+    ...layoutPresets.centered,
   },
   
   errorText: {
     color: Colors.text.secondary,
-    fontSize: 16,
-    fontFamily: Typography.fontFamily.regular,
+    ...textStyles.body,
   },
 });
 

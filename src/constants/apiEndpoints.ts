@@ -91,8 +91,8 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
   },
   completeServiceOrder: {
     method: 'PATCH',
-    path: '/service-orders/:id/complete',
-    description: 'Complete service order and create warranty (required param: id; required body: delivery_date, warranty_period)',
+    path: '/service-orders/admin/:id/complete',
+    description: 'Complete service order and create warranty (required param: id; required body: delivery_date; optional body: warranty_period - backend will auto-fetch from service if not provided)',
     body: ['delivery_date', 'warranty_period'],
   },
   // Employee
@@ -119,6 +119,12 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Get assigned orders by employee (required param: employee_id; optional param: status; no body)',
     params: ['employee_id', 'status'],
   },
+  updateEmployeeOrderStatus: {
+    method: 'PUT',
+    path: '/employees/orders/:id/status',
+    description: 'Update service order status by employee (required param: id; required body: status)',
+    body: ['status'],
+  },
   createEmployee: {
     method: 'POST',
     path: '/employees',
@@ -141,11 +147,58 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     path: '/employees/:id',
     description: 'Delete employee (required param: id; no body)',
   },
+  // Service Categories
+  getServiceCategories: {
+    method: 'GET',
+    path: '/service-categories',
+    description: 'Get all service categories (no body)',
+  },
+  getServiceCategoryById: {
+    method: 'GET',
+    path: '/service-categories/:id',
+    description: 'Get service category by ID with services (required param: id; no body)',
+    params: ['id'],
+  },
+  createServiceCategory: {
+    method: 'POST',
+    path: '/service-categories/admin',
+    description: 'Create service category (required body: name)',
+    body: ['name'],
+  },
+  updateServiceCategory: {
+    method: 'PUT',
+    path: '/service-categories/admin/:id',
+    description: 'Update service category (required param: id; optional body: name, description, image_url)',
+    params: ['id'],
+    body: ['name', 'description', 'image_url'],
+  },
+  deleteServiceCategory: {
+    method: 'DELETE',
+    path: '/service-categories/admin/:id',
+    description: 'Delete service category (required param: id; no body)',
+    params: ['id'],
+  },
+  uploadServiceCategoryImage: {
+    method: 'POST',
+    path: '/service-categories/admin/:id/upload-image',
+    description: 'Upload image for service category (required param: id; required body: image file)',
+    params: ['id'],
+  },
+  getServiceCategoryStats: {
+    method: 'GET',
+    path: '/service-categories/admin/stats',
+    description: 'Get service category statistics (no body)',
+  },
   // Service
   getServicesAdmin: {
     method: 'GET',
     path: '/services',
     description: 'Get all services (no body)',
+  },
+  getServiceById: {
+    method: 'GET',
+    path: '/services/:id',
+    description: 'Get service by ID (required param: id; no body)',
   },
   createService: {
     method: 'POST',
@@ -169,6 +222,16 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     method: 'GET',
     path: '/products',
     description: 'Get all products with images (no body)',
+  },
+  getProductById: {
+    method: 'GET',
+    path: '/products/:id',
+    description: 'Get product by ID with images (required param: id; no body)',
+  },
+  getProductImages: {
+    method: 'GET',
+    path: '/products/:productId/images',
+    description: 'Get product images (required param: productId; no body)',
   },
   createProduct: {
     method: 'POST',
@@ -197,6 +260,32 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     method: 'DELETE',
     path: '/products/images/:id',
     description: 'Delete product image (required param: id; no body)',
+  },
+  // Product Reviews
+  getProductReviews: {
+    method: 'GET',
+    path: '/product-reviews',
+    description: 'Get product reviews (required param: product_id; optional params: approved_only, rating, page, limit)',
+    params: ['product_id', 'approved_only', 'rating', 'page', 'limit'],
+  },
+  getProductReviewStats: {
+    method: 'GET',
+    path: '/products/:id/reviews/stats',
+    description: 'Get product review statistics (required param: id; no body)',
+    params: ['id'],
+  },
+  createProductReview: {
+    method: 'POST',
+    path: '/product-reviews',
+    description: 'Create product review (required body: product_id, customer_id, rating, content)',
+    body: ['product_id', 'customer_id', 'rating', 'content'],
+  },
+  markReviewHelpful: {
+    method: 'POST',
+    path: '/product-reviews/:id/helpful',
+    description: 'Mark review as helpful (required param: id; required body: customer_id)',
+    params: ['id'],
+    body: ['customer_id'],
   },
   // Warranty
   checkWarranties: {

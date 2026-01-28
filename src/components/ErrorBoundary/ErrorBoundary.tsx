@@ -1,7 +1,7 @@
 // src/components/ErrorBoundary/ErrorBoundary.tsx
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
 

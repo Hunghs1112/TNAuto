@@ -1,12 +1,13 @@
 // src/screens/MyService/MyServiceScreen.tsx
-import React, { useState, useCallback, useMemo } from "react";
-import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, RefreshControl, SafeAreaView } from "react-native";
 import { RootView } from "../../components/layout";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import { PerformanceConfig } from "../../config/performance";
 import Header from "../../components/Header";
+import ErrorView from "../../components/Loading/ErrorView";
 import { styles } from "./styles";
 import SectionHeader from "../Home/SectionHeader";
 import ServiceOrderCard from "../../components/ServiceOrderCard";
@@ -22,14 +23,42 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const MyServiceScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh } = useAutoRefresh();
+  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh();
+  const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const userPhone = useAppSelector((state: RootState) => state.auth.userPhone || '');
   const services = useAppSelector((state: RootState) => state.services.services);
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const { data: ordersResponse, isLoading, error } = useGetCustomerOrdersQuery(userPhone, {
+  // Redirect to Login if not authenticated
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigation.replace('Login');
+    }
+  }, [isLoggedIn, navigation]);
+
+  // Don't render if not logged in (will redirect)
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  const { data: ordersResponse, isLoading, error, refetch, isFetching } = useGetCustomerOrdersQuery(userPhone, {
     skip: !userPhone,
   });
+
+  // Use isFetching to determine actual refreshing state
+  const actualRefreshing = refreshing || isFetching;
+
+  // Enhanced refresh handler that refetches the query
+  const handleRefresh = useCallback(async () => {
+    baseOnRefresh();
+    if (refetch) {
+      try {
+        await refetch();
+      } catch (error) {
+        console.error('MyServiceScreen: Error during refetch:', error);
+      }
+    }
+  }, [baseOnRefresh, refetch]);
 
   const orders = ordersResponse?.data || [];
 
@@ -91,7 +120,7 @@ const MyServiceScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+          <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
           <Header title="Dịch vụ của tôi" />
           <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
             <ActivityIndicator size="large" color={Colors.text.primary} />
@@ -105,11 +134,15 @@ const MyServiceScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+          <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
           <Header title="Dịch vụ của tôi" />
           <View style={styles.whiteSection}>
             <View style={styles.body}>
-              <Text>Lỗi tải dịch vụ</Text>
+              <ErrorView 
+                message="Lỗi tải dịch vụ"
+                onRetry={refetch}
+                icon="document-text-outline"
+              />
             </View>
           </View>
         </SafeAreaView>
@@ -121,7 +154,7 @@ const MyServiceScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+          <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
           <Header title="Dịch vụ của tôi" />
           <View style={styles.whiteSection}>
             <View style={styles.body}>
@@ -139,11 +172,11 @@ const MyServiceScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <RootView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.gradients.primary[0]} />
+        <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
         <Header title="Dịch vụ của tôi" />
         
       <View style={styles.whiteSection}>
-        <View style={styles.body}>
+        <View style={[styles.body, { paddingHorizontal: 16 }]}>
           {/* Status Filter Tabs */}
           <View style={styles.statusFilterContainer}>
             <ScrollView 
@@ -181,7 +214,7 @@ const MyServiceScreen: React.FC = () => {
               ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
               showsVerticalScrollIndicator={false}
               style={styles.servicesContainer}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              refreshControl={<RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />}
               initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
               maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
               windowSize={PerformanceConfig.flatList.windowSize}

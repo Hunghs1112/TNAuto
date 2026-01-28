@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react"
-import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native"
-import Ionicons from "react-native-vector-icons/Ionicons"
+import { View, Text, StyleSheet, Alert } from "react-native"
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useSelector, useDispatch } from "react-redux"
+import { useNavigation } from "@react-navigation/native"
+import { NativeStackNavigationProp } from "@react-navigation/native-stack"
+import { FormContainer } from "../../components/layout"
 import TextInputComponent from "../../components/TextInput/TextInput"
 import DateInput from "../../components/TextInput/DateInput"
 import NoteInput from "../../components/TextInput/NoteInput"
 import SelectInput from "../../components/TextInput/SelectInput"
-import ConfirmButton from "../../components/ConfirmButton"
+import { Button } from "../../components/ui"
 import { Colors } from "../../constants/colors"
 import { Typography } from "../../constants/typo"
+import SectionHeader from "./SectionHeader"
 import type { RootState } from "../../redux/types"
 import { setServices } from "../../redux/slices/servicesSlice"
 import { useGetServicesQuery, useCreateOrderMutation } from "../../services"
-import { getCurrentDate, getDateAfterDays, formatDateForAPI } from "../../utils/dateHelpers"
+import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
+import { getCurrentDate, formatDateForAPI, calculateReceiveDate, formatSecondsToDaysHours } from "../../utils/dateHelpers"
+import { AppStackParamList } from "../../navigation/AppNavigator"
+
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 interface QuickBookingFormProps {
   onConfirm?: () => void
@@ -21,6 +29,7 @@ interface QuickBookingFormProps {
 interface ServiceItem {
   id: number
   name: string
+  estimated_time?: number // giây
 }
 
 interface InputFieldWithLabelProps {
@@ -68,15 +77,22 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
 
 const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const dispatch = useDispatch()
-  const { userName, userPhone, userLicensePlate } = useSelector((state: RootState) => state.auth)
+  const navigation = useNavigation<NavigationProp>()
+  const { isLoggedIn, userName, userPhone, userLicensePlate, userId } = useSelector((state: RootState) => state.auth)
   const { services, isFetching: servicesLoading } = useSelector((state: RootState) => state.services)
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery({ phone: userPhone }, { skip: !userPhone });
   const [licensePlate, setLicensePlate] = useState(userLicensePlate)
   const [vehicleType, setVehicleType] = useState("")
+  const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null)
   const [deliveryDate, setDeliveryDate] = useState(getCurrentDate()) // Ngày hiện tại
-  const [receiveDate, setReceiveDate] = useState(getDateAfterDays(7)) // 7 ngày sau
+  const [receiveDate, setReceiveDate] = useState(getCurrentDate()) // dùng chung với deliveryDate (không hiển thị)
   const [note, setNote] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // Kiểm tra xem khách hàng có xe hay không
+  const hasVehicles = vehiclesData?.success && vehiclesData.data && vehiclesData.data.length > 0;
+  const vehicles = vehiclesData?.data || [];
 
   const { data: servicesData } = useGetServicesQuery()
   const [createOrder] = useCreateOrderMutation()
@@ -87,11 +103,48 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
     }
   }, [servicesData, dispatch])
 
+  // Auto-fill license plate and vehicle type when vehicle is selected
+  useEffect(() => {
+    if (selectedVehicle) {
+      setLicensePlate(selectedVehicle.license_plate || '')
+      setVehicleType(selectedVehicle.model || '')
+    }
+  }, [selectedVehicle])
+
+  // Đồng bộ receiveDate = deliveryDate (không hiển thị "Ngày ước tính nhận" trong form nhanh)
+  useEffect(() => {
+    setReceiveDate(deliveryDate)
+  }, [deliveryDate])
+
   const handleServiceSelect = useCallback((option: ServiceItem) => {
     setSelectedService(option)
   }, [])
 
+  const handleVehicleSelect = useCallback((vehicle: any) => {
+    setSelectedVehicle(vehicle)
+  }, [])
+
+  const handleDeliveryDateChange = useCallback((date: string) => {
+    setDeliveryDate(date)
+  }, [])
+
   const handleConfirm = useCallback(async () => {
+    // Check if user is logged in
+    if (!isLoggedIn) {
+      Alert.alert(
+        "Cần đăng nhập",
+        "Vui lòng đăng nhập để đặt lịch dịch vụ.",
+        [
+          { text: "Hủy", style: "cancel" },
+          { 
+            text: "Đăng nhập", 
+            onPress: () => navigation.navigate('Login')
+          }
+        ]
+      )
+      return
+    }
+
     if (!licensePlate || !vehicleType || !selectedService || !receiveDate) {
       Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc!")
       return
@@ -112,6 +165,23 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
       }
       const result = await createOrder(body).unwrap()
       if (result.success) {
+        // Reset form after successful booking
+        setSelectedService(null)
+        setNote("")
+        setDeliveryDate(getCurrentDate())
+        setReceiveDate(getCurrentDate())
+
+        if (hasVehicles) {
+          setSelectedVehicle(null)
+          setLicensePlate("")
+          setVehicleType("")
+        } else {
+          setVehicleType("")
+          if (!userLicensePlate) {
+            setLicensePlate("")
+          }
+        }
+
         Alert.alert("Thành công", "Đặt lịch thành công!")
         if (onConfirm) onConfirm()
       } else {
@@ -122,22 +192,17 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
     } finally {
       setIsLoading(false)
     }
-  }, [licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, onConfirm])
+  }, [isLoggedIn, navigation, licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, onConfirm])
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <View style={styles.container}>
-        <Text style={styles.title}>Đặt lịch dịch vụ nhanh</Text>
-        <ScrollView
-          style={styles.formContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.scrollContent}
-        >
+    <View style={styles.container}>
+      <SectionHeader title="Đặt lịch dịch vụ nhanh" />
+      <FormContainer
+        keyboardAvoiding
+        withScroll={false}
+        padding="base"
+        dismissKeyboardOnPress
+      >
           <InputFieldWithLabel
             value={userName}
             onChangeText={() => {}}
@@ -155,20 +220,64 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
             keyboardType="phone-pad"
             editable={false}
           />
-          <InputFieldWithLabel
-            value={licensePlate}
-            onChangeText={setLicensePlate}
-            placeholder="Biển số xe"
-            label="Biển số xe"
-            icon="car-outline"
-          />
-          <InputFieldWithLabel
-            value={vehicleType}
-            onChangeText={setVehicleType}
-            placeholder="Loại xe"
-            label="Loại xe"
-            icon="car-sport-outline"
-          />
+          {/* Chọn xe hoặc nhập thông tin xe */}
+          {hasVehicles ? (
+            <>
+              <SelectInput
+                value={selectedVehicle ? `${selectedVehicle.license_plate}${selectedVehicle.model ? ` - ${selectedVehicle.model}` : ''}` : ''}
+                placeholder="Chọn xe"
+                label="Chọn xe"
+                icon="car-outline"
+                options={vehicles.map((v: any) => ({
+                  id: v.id,
+                  name: `${v.license_plate}${v.model ? ` - ${v.model}` : ''}`,
+                  image_url: v.image_url || null,
+                  description: v.model || undefined,
+                }))}
+                onSelect={(option) => {
+                  const vehicle = vehicles.find((v: any) => v.id === option.id)
+                  if (vehicle) {
+                    handleVehicleSelect(vehicle)
+                  }
+                }}
+                disabled={vehiclesLoading}
+                useCategories={false}
+              />
+              {selectedVehicle && (
+                <View style={styles.vehicleInfoContainer}>
+                  <View style={styles.vehicleInfoRow}>
+                    <Ionicons name="car-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.vehicleInfoLabel}>Biển số:</Text>
+                    <Text style={styles.vehicleInfoValue}>{selectedVehicle.license_plate}</Text>
+                  </View>
+                  {selectedVehicle.model && (
+                    <View style={styles.vehicleInfoRow}>
+                      <Ionicons name="car-sport-outline" size={16} color={Colors.primary} />
+                      <Text style={styles.vehicleInfoLabel}>Loại xe:</Text>
+                      <Text style={styles.vehicleInfoValue}>{selectedVehicle.model}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <InputFieldWithLabel
+                value={licensePlate}
+                onChangeText={setLicensePlate}
+                placeholder="Nhập biển số xe"
+                label="Biển số xe"
+                icon="car-outline"
+              />
+              <InputFieldWithLabel
+                value={vehicleType}
+                onChangeText={setVehicleType}
+                placeholder="Nhập loại xe (ví dụ: Honda Wave, Yamaha Sirius)"
+                label="Loại xe"
+                icon="car-sport-outline"
+              />
+            </>
+          )}
           <SelectInput
             value={selectedService?.name || ""}
             placeholder="Chọn dịch vụ"
@@ -177,45 +286,80 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
             options={services}
             onSelect={handleServiceSelect}
             disabled={servicesLoading}
+            useCategories={true}
           />
-          <View style={styles.dateRowContainer}>
-            <DateInput value={deliveryDate} onChangeText={setDeliveryDate} placeholder={getCurrentDate()} label="Ngày giao" />
-            <DateInput value={receiveDate} onChangeText={setReceiveDate} placeholder={getDateAfterDays(7)} label="Ngày nhận" />
-          </View>
+          {selectedService && selectedService.estimated_time && (
+            <View style={styles.estimatedTimeContainer}>
+              <View style={styles.estimatedTimeRow}>
+                <Ionicons name="time-outline" size={16} color={Colors.primary} />
+                <Text style={styles.estimatedTimeLabel}>Thời gian ước tính:</Text>
+                <Text style={styles.estimatedTimeValue}>
+                  {formatSecondsToDaysHours(selectedService.estimated_time)}
+                </Text>
+              </View>
+            </View>
+          )}
+          <DateInput 
+            value={deliveryDate} 
+            onChangeText={handleDeliveryDateChange} 
+            placeholder={getCurrentDate()} 
+            label="Ngày đặt lịch" 
+            fullWidth
+          />
+
           <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
-        </ScrollView>
+        
         <View style={styles.confirmButtonContainer}>
-          <ConfirmButton
+          <Button
             title="Xác nhận"
             onPress={handleConfirm}
             loading={isLoading}
             disabled={isLoading}
-            height={44}
-            borderRadius={15}
+            variant="primary"
+            fullWidth
           />
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </FormContainer>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  vehicleInfoContainer: {
+    width: "100%",
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
+    gap: 8,
+  },
+  vehicleInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  vehicleInfoLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  vehicleInfoValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    fontSize: 14,
+    color: Colors.primary,
+    flex: 1,
+  },
+
   container: {
     width: "100%",
   },
-  title: {
-    color: Colors.text.primary,
-    fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.lg,
-    lineHeight: 28,
-    marginBottom: 4,
-    textAlign: "center",
-    letterSpacing: 0.5,
-  },
   formContainer: {
     width: "100%",
-    flex: 1,
   },
   scrollContent: {
     paddingBottom: 4,
@@ -272,6 +416,33 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 4,
     paddingHorizontal: 4,
+  },
+  estimatedTimeContainer: {
+    width: "100%",
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
+  },
+  estimatedTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  estimatedTimeLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  estimatedTimeValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    fontSize: 14,
+    color: Colors.primary,
   },
 })
 

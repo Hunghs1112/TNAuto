@@ -1,7 +1,7 @@
 // components/TextInput/NoteInput.tsx
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import TextInputComponent from "./TextInput";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";

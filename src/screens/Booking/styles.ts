@@ -23,9 +23,6 @@ export const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 20,
   },
   scrollContent: {
     paddingBottom: 20,
@@ -35,7 +32,6 @@ export const styles = StyleSheet.create({
     gap: 0,
   },
   confirmButtonContainer: {
-    paddingHorizontal: 24,
     paddingBottom: 20,
     width: "100%",
   },
@@ -89,9 +85,60 @@ export const styles = StyleSheet.create({
   inputWrapper: {
     width: "100%",
   },
-  errorText: {
-    textAlign: "center",
+  estimatedTimeContainer: {
+    width: "100%",
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
+  },
+  estimatedTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  estimatedTimeLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  estimatedTimeValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    fontSize: 14,
+    color: Colors.primary,
+  },
+  vehicleInfoContainer: {
+    width: "100%",
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.primarySoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
+    gap: 8,
+  },
+  vehicleInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  vehicleInfoLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    fontSize: 14,
     color: Colors.text.secondary,
-    fontSize: 16,
+  },
+  vehicleInfoValue: {
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    fontSize: 14,
+    color: Colors.primary,
+    flex: 1,
   },
 });

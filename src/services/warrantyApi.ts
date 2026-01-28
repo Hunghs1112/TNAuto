@@ -7,12 +7,19 @@ interface Warranty {
   id: number;
   order_id: number;
   customer_id: number;
-  warranty_period: number;
+  service_id?: number | null; // ID dịch vụ (có thể null)
+  employee_id?: number | null; // ID nhân viên (có thể null)
+  warranty_period: number; // tháng
   start_date: string;
   end_date: string;
   note?: string;
   created_at: string;
   updated_at: string;
+  // Populated fields from API
+  service_name?: string;
+  employee_name?: string;
+  license_plate?: string;
+  vehicle_type?: string;
 }
 
 interface CreateWarrantyRequest {
@@ -31,7 +38,7 @@ interface UpdateWarrantyRequest {
 
 interface CompleteServiceOrderRequest {
   delivery_date: string;
-  warranty_period: number;
+  warranty_period?: number; // Optional - backend will auto-fetch from service if not provided
 }
 
 interface CompleteServiceOrderResponse {
@@ -57,7 +64,6 @@ export const warrantyApi = createApi({
       query: () => ENDPOINTS.getAllWarranties?.path || '/api/warranties',
       providesTags: ['Warranty'],
       transformResponse: (response: ApiResponse<Warranty[]>) => {
-        console.log('getWarranties response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch warranties');
         return response.data;
       },
@@ -72,7 +78,6 @@ export const warrantyApi = createApi({
       }),
       invalidatesTags: ['Warranty'],
       transformResponse: (response: ApiResponse<Warranty>) => {
-        console.log('createWarranty response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to create warranty');
         return response.data;
       },
@@ -83,7 +88,6 @@ export const warrantyApi = createApi({
       query: (id) => buildEndpointUrl('getWarrantyById', { id }) || `/api/warranties/${id}`,
       providesTags: (result, error, id) => [{ type: 'Warranty' as const, id }],
       transformResponse: (response: ApiResponse<Warranty>) => {
-        console.log('getWarrantyById response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch warranty details');
         return response.data;
       },
@@ -98,7 +102,6 @@ export const warrantyApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Warranty' as const, id }],
       transformResponse: (response: ApiResponse<Warranty>) => {
-        console.log('updateWarranty response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to update warranty');
         return response.data;
       },
@@ -112,21 +115,19 @@ export const warrantyApi = createApi({
       }),
       invalidatesTags: ['Warranty'],
       transformResponse: (response: ApiResponse<void>) => {
-        console.log('deleteWarranty response:', response);
         if (!response.success) throw new Error(response.error || 'Failed to delete warranty');
       },
     }),
 
-    // 6. PATCH /api/service-orders/:id/complete - Hoàn thành service order và tạo warranty tự động
+    // 6. PATCH /api/service-orders/admin/:id/complete - Hoàn thành service order và tạo warranty tự động
     completeServiceOrder: builder.mutation<CompleteServiceOrderResponse, { id: string; data: CompleteServiceOrderRequest }>({
       query: ({ id, data }) => ({ 
-        url: buildEndpointUrl('completeServiceOrder', { id }) || `/api/service-orders/${id}/complete`, 
+        url: buildEndpointUrl('completeServiceOrder', { id }) || `/api/service-orders/admin/${id}/complete`, 
         method: 'PATCH', 
         body: data 
       }),
       invalidatesTags: ['Warranty'],
       transformResponse: (response: ApiResponse<CompleteServiceOrderResponse>) => {
-        console.log('completeServiceOrder response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to complete service order');
         return response.data;
       },

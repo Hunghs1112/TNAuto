@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import DatePicker from 'react-native-date-picker';
 import TextInputComponent from "./TextInput";
 import { Colors } from "../../constants/colors";
@@ -14,6 +14,8 @@ interface DateInputProps {
   onDatePress?: () => void;
   style?: any;
   dateFormat?: string; // 'DD/MM/YYYY' | 'MM/DD/YYYY'
+  disabled?: boolean; // Disable date picker
+  fullWidth?: boolean; // Full width instead of 50%
 }
 
 const DateInput: React.FC<DateInputProps> = ({
@@ -24,6 +26,8 @@ const DateInput: React.FC<DateInputProps> = ({
   onDatePress,
   style,
   dateFormat = 'DD/MM/YYYY',
+  disabled = false,
+  fullWidth = false,
 }) => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
@@ -42,6 +46,7 @@ const DateInput: React.FC<DateInputProps> = ({
   };
 
   const handleDatePress = () => {
+    if (disabled) return;
     setOpen(true);
     if (onDatePress) {
       onDatePress();
@@ -62,7 +67,7 @@ const DateInput: React.FC<DateInputProps> = ({
 
   return (
     <>
-      <View style={[styles.container, style]}>
+      <View style={[fullWidth ? styles.containerFullWidth : styles.container, style]}>
         <View style={styles.dateFieldContent}>
           <View style={styles.dateLabelContainer}>
             <Text style={styles.dateLabel}>{label}</Text>
@@ -76,24 +81,34 @@ const DateInput: React.FC<DateInputProps> = ({
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
-                placeholderTextColor={Colors.text.placeholder}
-                textColor={Colors.text.primary}
-                borderColor={Colors.neutral[300]}
+                placeholderTextColor={disabled ? Colors.text.placeholder : Colors.text.placeholder}
+                textColor={disabled ? Colors.text.secondary : Colors.text.primary}
+                borderColor={disabled ? Colors.neutral[200] : Colors.neutral[300]}
                 editable={false}
                 iconRight={
-                  <Pressable
-                    onPress={handleDatePress}
-                    style={styles.dateIconPressable}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Chọn ngày"
-                  >
-                    <Ionicons
-                      name="calendar-outline"
-                      size={18}
-                      color={Colors.background.red}
-                    />
-                  </Pressable>
+                  !disabled ? (
+                    <Pressable
+                      onPress={handleDatePress}
+                      style={styles.dateIconPressable}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Chọn ngày"
+                    >
+                      <Ionicons
+                        name="calendar-outline"
+                        size={18}
+                        color={Colors.background.red}
+                      />
+                    </Pressable>
+                  ) : (
+                    <View style={styles.dateIconPressable}>
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={18}
+                        color={Colors.text.placeholder}
+                      />
+                    </View>
+                  )
                 }
               />
             </Pressable>
@@ -125,6 +140,11 @@ const styles = StyleSheet.create({
   container: {
     width: "50%",
     paddingHorizontal: 2,
+  },
+  containerFullWidth: {
+    width: "100%",
+    paddingHorizontal: 0,
+    marginBottom: 16,
   },
   dateFieldContent: {
     width: "100%",

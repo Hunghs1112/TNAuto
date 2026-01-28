@@ -1,11 +1,14 @@
 // src/components/ServiceOrderCard/ServiceOrderCard.tsx
-import React, { useCallback, useRef, useMemo } from "react"
-import { View, Text, Pressable, StyleSheet, Animated } from "react-native"
-import Ionicons from "react-native-vector-icons/Ionicons"
+import React, { useMemo } from "react"
+import { View, Text, Pressable, StyleSheet } from "react-native"
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient'
 import { Colors } from "../../constants/colors"
 import { Typography } from "../../constants/typo"
-import { HapticFeedback } from "../../utils/haptics"
+import { spacing } from "../../design-system/spacing"
+import { borderRadius } from "../../design-system/borders"
+import { getRedShadowStyle } from "../../design-system/shadows"
+import { textStyles } from "../../design-system/typography"
 
 interface ServiceOrderCardProps {
   serviceName: string
@@ -34,71 +37,50 @@ const getStatusText = (status?: string) => {
   }
 };
 
-const getStatusColor = (status?: string) => {
+const getStatusColor = (status?: string): string => {
   switch (status) {
     case 'received':
-      return Colors.background.yellow;
+      return '#FEB052'; // Vàng cam
     case 'ready_for_pickup':
-      return Colors.background.orange;
+      return '#FF6B6B'; // Đỏ nhạt
     case 'in_progress':
-      return Colors.background.red;
+      return '#DA1C12'; // Đỏ
     case 'completed':
-      return Colors.background.green;
+      return '#34C759'; // Xanh lá
     case 'cancelled':
     case 'canceled':
-      return Colors.background.gray;
+      return '#9CA3AF'; // Xám
     default:
-      return Colors.background.yellow;
+      return '#FEB052'; // Vàng cam
   }
 };
 
 const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, onPress }) => {
-  const scaleValue = useRef(new Animated.Value(1)).current;
-
   const statusText = useMemo(() => getStatusText(status), [status]);
   const statusColor = useMemo(() => getStatusColor(status), [status]);
-
-  const handlePressIn = useCallback(() => {
-    HapticFeedback.light();
-    Animated.spring(scaleValue, {
-      toValue: 0.98,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  }, [scaleValue]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  }, [scaleValue]);
 
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
       accessible={true}
       accessibilityRole="button"
       accessibilityLabel={`${serviceName} - ${secondaryName} - ${statusText}`}
     >
-      <Animated.View style={[styles.container, { transform: [{ scale: scaleValue }] }]}>
+      <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.upperSection}>
           <View style={styles.header}>
             <View style={styles.serviceInfo}>
-              <LinearGradient
-                colors={[Colors.primary, Colors.primaryLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.iconContainer}
-              >
-                <Ionicons name="settings" size={28} color={Colors.background.light} />
-              </LinearGradient>
+              <View style={styles.iconContainerShadow}>
+                <LinearGradient
+                  colors={['#DA1C12', '#FF6B6B']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconContainer}
+                >
+                  <Ionicons name="settings" size={28} color={Colors.background.light} />
+                </LinearGradient>
+              </View>
               <View style={styles.textContainer}>
                 <View style={styles.serviceText}>
                   <Text style={styles.serviceName}>{serviceName}</Text>
@@ -128,13 +110,13 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, second
           </View>
           <View style={styles.dateItem}>
             <View style={[styles.dateIconContainer, styles.scheduleDateIcon]}>
-              <Ionicons name="calendar" size={18} color={Colors.primary} />
+              <Ionicons name="calendar" size={18} color="#DA1C12" />
             </View>
             <Text style={styles.scheduleDate}>{scheduleDate}</Text>
           </View>
         </View>
       </View>
-      </Animated.View>
+      </View>
     </Pressable>
   )
 }
@@ -144,19 +126,15 @@ export default React.memo(ServiceOrderCard)
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.background.light,
-    borderRadius: 20,
+    borderRadius: borderRadius['2xl'],
     borderWidth: 1.5,
     borderColor: Colors.neutral[200],
     width: "100%",
     minHeight: 190,
-    shadowColor: Colors.shadow.red,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
+    ...getRedShadowStyle('lg'),
   },
   content: {
-    padding: 24,
+    padding: spacing.xl,
     flex: 1,
     justifyContent: "space-between",
   },
@@ -171,8 +149,14 @@ const styles = StyleSheet.create({
   },
   serviceInfo: {
     flexDirection: "row",
-    gap: 16,
+    gap: spacing.base,
     flex: 1,
+  },
+  iconContainerShadow: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    ...getRedShadowStyle('sm'),
   },
   iconContainer: {
     width: 52,
@@ -180,66 +164,60 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.shadow.red,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    overflow: 'hidden',
   },
   arrowContainer: {
-    padding: 4,
-    borderRadius: 12,
+    padding: spacing.xs,
+    borderRadius: borderRadius.md,
     backgroundColor: Colors.neutral[50],
   },
   textContainer: {
     flex: 1,
-    marginLeft: 4,
+    marginLeft: spacing.xs,
   },
   serviceText: {
-    gap: 8,
+    gap: spacing.sm,
   },
   serviceName: {
     color: Colors.text.primary,
+    ...textStyles.bodyLarge,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
-    fontSize: Typography.size.lg,
-    lineHeight: 24,
   },
   secondaryName: {
     color: Colors.text.secondary,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
+    ...textStyles.bodySmall,
     opacity: 0.8,
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   statusText: {
     color: Colors.text.inverted,
+    ...textStyles.bodySmall,
     fontFamily: Typography.fontFamily.medium,
-    fontSize: Typography.size.sm,
-    fontWeight: '600',
+    fontWeight: Typography.weight.semibold,
   },
   divider: {
     height: 1,
     backgroundColor: Colors.divider,
     marginHorizontal: 0,
-    marginVertical: 18,
+    marginVertical: spacing.md,
   },
   footer: {
     flex: 1,
     flexDirection: "row",
-    gap: 20,
+    gap: spacing.lg,
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   dateItem: {
     flexDirection: "row",
-    gap: 8,
+    gap: spacing.sm,
     alignItems: "center",
     flex: 1,
   },
@@ -258,16 +236,14 @@ const styles = StyleSheet.create({
   },
   receiveDate: {
     color: Colors.secondary,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
+    ...textStyles.bodySmall,
     flex: 1,
-    fontWeight: "600",
+    fontWeight: Typography.weight.semibold,
   },
   scheduleDate: {
-    color: Colors.primary,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
+    color: '#DA1C12',
+    ...textStyles.bodySmall,
     flex: 1,
-    fontWeight: "600",
+    fontWeight: Typography.weight.semibold,
   },
 })

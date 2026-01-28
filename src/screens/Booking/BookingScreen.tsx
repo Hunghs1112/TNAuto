@@ -1,33 +1,38 @@
 // src/screens/Booking/BookingScreen.tsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, StatusBar, ScrollView, Alert, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform } from "react-native";
-import { RootView } from "../../components/layout";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, Alert, ActivityIndicator, RefreshControl } from "react-native";
+import { Screen, FormContainer } from "../../components/layout";
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
-import Header from "../../components/Header";
+import ErrorView from "../../components/Loading/ErrorView";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import DateInput from "../../components/TextInput/DateInput";
 import NoteInput from "../../components/TextInput/NoteInput";
 import SelectInput from "../../components/TextInput/SelectInput";
-import ConfirmButton from "../../components/ConfirmButton";
+import { Button } from "../../components/ui";
 import { AppStackParamList } from "../../navigation/AppNavigator";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { RootState } from "../../redux/types";
 import { setServices } from "../../redux/slices/servicesSlice";
 import { useGetServicesQuery, useCreateOrderMutation } from "../../services/customerApi";
-import { getCurrentDate, getDateAfterDays, formatDateForAPI } from "../../utils/dateHelpers";
+import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
+import { getCurrentDate, formatDateForAPI, formatSecondsToDaysHours } from "../../utils/dateHelpers";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+type BookingScreenRouteProp = RouteProp<AppStackParamList, 'Booking'>;
 
 interface ServiceItem {
   id: number;
   name: string;
+  estimated_time?: number; // giây
+  description?: string;
+  image_url?: string | null;
 }
 
 interface InputFieldWithLabelProps {
@@ -73,20 +78,36 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
 
 const BookingScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<BookingScreenRouteProp>();
   const dispatch = useAppDispatch();
   const { refreshing, onRefresh } = useAutoRefresh();
-  const { userName, userPhone, userLicensePlate } = useAppSelector((state: RootState) => state.auth);
+  const { isLoggedIn, userName, userPhone, userLicensePlate, userId } = useAppSelector((state: RootState) => state.auth);
   const { services, isFetching: servicesLoading } = useAppSelector((state: RootState) => state.services);
-  const { data: servicesData, isLoading: servicesIsLoading, error: servicesError } = useGetServicesQuery();
+  const { data: servicesData, isLoading: servicesIsLoading, error: servicesError, refetch: refetchServices } = useGetServicesQuery();
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery({ phone: userPhone }, { skip: !userPhone });
   const [createOrder] = useCreateOrderMutation();
+
+  // Get serviceId from route params
+  const serviceIdFromRoute = route.params?.serviceId;
 
   const [licensePlate, setLicensePlate] = useState(userLicensePlate || '');
   const [vehicleType, setVehicleType] = useState('');
+  const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [deliveryDate, setDeliveryDate] = useState(getCurrentDate()); // Ngày hiện tại
-  const [receiveDate, setReceiveDate] = useState(getDateAfterDays(7)); // 7 ngày sau
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Kiểm tra xem khách hàng có xe hay không
+  const hasVehicles = vehiclesData?.success && vehiclesData.data && vehiclesData.data.length > 0;
+  const vehicles = vehiclesData?.data || [];
+
+  // Redirect to Login if not authenticated
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigation.replace('Login');
+    }
+  }, [isLoggedIn, navigation]);
 
   useEffect(() => {
     if (servicesData?.success && servicesData.data) {
@@ -94,48 +115,43 @@ const BookingScreen: React.FC = () => {
     }
   }, [servicesData, dispatch]);
 
-  if (servicesIsLoading) {
-    return (
-      <View style={styles.container}>
-        <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-          <Header title="Đặt lịch dịch vụ" />
-          <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color={Colors.text.primary} />
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
+  // Auto-select service from route params
+  useEffect(() => {
+    if (serviceIdFromRoute && servicesData?.success && servicesData.data) {
+      const service = servicesData.data.find((s: ServiceItem) => s.id === serviceIdFromRoute);
+      if (service) {
+        setSelectedService(service);
+      }
+    }
+  }, [serviceIdFromRoute, servicesData]);
 
-  if (servicesError || !servicesData?.success) {
-    return (
-      <View style={styles.container}>
-        <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-          <Header title="Đặt lịch dịch vụ" />
-          <View style={styles.whiteSection}>
-            <View style={styles.body}>
-              <Text style={styles.errorText}>Lỗi tải dịch vụ</Text>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
+  // Auto-fill license plate and vehicle type when vehicle is selected
+  useEffect(() => {
+    if (selectedVehicle) {
+      setLicensePlate(selectedVehicle.license_plate || '');
+      setVehicleType(selectedVehicle.model || '');
+    }
+  }, [selectedVehicle]);
 
   const handleServiceSelect = useCallback((option: ServiceItem) => {
     setSelectedService(option);
   }, []);
+  
+  const handleVehicleSelect = useCallback((vehicle: any) => {
+    setSelectedVehicle(vehicle);
+  }, []);
+
+  const handleDeliveryDateChange = useCallback((date: string) => {
+    setDeliveryDate(date);
+  }, []);
 
   const handleConfirm = useCallback(async () => {
-    if (!licensePlate || !vehicleType || !selectedService || !receiveDate) {
+    if (!licensePlate || !vehicleType || !selectedService) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin bắt buộc!');
       return;
     }
     setIsLoading(true);
     try {
-      const formattedReceiveDate = formatDateForAPI(receiveDate);
       const formattedDeliveryDate = formatDateForAPI(deliveryDate);
       const body = {
         receiver_name: userName,
@@ -143,12 +159,19 @@ const BookingScreen: React.FC = () => {
         license_plate: licensePlate,
         vehicle_type: vehicleType,
         service_id: selectedService.id,
-        receive_date: formattedReceiveDate,
+        receive_date: formattedDeliveryDate, // Sử dụng delivery_date làm receive_date
         delivery_date: formattedDeliveryDate,
         note,
       };
       const result = await createOrder(body).unwrap();
       if (result.success) {
+        // Clear fields with default empty string values
+        setVehicleType('');
+        setNote('');
+        // Clear licensePlate if it was originally empty (not from userLicensePlate)
+        if (!userLicensePlate) {
+          setLicensePlate('');
+        }
         Alert.alert('Thành công', 'Đặt lịch thành công!');
         try {
           if (navigation.canGoBack()) {
@@ -167,89 +190,180 @@ const BookingScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, navigation]);
+  }, [licensePlate, vehicleType, selectedService, deliveryDate, note, userName, userPhone, createOrder, navigation, userLicensePlate]);
+
+  // Don't render if not logged in (will redirect)
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  if (servicesIsLoading) {
+    return (
+      <Screen
+        headerTitle="Đặt lịch dịch vụ"
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={Colors.text.primary} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (servicesError || !servicesData?.success) {
+    return (
+      <Screen
+        headerTitle="Đặt lịch dịch vụ"
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
+        <View style={{ flex: 1 }}>
+          <ErrorView 
+            message="Lỗi tải dịch vụ"
+            onRetry={refetchServices}
+            icon="calendar-outline"
+          />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    <Screen
+      headerTitle="Đặt lịch dịch vụ"
+      showBackButton
+      statusBarStyle="light-content"
     >
-      <View style={styles.container}>
-        <RootView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.gradients.primary[0]} />
-          <Header title="Đặt lịch dịch vụ" />
-          
-          <View style={styles.whiteSection}>
-            <View style={styles.body}>
-              <ScrollView
-                style={styles.form}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-              >
-            <InputFieldWithLabel
-              value={userName || ''}
-              onChangeText={() => {}}
-              placeholder="Tên khách hàng"
-              label="Tên khách hàng"
-              icon="person-outline"
-              editable={false}
+      <FormContainer
+        keyboardAvoiding
+        withScroll
+        padding="xl"
+        dismissKeyboardOnPress
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{
+          paddingBottom: 20,
+        }}
+      >
+        <InputFieldWithLabel
+          value={userName || ''}
+          onChangeText={() => {}}
+          placeholder="Tên khách hàng"
+          label="Tên khách hàng"
+          icon="person-outline"
+          editable={false}
+        />
+        <InputFieldWithLabel
+          value={userPhone || ''}
+          onChangeText={() => {}}
+          placeholder="Số điện thoại"
+          label="Số điện thoại"
+          icon="call-outline"
+          keyboardType="phone-pad"
+          editable={false}
+        />
+        {/* Chọn xe hoặc nhập thông tin xe */}
+        {hasVehicles ? (
+          <>
+            <SelectInput
+              value={selectedVehicle ? `${selectedVehicle.license_plate}${selectedVehicle.model ? ` - ${selectedVehicle.model}` : ''}` : ''}
+              placeholder="Chọn xe"
+              label="Chọn xe"
+              icon="car-outline"
+              options={vehicles.map((v: any) => ({
+                id: v.id,
+                name: `${v.license_plate}${v.model ? ` - ${v.model}` : ''}`,
+                image_url: v.image_url || null,
+                description: v.model || undefined,
+              }))}
+              onSelect={(option) => {
+                const vehicle = vehicles.find((v: any) => v.id === option.id);
+                if (vehicle) {
+                  handleVehicleSelect(vehicle);
+                }
+              }}
+              disabled={vehiclesLoading}
+              useCategories={false}
             />
-            <InputFieldWithLabel
-              value={userPhone || ''}
-              onChangeText={() => {}}
-              placeholder="Số điện thoại"
-              label="Số điện thoại"
-              icon="call-outline"
-              keyboardType="phone-pad"
-              editable={false}
-            />
+            {selectedVehicle && (
+              <View style={styles.vehicleInfoContainer}>
+                <View style={styles.vehicleInfoRow}>
+                  <Ionicons name="car-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.vehicleInfoLabel}>Biển số:</Text>
+                  <Text style={styles.vehicleInfoValue}>{selectedVehicle.license_plate}</Text>
+                </View>
+                {selectedVehicle.model && (
+                  <View style={styles.vehicleInfoRow}>
+                    <Ionicons name="car-sport-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.vehicleInfoLabel}>Loại xe:</Text>
+                    <Text style={styles.vehicleInfoValue}>{selectedVehicle.model}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </>
+        ) : (
+          <>
             <InputFieldWithLabel
               value={licensePlate}
               onChangeText={setLicensePlate}
-              placeholder="Biển số xe"
+              placeholder="Nhập biển số xe"
               label="Biển số xe"
               icon="car-outline"
             />
             <InputFieldWithLabel
               value={vehicleType}
               onChangeText={setVehicleType}
-              placeholder="Loại xe"
+              placeholder="Nhập loại xe (ví dụ: Honda Wave, Yamaha Sirius)"
               label="Loại xe"
               icon="car-sport-outline"
             />
-            <SelectInput
-              value={selectedService?.name || ''}
-              placeholder="Chọn dịch vụ"
-              label="Loại dịch vụ"
-              icon="construct-outline"
-              options={services}
-              onSelect={handleServiceSelect}
-              disabled={servicesLoading}
-            />
-            <View style={styles.dateRowContainer}>
-              <DateInput value={deliveryDate} onChangeText={setDeliveryDate} placeholder={getCurrentDate()} label="Ngày giao" />
-              <DateInput value={receiveDate} onChangeText={setReceiveDate} placeholder={getDateAfterDays(7)} label="Ngày nhận" />
-            </View>
-                <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
-              </ScrollView>
-              <View style={styles.confirmButtonContainer}>
-                <ConfirmButton
-                  title="Xác nhận đặt lịch"
-                  onPress={handleConfirm}
-                  loading={isLoading}
-                  disabled={isLoading}
-                  height={44}
-                  borderRadius={15}
-                />
-              </View>
+          </>
+        )}
+        <SelectInput
+          value={selectedService?.name || ''}
+          placeholder="Chọn dịch vụ"
+          label="Loại dịch vụ"
+          icon="construct-outline"
+          options={services}
+          onSelect={handleServiceSelect}
+          disabled={servicesLoading}
+          useCategories={true}
+        />
+        {selectedService && selectedService.estimated_time && (
+          <View style={styles.estimatedTimeContainer}>
+            <View style={styles.estimatedTimeRow}>
+              <Ionicons name="time-outline" size={16} color={Colors.primary} />
+              <Text style={styles.estimatedTimeLabel}>Thời gian ước tính:</Text>
+              <Text style={styles.estimatedTimeValue}>
+                {formatSecondsToDaysHours(selectedService.estimated_time)}
+              </Text>
             </View>
           </View>
-        </RootView>
-      </View>
-    </KeyboardAvoidingView>
+        )}
+        <DateInput 
+          value={deliveryDate} 
+          onChangeText={handleDeliveryDateChange} 
+          placeholder={getCurrentDate()} 
+          label="Ngày đặt lịch" 
+          fullWidth
+        />
+        <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />
+        
+        <View style={styles.confirmButtonContainer}>
+          <Button
+            title="Xác nhận đặt lịch"
+            onPress={handleConfirm}
+            loading={isLoading}
+            disabled={isLoading}
+            variant="primary"
+            fullWidth
+          />
+        </View>
+      </FormContainer>
+    </Screen>
   );
 };
 

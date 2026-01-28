@@ -22,7 +22,14 @@ interface CheckPhoneResponse {
 
 export const authApi = createApi({
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: fetchBaseQuery({ 
+    baseUrl: API_BASE_URL,
+    prepareHeaders: (headers) => {
+      headers.set('Content-Type', 'application/json');
+      headers.set('Accept', 'application/json');
+      return headers;
+    },
+  }),
   endpoints: (builder) => ({
     checkPhone: builder.mutation<CheckPhoneResponse, { phone: string }>({
       query: (body) => ({ 
@@ -31,7 +38,6 @@ export const authApi = createApi({
         body 
       }),
       transformResponse: (response: CheckPhoneResponse) => {
-        console.log('checkPhone response:', response);
         return response;
       },
     }),

@@ -73,8 +73,6 @@ export const styles = StyleSheet.create({
   
   // Info Section
   infoSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
   },
   productName: {
     fontSize: Typography.size['2xl'],
@@ -84,6 +82,13 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
   },
   
+  // Video Section
+  videoSection: {
+    marginBottom: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: Colors.divider,
+  },
   // Description
   descriptionSection: {
     marginBottom: 24,
@@ -172,6 +177,37 @@ export const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: Colors.divider,
+  },
+  
+  // Modal styles for full screen image
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
 

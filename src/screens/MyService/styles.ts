@@ -23,9 +23,6 @@ export const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 4,
-    paddingBottom: 20,
   },
   servicesContainer: {
     gap: 16,
@@ -96,7 +93,7 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   statusTabTextActive: {
-    color: Colors.text.white,
+    color: Colors.background.light,
     fontFamily: Typography.fontFamily.bold,
   },
 });

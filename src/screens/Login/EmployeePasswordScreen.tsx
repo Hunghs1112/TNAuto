@@ -1,11 +1,10 @@
 // src/screens/Login/EmployeePasswordScreen.tsx
 import React, { useState } from "react";
-import { View, Text, StatusBar, Alert, Image, KeyboardAvoidingView, Platform } from "react-native";
-import { RootView } from "../../components/layout";
+import { View, Text, Alert, Image } from "react-native";
+import { Screen, FormContainer } from "../../components/layout";
 import { Colors } from "../../constants/colors";
-import ConfirmButton from "../../components/ConfirmButton";
+import { Button } from "../../components/ui";
 import TextInputComponent from "../../components/TextInput/TextInput";
-import Header from "../../components/Header";
 import { styles } from "./styles";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -13,11 +12,11 @@ import { useLoginEmployeeMutation } from "../../services";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { setLoggedIn } from "../../redux/slices/authSlice";
 import { setCurrentEmployee } from "../../redux/slices/employeeSlice";
-import { AuthStackParamList } from "../../navigation/AuthNavigator";
+import { AppStackParamList } from "../../navigation/AppNavigator";
 import { registerFCMTokenAfterLogin } from "../../utils/fcmTokenManager";
 
-type EmployeePasswordRouteProp = RouteProp<AuthStackParamList, 'EmployeePassword'>;
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
+type EmployeePasswordRouteProp = RouteProp<AppStackParamList, 'EmployeePassword'>;
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 export default function EmployeePasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -61,6 +60,9 @@ export default function EmployeePasswordScreen() {
         registerFCMTokenAfterLogin(userId, 'employee').catch(error => {
           console.error('Failed to register FCM token:', error);
         });
+
+        // Navigate to Home after successful login
+        navigation.replace('Home');
       } else {
         Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại!");
       }
@@ -87,59 +89,58 @@ export default function EmployeePasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    <Screen
+      headerTitle="Đăng nhập nhân viên"
+      showBackButton
+      safeAreaTopColor={Colors.primary}
+      statusBarStyle="light-content"
     >
-      <View style={styles.container}>
-    <RootView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <FormContainer
+        keyboardAvoiding
+        withScroll
+        padding="xl"
+        dismissKeyboardOnPress
+      >
+        <Text style={styles.welcomeText}>Xin chào, {employeeData.name}</Text>
+        <Text style={styles.subtitle}>Vui lòng nhập mật khẩu để tiếp tục</Text>
 
-          <Header title="Đăng nhập nhân viên" showBackButton />
+        <Image
+          style={styles.logo}
+          source={require('../../assets/logo.png')}
+          resizeMode="cover"
+        />
 
-          <View style={styles.body}>
-            <View style={styles.form}>
-              <Text style={styles.welcomeText}>Xin chào, {employeeData.name}</Text>
-              <Text style={styles.subtitle}>Vui lòng nhập mật khẩu để tiếp tục</Text>
+        <View style={styles.inputContainer}>
+          <TextInputComponent
+            value={phone}
+            editable={false}
+            placeholder="Số điện thoại"
+            placeholderTextColor={Colors.text.placeholder}
+            style={{ backgroundColor: Colors.neutral[100] }}
+          />
 
-              <Image
-                style={styles.logo}
-                source={require('../../assets/logo.png')}
-                resizeMode="cover"
-              />
+          <TextInputComponent
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Mật khẩu"
+            placeholderTextColor={Colors.text.placeholder}
+            secureTextEntry={true}
+            autoFocus={true}
+          />
+        </View>
 
-              <View style={styles.inputContainer}>
-                <TextInputComponent
-                  value={phone}
-                  editable={false}
-                  placeholder="Số điện thoại"
-                  placeholderTextColor={Colors.text.placeholder}
-                  style={{ backgroundColor: Colors.background.disabled }}
-                />
-
-                <TextInputComponent
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Mật khẩu"
-                  placeholderTextColor={Colors.text.placeholder}
-                  secureTextEntry={true}
-                  autoFocus={true}
-                />
-              </View>
-
-              <ConfirmButton
-                title="Đăng nhập"
-                onPress={handleLogin}
-                loading={isLoading}
-                buttonColor={Colors.button.primary}
-                textColor={Colors.text.inverted}
-              />
-            </View>
-          </View>
-    </RootView>
-      </View>
-    </KeyboardAvoidingView>
+        <View style={styles.actions}>
+          <Button
+            title="Đăng nhập"
+            onPress={handleLogin}
+            loading={isLoading}
+            disabled={isLoading}
+            variant="primary"
+            fullWidth
+          />
+        </View>
+      </FormContainer>
+    </Screen>
   );
 }
 

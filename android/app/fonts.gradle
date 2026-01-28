@@ -1,0 +1,45 @@
+/**
+ * Register font asset source folder for @react-native-vector-icons/ionicons
+ */
+android.sourceSets.main.assets.srcDirs += file("$buildDir/intermediates/ReactNativeVectorIcons")
+
+/**
+ * Task to copy icon font files from new package structure
+ */
+afterEvaluate {
+    def iconFontsDir = "../../node_modules/@react-native-vector-icons/ionicons/fonts"
+    def iconFontNames = [ "Ionicons.ttf" ]
+
+    def fontCopyTask = tasks.create(
+        name: "copyReactNativeVectorIconFonts",
+        type: Copy) {
+        description = "copy vector icon fonts from @react-native-vector-icons/ionicons"
+        into "$buildDir/intermediates/ReactNativeVectorIcons/fonts"
+
+        iconFontNames.each { fontName ->
+            from(iconFontsDir) {
+                include(fontName)
+            }
+        }
+    }
+
+    android.applicationVariants.all { variant ->
+        def variantName = variant.name.capitalize()
+        def taskNames = [
+                "generate${variantName}Assets",
+                "generate${variantName}LintModel",
+                "generate${variantName}LintReportModel",
+                "generate${variantName}LintVitalReportModel",
+                "lintAnalyze${variantName}",
+                "lintVitalAnalyze${variantName}",
+        ]
+
+        taskNames.each { taskName ->
+            def task = tasks.findByName(taskName)
+            if (task) {
+                task.dependsOn(fontCopyTask)
+            }
+        }
+    }
+}
+

@@ -1,6 +1,6 @@
-import type React from "react"
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
-import Ionicons from "react-native-vector-icons/Ionicons"
+import React, { useCallback, useMemo } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Image } from "react-native"
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient'
 import { useNavigation } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
@@ -26,18 +26,36 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
   const { data: vehiclesData, isLoading, error } = useGetCustomerVehiclesQuery({ 
     phone: userPhone 
   });
+  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
 
-  console.log('VehicleInfoCard - Debug:', { 
-    userPhone, 
-    isLoading, 
-    error, 
-    vehiclesData,
-    hasData: vehiclesData?.data,
-    dataLength: vehiclesData?.data?.length,
-    success: vehiclesData?.success,
-    count: vehiclesData?.count
-  });
+  // All hooks must be called before any early returns
+  const firstVehicle = useMemo(() => vehiclesData?.data?.[0], [vehiclesData?.data]);
+  const hasMultipleVehicles = useMemo(() => (vehiclesData?.data?.length || 0) > 1, [vehiclesData?.data?.length]);
+  const status = useMemo(() => firstVehicle?.has_active_order ? "Đang sửa chữa" : "Bình thường", [firstVehicle?.has_active_order]);
+  const statusIcon = useMemo(() => firstVehicle?.has_active_order ? "construct" : "checkmark-circle", [firstVehicle?.has_active_order]);
 
+  const handleViewAllVehicles = useCallback(() => {
+    navigation.navigate('VehicleList', { userId, userPhone });
+  }, [navigation, userId, userPhone]);
+
+  const handleViewVehicleDetail = useCallback(() => {
+    if (firstVehicle) {
+      navigation.navigate('VehicleDetail', { 
+        vehicleId: firstVehicle.id.toString(),
+        licensePlate: firstVehicle.license_plate 
+      });
+    }
+  }, [navigation, firstVehicle]);
+
+  const handleImagePress = useCallback((imageUrl: string) => {
+    setSelectedImage(imageUrl);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedImage(null);
+  }, []);
+
+  // Early returns after all hooks
   if (isLoading) {
     return <VehicleCardSkeleton />;
   }
@@ -65,7 +83,7 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
         </View>
       </View>
       <LinearGradient
-        colors={['rgba(218, 28, 18, 0)', 'rgba(218, 28, 18, 0.15)', 'rgba(218, 28, 18, 0)']}
+        colors={['rgba(12, 119, 121, 0)', 'rgba(12, 119, 121, 0.15)', 'rgba(12, 119, 121, 0)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.divider}
@@ -73,7 +91,7 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
       <View style={styles.emptyContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={Colors.primary} />
           <Text style={styles.emptyText}>{errorMessage}</Text>
-          <Text style={[styles.emptyText, { fontSize: 11, marginTop: 8, opacity: 0.7 }]}>
+          <Text style={[styles.emptyText, styles.hintText]}>
             Vui lòng kiểm tra backend API
           </Text>
         </View>
@@ -83,11 +101,6 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
 
   // Check for empty data
   if (!vehiclesData?.data || vehiclesData.data.length === 0) {
-    console.log('VehicleInfoCard - Empty State:', { 
-      hasData: !!vehiclesData?.data,
-      dataLength: vehiclesData?.data?.length,
-      success: vehiclesData?.success
-    });
     return (
       <View style={styles.container}>
       <View style={styles.header}>
@@ -104,7 +117,7 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
         </View>
       </View>
       <LinearGradient
-        colors={['rgba(218, 28, 18, 0)', 'rgba(218, 28, 18, 0.15)', 'rgba(218, 28, 18, 0)']}
+        colors={['rgba(12, 119, 121, 0)', 'rgba(12, 119, 121, 0.15)', 'rgba(12, 119, 121, 0)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.divider}
@@ -112,7 +125,7 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
       <View style={styles.emptyContainer}>
         <Ionicons name="car-outline" size={48} color={Colors.primary} />
           <Text style={styles.emptyText}>Chưa có thông tin xe</Text>
-          <Text style={[styles.emptyText, { fontSize: 12, marginTop: 8, opacity: 0.7 }]}>
+          <Text style={[styles.emptyText, styles.hintText]}>
             Xe sẽ tự động được thêm khi tạo đơn dịch vụ
           </Text>
         </View>
@@ -120,38 +133,23 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
     );
   }
 
-  const firstVehicle = vehiclesData.data[0];
-  const hasMultipleVehicles = vehiclesData.data.length > 1;
-  const status = firstVehicle.has_active_order ? "Đang sửa chữa" : "Bình thường"
-  const statusIcon = firstVehicle.has_active_order ? "construct" : "checkmark-circle"
-
-  const handleViewAllVehicles = () => {
-    navigation.navigate('VehicleList', { userId, userPhone });
-  };
-
-  const handleViewVehicleDetail = () => {
-    navigation.navigate('VehicleDetail', { 
-      vehicleId: firstVehicle.id.toString(),
-      licensePlate: firstVehicle.license_plate 
-    });
-  };
-
   return (
     <TouchableOpacity 
       style={styles.container} 
       onPress={handleViewVehicleDetail}
-      activeOpacity={0.9}
     >
       <View style={styles.header}>
         <View style={styles.vehicleTitleContainer}>
-          <LinearGradient
-            colors={[Colors.primary, Colors.primaryLight]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.iconContainer}
-          >
-            <Ionicons name="car-sport" size={28} color={Colors.background.light} />
-          </LinearGradient>
+          <View style={styles.iconContainerShadow}>
+            <LinearGradient
+              colors={Colors.gradients.primary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.iconContainer}
+            >
+              <Ionicons name="car-sport" size={28} color={Colors.background.light} />
+            </LinearGradient>
+          </View>
           <Text style={styles.vehicleTitle}>Thông tin xe</Text>
         </View>
         <View style={styles.chevronContainer}>
@@ -160,28 +158,34 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
       </View>
 
       <LinearGradient
-        colors={['rgba(218, 28, 18, 0)', 'rgba(218, 28, 18, 0.15)', 'rgba(218, 28, 18, 0)']}
+        colors={['rgba(12, 119, 121, 0)', 'rgba(12, 119, 121, 0.15)', 'rgba(12, 119, 121, 0)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.divider}
       />
 
       <View style={styles.vehicleContent}>
-        <View style={styles.avatarContainer}>
-          {firstVehicle.image_url ? (
-            <OptimizedImage 
-              source={{ uri: firstVehicle.image_url }} 
-              width={88}
-              height={88}
-              borderRadius={44}
-              style={styles.vehicleAvatar}
-            />
-          ) : (
-            <View style={[styles.vehicleAvatar, styles.placeholderFrame]}>
-              <Ionicons name="camera-outline" size={32} color={Colors.primary} />
+        <TouchableOpacity 
+          style={styles.avatarContainer}
+          onPress={() => firstVehicle?.image_url && handleImagePress(firstVehicle.image_url)}
+        >
+          <View style={styles.vehicleAvatarOuter}>
+            <View style={styles.vehicleAvatarInner}>
+              {firstVehicle.image_url ? (
+                <OptimizedImage
+                  source={{ uri: firstVehicle.image_url }}
+                  width={styles.vehicleAvatarInner.width as number}
+                  height={styles.vehicleAvatarInner.height as number}
+                  borderRadius={(styles.vehicleAvatarInner.width as number) / 2}
+                />
+              ) : (
+                <View style={styles.placeholderFrame}>
+                  <Ionicons name="camera-outline" size={32} color={Colors.primary} />
+                </View>
+              )}
             </View>
-          )}
-        </View>
+          </View>
+        </TouchableOpacity>
 
         <View style={styles.vehicleInfo}>
           <View style={styles.infoRow}>
@@ -214,7 +218,6 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
         <TouchableOpacity 
           style={styles.viewAllButton} 
           onPress={handleViewAllVehicles}
-          activeOpacity={0.7}
         >
           <Text style={styles.viewAllText}>
             Xem tất cả xe ({vehiclesData.data.length})
@@ -222,16 +225,35 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({
           <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
         </TouchableOpacity>
       )}
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={handleCloseModal}
+          >
+            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </TouchableOpacity>
   )
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.background.light,
     borderRadius: 24,
     padding: 28,
-    shadowColor: Colors.shadow.red,
+    shadowColor: Colors.shadow.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
@@ -274,13 +296,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  iconContainerShadow: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 14,
+  },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    overflow: 'hidden',
   },
   vehicleTitle: {
     fontSize: 22,
@@ -308,15 +336,28 @@ const styles = StyleSheet.create({
   avatarContainer: {
     marginRight: 20,
   },
-  vehicleAvatar: {
+  vehicleAvatarOuter: {
     width: 88,
     height: 88,
     borderRadius: 44,
     borderWidth: 3,
     borderColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+  },
+  vehicleAvatarInner: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    overflow: 'hidden',
+    backgroundColor: Colors.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   placeholderFrame: {
-    borderStyle: "dashed",
+    width: '100%',
+    height: '100%',
     backgroundColor: Colors.primarySoft,
     justifyContent: "center",
     alignItems: "center",
@@ -347,6 +388,43 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginLeft: 8,
   },
+  // Modal styles for full screen image
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  hintText: {
+    fontSize: 11,
+    marginTop: 8,
+    color: Colors.text.secondary,
+  },
 })
 
-export default VehicleInfoCard
+VehicleInfoCard.displayName = 'VehicleInfoCard';
+
+export default React.memo(VehicleInfoCard);

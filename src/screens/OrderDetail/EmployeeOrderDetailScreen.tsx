@@ -1,18 +1,21 @@
 // src/screens/OrderDetail/EmployeeOrderDetailScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StatusBar, FlatList, Image, ActivityIndicator, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StatusBar, FlatList, Image, ActivityIndicator, ScrollView, TouchableOpacity, Alert, RefreshControl, Modal } from 'react-native';
 import { RootView } from "../../components/layout";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
 import Header from '../../components/Header';
 import ConfirmButton from '../../components/ConfirmButton';
-import { useGetEmployeeOrderDetailsQuery } from '../../services/employeeApi';
+import ErrorView from '../../components/Loading/ErrorView';
+import { 
+  useGetEmployeeOrderDetailsQuery,
+  useUpdateEmployeeOrderStatusMutation 
+} from '../../services/employeeApi';
 import { 
   useUploadSingleImageMutation, 
   useUploadServiceOrderImageMutation 
 } from '../../services/imageApi';
-import { useUpdateServiceOrderStatusMutation } from '../../services/serviceOrderApi';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { RootState } from '../../redux/types';
 import { ServiceOrderImage } from '../../types/api.types';
@@ -25,16 +28,52 @@ import {
 } from '../../utils/imageUpload';
 import { styles } from './styles';
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { useFocusEffect } from '@react-navigation/native';
 
 const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
-  const { refreshing, onRefresh } = useAutoRefresh();
-  const { data: orderData, isLoading, error, refetch } = useGetEmployeeOrderDetailsQuery(id);
+  const [refreshing, setRefreshing] = useState(false);
+  const { data: orderData, isLoading, error, refetch } = useGetEmployeeOrderDetailsQuery(id, {
+    refetchOnMountOrArgChange: true,
+  });
   const [uploadSingleImage] = useUploadSingleImageMutation();
   const [uploadServiceOrderImage] = useUploadServiceOrderImageMutation();
-  const [updateServiceOrderStatus] = useUpdateServiceOrderStatusMutation();
+  const [updateEmployeeOrderStatus] = useUpdateEmployeeOrderStatusMutation();
   const currentEmployee = useAppSelector((state: RootState) => state.employee.currentEmployee);
   const [uploading, setUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+
+  // Refetch when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      // Update image timestamp to force reload
+      setImageTimestamp(Date.now());
+    }, [refetch])
+  );
+
+  // Handle pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Refetch order data
+      await refetch();
+      // Update image timestamp to force reload
+      setImageTimestamp(Date.now());
+    } catch (error) {
+      console.error('Error refreshing order:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
+  // == Helpers ==
+  // Add cache busting to image URLs. MUST be declared before any early returns to keep hook order stable.
+  const getImageUrl = useCallback((url: string) => {
+    if (!url) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}_t=${imageTimestamp}`;
+  }, [imageTimestamp]);
 
   if (isLoading) {
     return (
@@ -55,7 +94,11 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
         <Header title="Xử lí yêu cầu" />
         <View style={styles.whiteSection}>
           <View style={styles.body}>
-            <Text style={styles.errorText}>Không tìm thấy đơn hàng</Text>
+            <ErrorView 
+              message="Không tìm thấy đơn hàng"
+              onRetry={refetch}
+              icon="document-text-outline"
+            />
           </View>
         </View>
       </RootView>
@@ -175,13 +218,23 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   };
 
   const handleUpdateStatus = async () => {
+    if (!currentEmployee?.id) {
+      Alert.alert('Lỗi', 'Không tìm thấy thông tin nhân viên');
+      return;
+    }
+
     try {
-      await updateServiceOrderStatus({ id, status: 'ready_for_pickup' }).unwrap();
+      await updateEmployeeOrderStatus({ 
+        id, 
+        status: 'ready_for_pickup',
+        employee_id: currentEmployee.id 
+      }).unwrap();
       Alert.alert('Thành công', 'Cập nhật trạng thái thành công');
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update status:', err);
-      Alert.alert('Lỗi', 'Cập nhật trạng thái thất bại');
+      const errorMessage = err?.data?.error || err?.data?.message || 'Cập nhật trạng thái thất bại';
+      Alert.alert('Lỗi', errorMessage);
     }
   };
 
@@ -223,6 +276,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
     }
   };
 
+  // Add cache busting to image URLs
   const renderRow = (label: string, value: string | undefined | null | number, style?: any) => {
     if (value === null || value === undefined) return null;
     return (
@@ -239,17 +293,34 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   };
 
   const renderImage = ({ item }: { item: ServiceOrderImage }) => {
+    if (!item.image_url) {
+      return (
+        <View style={styles.imageContainer}>
+          <View style={[styles.image, { backgroundColor: Colors.neutral[200], justifyContent: 'center', alignItems: 'center' }]}>
+            <Ionicons name="image-outline" size={24} color={Colors.text.secondary} />
+          </View>
+          {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
+        </View>
+      );
+    }
+    const imageUrl = getImageUrl(item.image_url);
     return (
-      <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri: item.image_url }} 
-          style={styles.image}
-          resizeMode="cover"
-          onError={(error) => console.log('EmployeeOrderDetailScreen - Image load error:', error.nativeEvent.error)}
-        />
-        {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
-        {item.created_at && <Text style={styles.imageDate}>Ngày chụp: {new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>}
-      </View>
+      <TouchableOpacity onPress={() => setSelectedImage(imageUrl)} activeOpacity={0.8}>
+        <View style={styles.imageContainer}>
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.image}
+            resizeMode="cover"
+            onError={(error) => {
+              console.log('EmployeeOrderDetailScreen - Image load error:', error.nativeEvent.error);
+              console.log('Failed image URL:', imageUrl);
+            }}
+            onLoad={() => console.log('EmployeeOrderDetailScreen - Image loaded successfully:', imageUrl)}
+          />
+          {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
+          {item.created_at && <Text style={styles.imageDate}>Ngày chụp: {new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -261,8 +332,8 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
       <Header title="Phiếu dịch vụ" />
       
       <View style={styles.whiteSection}>
-        <View style={styles.body}>
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        <View style={[styles.body, { paddingHorizontal: 16 }]}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
             <View style={styles.billCard}>
               {renderRow('Khách hàng', orderData.customer_name || orderData.receiver_name)}
               {renderRow('Loại dịch vụ', orderData.service_name)}
@@ -272,9 +343,9 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
               {renderRow('Số điện thoại', orderData.receiver_phone || orderData.customer_phone)}
               {renderRow('Biển số xe', orderData.license_plate)}
               {orderData.vehicle_type && renderRow('Loại xe', orderData.vehicle_type)}
-              {renderRow('Ngày nhận', orderData.receive_date)}
-              {renderRow('Ngày bàn giao', orderData.delivery_date, { color: Colors.text.primary })}
-              {renderRow('Ngày đặt lịch', orderData.created_at)}
+              {renderRow('Ngày đặt lịch', orderData.receive_date)}
+              {renderRow('Ngày nhận', orderData.delivery_date, { color: Colors.text.primary })}
+              {renderRow('Ngày tạo đơn', orderData.created_at)}
               <View style={styles.divider} />
               <View style={styles.imageSection}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -356,6 +427,26 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
           </ScrollView>
         </View>
       </View>
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={() => setSelectedImage(null)}
+          >
+            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </RootView>
   );
 };

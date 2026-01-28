@@ -1,8 +1,8 @@
 // src/screens/Vehicle/VehicleListScreen.tsx
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { RootView } from '../../components/layout';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../constants/colors';
@@ -29,6 +29,7 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
   const navigation = useNavigation<NavigationProp>();
   const { refreshing, onRefresh } = useAutoRefresh();
   const { data: vehiclesData, isLoading, refetch } = useGetCustomerVehiclesQuery({ phone: userPhone });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleVehiclePress = (vehicle: Vehicle) => {
     navigation.navigate('VehicleDetail', {
@@ -48,7 +49,11 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
         onPress={() => handleVehiclePress(item)}
         activeOpacity={0.8}
       >
-        <View style={styles.imageContainer}>
+        <TouchableOpacity 
+          style={styles.imageContainer}
+          onPress={() => item.image_url && setSelectedImage(item.image_url)}
+          activeOpacity={0.9}
+        >
           {item.image_url ? (
             <Image 
               source={{ uri: item.image_url }} 
@@ -64,7 +69,7 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
           <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
             <Ionicons name={statusIcon} size={14} color={Colors.text.white} />
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.infoContainer}>
           <View style={styles.licensePlateContainer}>
@@ -132,6 +137,26 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
           />
         )}
       </View>
+
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={() => setSelectedImage(null)}
+          >
+            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
     </RootView>
   );
 };
@@ -259,6 +284,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // Modal styles for full screen image
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
   },
 });
 

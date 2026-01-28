@@ -5,51 +5,209 @@ import { Typography } from "../../constants/typo";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.light, // White for bottom safe area
+    backgroundColor: Colors.background.light,
   },
   root: {
     flex: 1,
-    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
+    backgroundColor: Colors.gradients.primary[0],
   },
   body: {
     flex: 1,
     width: "100%",
     backgroundColor: Colors.background.light,
   },
-  form: {
-    flex: 1,
-    marginTop: "2%",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: Colors.background.light,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
-  userTypeText: {
-    color: Colors.text.secondary,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
+  
+  // Header Section với Avatar
+  headerSection: {
+    backgroundColor: Colors.background.light,
+    paddingBottom: 32,
+    paddingTop: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: Colors.neutral[300],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.neutral[100],
   },
   avatarContainer: {
     alignItems: "center",
-    marginBottom: 24,
-    marginTop: -50,
+    paddingTop: 8,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
     borderColor: Colors.background.light,
   },
+  avatarBorder: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: Colors.primary + '30',
+    top: 0,
+    left: 0,
+  },
   userName: {
-    fontSize: Typography.size.base,
+    fontSize: Typography.size['2xl'],
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
-    color: Colors.primary,
+    color: Colors.text.primary,
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  userTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primarySoft,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: Colors.primary + '20',
+  },
+  userTypeText: {
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    color: Colors.primary,
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  phoneText: {
+    fontSize: Typography.size.base,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.text.secondary,
+  },
+  
+  // Menu Section
+  menuSection: {
+    flex: 1,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+  },
+  menuCard: {
+    backgroundColor: Colors.background.light,
+    borderRadius: 16,
+    paddingVertical: 8,
+    marginBottom: 20,
+    shadowColor: Colors.neutral[300],
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: Colors.neutral[100],
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    minHeight: 64,
+  },
+  menuItemPressed: {
+    backgroundColor: Colors.neutral[50],
+  },
+  menuContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 16,
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuText: {
+    fontSize: Typography.size.lg,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    color: Colors.text.primary,
+    lineHeight: 24,
+    flex: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.divider,
+    marginHorizontal: 20,
+  },
+  
+  // Action Section
+  actionSection: {
+    gap: 12,
+    paddingBottom: 20,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    minHeight: 56,
+  },
+  actionButtonPressed: {
+    opacity: 0.8,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  deleteButton: {
+    backgroundColor: Colors.primarySoft,
+    borderWidth: 1,
+    borderColor: Colors.status.error + '30',
+  },
+  deleteButtonText: {
+    fontSize: Typography.size.lg,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    color: Colors.status.error,
+  },
+  logoutButton: {
+    backgroundColor: Colors.primarySoft,
+    borderWidth: 1,
+    borderColor: Colors.background.red + '30',
+  },
+  logoutButtonText: {
+    fontSize: Typography.size.lg,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    color: Colors.background.red,
+  },
+  
+  // Legacy styles (có thể xóa sau)
+  form: {
+    flex: 1,
+  },
+  spacer: {
+    height: 20,
   },
   menuContainer: {
     flex: 1,
@@ -57,34 +215,25 @@ export const styles = StyleSheet.create({
   menuItemWrapper: {
     marginBottom: 0,
   },
-  menuItem: {
+  deleteAccountItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingVertical: 18,
     paddingHorizontal: 16,
-    minHeight: 60,
+    marginTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    gap: 12,
   },
-  menuContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
+  deleteAccountItemDisabled: {
+    opacity: 0.5,
   },
-  menuText: {
-    fontSize: Typography.size.lg, // Tăng từ base lên lg (18px)
+  deleteAccountText: {
+    fontSize: Typography.size.base,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: Typography.weight.medium,
-    color: Colors.text.primary,
+    color: Colors.status.error,
     lineHeight: 24,
-    marginLeft: 12,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginHorizontal: 16,
-  },
-  spacer: {
-    height: 20,
   },
   logoutItem: {
     flexDirection: "row",
@@ -108,19 +257,5 @@ export const styles = StyleSheet.create({
     fontWeight: Typography.weight.medium,
     color: Colors.error,
     lineHeight: 24,
-  },
-  bar: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    height: "4.19%",
-    alignItems: "center",
-  },
-  barInner: {
-    width: 134,
-    height: 5,
-    borderRadius: 100,
-    backgroundColor: Colors.text.placeholder,
-    marginBottom: 9,
   },
 });

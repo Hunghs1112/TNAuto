@@ -13,8 +13,6 @@ export const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -34,25 +32,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-  },
-  errorText: {
-    marginTop: 16,
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.medium,
-    color: Colors.status.error,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: Colors.button.primary,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    fontSize: Typography.size.sm,
-    fontFamily: Typography.fontFamily.medium,
-    color: Colors.button.text,
   },
   listContainer: {
     paddingBottom: 16,
@@ -104,6 +83,37 @@ export const styles = StyleSheet.create({
     fontSize: Typography.size.sm,
     fontFamily: Typography.fontFamily.regular,
     color: Colors.text.secondary,
+    marginBottom: 2,
+  },
+  serviceName: {
+    fontSize: Typography.size.base,
+    fontFamily: Typography.fontFamily.semibold,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  licensePlate: {
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.text.secondary,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+    marginLeft: 8,
+    marginRight: 8,
+    minWidth: 80,
+  },
+  infoValue: {
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.primary,
+    flex: 1,
   },
   statusBadge: {
     paddingHorizontal: 12,

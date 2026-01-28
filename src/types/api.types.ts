@@ -45,7 +45,8 @@ export interface Service {
   id: number;
   name: string;
   description: string;
-  estimated_time: number;
+  estimated_time: number; // giây
+  warranty_period?: number | null; // Thời gian bảo hành (giây) - có thể null nếu không có bảo hành
   image_url?: string;
   created_at: string;
   updated_at?: string;
@@ -112,7 +113,9 @@ export interface Warranty {
   id?: number;
   order_id?: number;
   customer_id?: number;
-  warranty_period?: number;
+  service_id?: number | null; // ID dịch vụ (có thể null)
+  employee_id?: number | null; // ID nhân viên (có thể null)
+  warranty_period?: number; // tháng
   start_date?: string;
   end_date?: string;
   warranty_start?: string; // Alias for backward compatibility
@@ -121,6 +124,11 @@ export interface Warranty {
   warranty_note?: string; // Alias for backward compatibility
   created_at?: string;
   updated_at?: string;
+  // Populated fields from API
+  service_name?: string;
+  employee_name?: string;
+  license_plate?: string;
+  vehicle_type?: string;
 }
 
 // ==================== Product & Category Types ====================
@@ -130,6 +138,7 @@ export interface Category {
   name: string;
   description?: string;
   image_url?: string;
+  product_count?: number; // Số lượng sản phẩm trong danh mục (tự động cập nhật bởi backend)
   created_at?: string;
   updated_at?: string;
 }
@@ -141,6 +150,7 @@ export interface Product {
   price: number;
   category_id?: number;
   primary_image?: string; // URL of primary image (from images array)
+  video_url?: string | null; // URL video sản phẩm (có thể null)
   images?: ProductImage[];
   created_at?: string;
   updated_at?: string;
@@ -156,6 +166,14 @@ export interface ProductImage {
 
 // ==================== Offer Types ====================
 
+export interface OfferImage {
+  id: number;
+  offer_id: number;
+  image_url: string;
+  is_primary: 0 | 1;
+  created_at?: string;
+}
+
 export interface Offer {
   id: number;
   name: string;
@@ -163,9 +181,12 @@ export interface Offer {
   service_id: number;
   service_name?: string;
   description?: string;
+  content?: string; // Nội dung chi tiết ưu đãi
   discount?: number;
   valid_from?: string;
   valid_to?: string;
+  primary_image?: OfferImage | null; // Ảnh chính
+  images?: OfferImage[]; // Danh sách tất cả ảnh
   created_at: string;
   updated_at?: string;
 }
@@ -217,7 +238,7 @@ export interface UpdateOrderStatusRequest {
 
 export interface CompleteOrderRequest {
   delivery_date: string;
-  warranty_period: number;
+  warranty_period?: number; // Optional - backend will auto-fetch from service if not provided
   note?: string;
 }
 
@@ -254,5 +275,64 @@ export type OrderStatus =
 
 export interface QueryParams {
   [key: string]: string | number | boolean | undefined;
+}
+
+// ==================== Product Review Types ====================
+
+export interface ProductReview {
+  id: number;
+  product_id: number;
+  customer_id: number;
+  customer_name: string;
+  customer_avatar?: string;
+  order_id?: number;
+  rating: number; // 1-5
+  title?: string;
+  content: string;
+  images: string[]; // Array of image URLs (max 5)
+  is_approved: boolean;
+  is_verified_purchase: boolean;
+  helpful_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewStats {
+  total_reviews: number;
+  average_rating: string; // Format: "4.50"
+  rating_distribution: {
+    '5': number;
+    '4': number;
+    '3': number;
+    '2': number;
+    '1': number;
+  };
+  verified_purchase_count: number;
+  with_images_count: number;
+}
+
+export interface CreateReviewRequest {
+  product_id: number;
+  customer_id: number;
+  order_id?: number;
+  rating: number;
+  title?: string;
+  content: string;
+  images?: string[]; // Optional, max 5
+}
+
+export interface ReviewListResponse extends PaginatedResponse<ProductReview> {
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  average_rating?: string;
+  rating_distribution?: {
+    '5': number;
+    '4': number;
+    '3': number;
+    '2': number;
+    '1': number;
+  };
 }
 

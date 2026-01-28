@@ -44,8 +44,10 @@ interface Warranty {
   order_id: number;
   customer_id: number;
   warranty_period: number;
-  start_date: string;
-  end_date: string;
+  start_date?: string;
+  end_date?: string;
+  warranty_start?: string;
+  warranty_end?: string;
   created_at: string;
 }
 
@@ -136,7 +138,7 @@ export const serviceOrderApi = createApi({
         if (!response.success) throw new Error(response.error || 'Failed to update service order status');
       },
     }),
-    completeServiceOrder: builder.mutation<{ warranty_id: number }, { id: string; delivery_date: string; warranty_period: number }>({
+    completeServiceOrder: builder.mutation<{ warranty_id: number }, { id: string; delivery_date: string; warranty_period?: number }>({
       query: ({ id, ...body }) => ({ 
         url: buildEndpointUrl('completeServiceOrder', { id }), 
         method: 'PATCH', 

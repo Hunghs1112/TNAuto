@@ -3,22 +3,21 @@ import React, { useEffect } from 'react';
 import {
   View,
   Text,
-  StatusBar,
   FlatList,
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
-import { RootView } from '../../components/layout';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Screen } from '../../components/layout';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
-import Header from '../../components/Header';
+import ErrorView from '../../components/Loading/ErrorView';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { useAppDispatch } from '../../redux/hooks/useAppDispatch';
 import { RootState } from '../../redux/types';
 import { useGetWarrantiesQuery } from '../../services/warrantyApi';
+import { useGetServiceOrderByIdQuery } from '../../services/serviceOrderApi';
 import { setWarranties } from '../../redux/slices/warrantySlice';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
 import { useNavigation } from '@react-navigation/native';
@@ -38,6 +37,11 @@ interface WarrantyItem {
   note?: string;
   created_at: string;
   updated_at: string;
+  // Populated fields from API
+  service_name?: string;
+  employee_name?: string;
+  license_plate?: string;
+  vehicle_type?: string;
 }
 
 const WarrantyScreen: React.FC = () => {
@@ -58,7 +62,6 @@ const WarrantyScreen: React.FC = () => {
   useEffect(() => {
     if (warrantiesData) {
       dispatch(setWarranties(warrantiesData));
-      console.log('WarrantyScreen: Warranties loaded:', warrantiesData.length);
     }
   }, [warrantiesData, dispatch]);
 
@@ -91,16 +94,29 @@ const WarrantyScreen: React.FC = () => {
     }
   };
 
-  const renderWarrantyItem = ({ item }: { item: WarrantyItem }) => {
+  // Component for each warranty item to allow using hooks
+  const WarrantyItemComponent = ({ item }: { item: WarrantyItem }) => {
     const status = getWarrantyStatus(item.end_date);
     const daysRemaining = calculateDaysRemaining(item.end_date);
+    
+    // Fetch order details to enrich warranty data
+    const { data: orderData } = useGetServiceOrderByIdQuery(item.order_id.toString(), {
+      skip: !item.order_id || !!item.service_name, // Skip if no order_id or already has service_name
+    });
+
+    // Merge order data into warranty item
+    const enrichedItem: WarrantyItem = {
+      ...item,
+      service_name: item.service_name || orderData?.service_name,
+      employee_name: item.employee_name || orderData?.employee_name || null,
+      license_plate: item.license_plate || orderData?.license_plate,
+    };
 
     return (
       <TouchableOpacity
         style={styles.warrantyCard}
         onPress={() => {
-          console.log('WarrantyScreen: Navigate to OrderDetail for order:', item.order_id);
-          navigation.navigate('OrderDetail', { id: item.order_id.toString() });
+          navigation.navigate('OrderDetail', { id: enrichedItem.order_id.toString() });
         }}
         activeOpacity={0.7}
       >
@@ -110,8 +126,15 @@ const WarrantyScreen: React.FC = () => {
               <Ionicons name="shield-checkmark" size={24} color={Colors.background.red} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.warrantyTitle}>Bảo hành #{item.id}</Text>
-              <Text style={styles.orderId}>Đơn hàng: #{item.order_id}</Text>
+              <Text style={styles.warrantyTitle}>Bảo hành #{enrichedItem.id}</Text>
+              {enrichedItem.service_name ? (
+                <Text style={styles.serviceName}>{enrichedItem.service_name}</Text>
+              ) : (
+                <Text style={styles.orderId}>Đơn hàng: #{enrichedItem.order_id}</Text>
+              )}
+              {enrichedItem.license_plate && (
+                <Text style={styles.licensePlate}>Biển số: {enrichedItem.license_plate}</Text>
+              )}
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
@@ -126,20 +149,28 @@ const WarrantyScreen: React.FC = () => {
             <View style={styles.dateItem}>
               <Ionicons name="calendar-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.dateLabel}>Bắt đầu:</Text>
-              <Text style={styles.dateValue}>{formatDate(item.start_date)}</Text>
+              <Text style={styles.dateValue}>{formatDate(enrichedItem.start_date)}</Text>
             </View>
             <View style={styles.dateItem}>
               <Ionicons name="calendar-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.dateLabel}>Kết thúc:</Text>
-              <Text style={styles.dateValue}>{formatDate(item.end_date)}</Text>
+              <Text style={styles.dateValue}>{formatDate(enrichedItem.end_date)}</Text>
             </View>
           </View>
+
+          {enrichedItem.employee_name && (
+            <View style={styles.infoRow}>
+              <Ionicons name="person-outline" size={16} color={Colors.text.secondary} />
+              <Text style={styles.infoLabel}>Nhân viên:</Text>
+              <Text style={styles.infoValue}>{enrichedItem.employee_name}</Text>
+            </View>
+          )}
 
           <View style={styles.detailsRow}>
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.detailLabel}>Thời hạn:</Text>
-              <Text style={styles.detailValue}>{item.warranty_period} tháng</Text>
+              <Text style={styles.detailValue}>{enrichedItem.warranty_period} tháng</Text>
             </View>
             <View style={styles.detailItem}>
               <Ionicons name="hourglass-outline" size={16} color={Colors.text.secondary} />
@@ -150,10 +181,10 @@ const WarrantyScreen: React.FC = () => {
             </View>
           </View>
 
-          {item.note && (
+          {enrichedItem.note && (
             <View style={styles.noteContainer}>
               <Ionicons name="document-text-outline" size={16} color={Colors.text.secondary} />
-              <Text style={styles.noteText}>{item.note}</Text>
+              <Text style={styles.noteText}>{enrichedItem.note}</Text>
             </View>
           )}
         </View>
@@ -161,46 +192,52 @@ const WarrantyScreen: React.FC = () => {
     );
   };
 
+  const renderWarrantyItem = ({ item }: { item: WarrantyItem }) => {
+    return <WarrantyItemComponent item={item} />;
+  };
+
   if (isLoading) {
     return (
-      <RootView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-        <View style={styles.header}>
-          <Header title="Bảo hành" />
-        </View>
+      <Screen
+        headerTitle="Bảo hành"
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.text.primary} />
           <Text style={styles.loadingText}>Đang tải thông tin bảo hành...</Text>
         </View>
-      </RootView>
+      </Screen>
     );
   }
 
   if (error) {
     return (
-      <RootView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-        <View style={styles.header}>
-          <Header title="Bảo hành" />
-        </View>
+      <Screen
+        headerTitle="Bảo hành"
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.status.error} />
-          <Text style={styles.errorText}>Lỗi tải thông tin bảo hành</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryButtonText}>Thử lại</Text>
-          </TouchableOpacity>
+          <ErrorView 
+            message="Lỗi tải thông tin bảo hành"
+            onRetry={refetch}
+            icon="shield-outline"
+          />
         </View>
-      </RootView>
+      </Screen>
     );
   }
 
   return (
-    <RootView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      
-      <View style={styles.header}>
-        <Header title="Bảo hành" />
-      </View>
+    <Screen
+      headerTitle="Bảo hành"
+      showBackButton
+      safeAreaTopColor={Colors.primary}
+      statusBarStyle="light-content"
+    >
 
       <View style={styles.content}>
         {warranties.length > 0 ? (
@@ -224,7 +261,7 @@ const WarrantyScreen: React.FC = () => {
           </View>
         )}
       </View>
-    </RootView>
+    </Screen>
   );
 };
 

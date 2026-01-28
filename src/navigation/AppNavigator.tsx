@@ -1,4 +1,4 @@
-// src/navigation/AppNavigator.tsx (Updated: Added Warranty route)
+// src/navigation/AppNavigator.tsx (Updated: Added Auth screens and made HomeScreen initial)
 import React from "react";
 import { createNativeStackNavigator, NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { useSelector } from "react-redux";
@@ -7,7 +7,11 @@ import { Platform } from "react-native";
 import HomeScreen from "../screens/Home/HomeScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
 import ServiceScreen from "../screens/Service/ServiceScreen";
+import ServiceDetailScreen from "../screens/Service/ServiceDetailScreen";
+import CustomersScreen from "../screens/Customers/CustomersScreen";
+import CustomerDetailScreen from "../screens/Customers/CustomerDetailScreen";
 import OfferScreen from "../screens/Offer/OfferScreen";
+import OfferDetailScreen from "../screens/Offer/OfferDetailScreen";
 import ProductScreen from "../screens/Product/ProductScreen";
 import MyServiceScreen from "../screens/MyService/MyServiceScreen";
 import BookingScreen from "../screens/Booking/BookingScreen";
@@ -16,30 +20,50 @@ import EmployeeOrderDetailScreen from "../screens/OrderDetail/EmployeeOrderDetai
 import NotificationScreen from "../screens/Notification/NotificationScreen";
 import WarrantyScreen from "../screens/Warranty/WarrantyScreen";
 import CategoryScreen from "../screens/Category/CategoryScreen";
+import ServiceCategoryScreen from "../screens/ServiceCategory/ServiceCategoryScreen";
 import ProductDetailScreen from "../screens/ProductDetail/ProductDetailScreen";
 import VehicleListScreen from "../screens/Vehicle/VehicleListScreen";
 import VehicleDetailScreen from "../screens/Vehicle/VehicleDetailScreen";
 import AccountInfoScreen from "../screens/AccountInfo/AccountInfoScreen";
-import { Product } from "../services/productApi";
+import LoginScreen from "../screens/Login/LoginScreen";
+import RegisterScreen from "../screens/Register/RegisterScreen";
+import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
 import { usePrefetchData } from "../redux/hooks/usePrefetchData";
 
 export type AppStackParamList = {
   Home: undefined;
   Profile: undefined;
   AccountInfo: undefined;
-  Service: undefined;
+  Service: { categoryId?: number; categoryName?: string } | undefined;
+  ServiceDetail: { serviceId: number };
+  ServiceCategory: undefined;
+  Customers: undefined;
+  CustomerDetail: { customerId: number; customerName: string; customerPhone: string };
   Offer: undefined;
+  OfferDetail: { offerId: number };
   Category: undefined;
   Product: { categoryId?: number; categoryName?: string } | undefined;
-  ProductDetail: { product: Product };
+  ProductDetail: { productId: number };
   MyService: undefined;
-  Booking: undefined;
+  Booking: { serviceId?: number } | undefined;
   OrderDetail: { id: string };
   EmployeeOrderDetail: { id: string };
   Notification: undefined;
   Warranty: undefined;
   VehicleList: { userId: string; userPhone: string };
   VehicleDetail: { vehicleId: string; licensePlate: string };
+  Login: undefined;
+  Register: undefined;
+  EmployeePassword: {
+    phone: string;
+    employeeData: {
+      id: number;
+      name: string;
+      phone: string;
+      avatar_url?: string;
+      position?: string;
+    };
+  };
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -49,8 +73,6 @@ export default function AppNavigator() {
 
   // Prefetch critical data (services, categories, offers) when app loads
   usePrefetchData();
-
-  console.log('AppNavigator debug - userType:', userType); // Debug
 
   const initialRouteName = userType === 'employee' ? 'Home' : 'Home';
 
@@ -64,15 +86,23 @@ export default function AppNavigator() {
   };
 
   return (
-    <Stack.Navigator screenOptions={screenOptions} initialRouteName={initialRouteName}>
+    <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />
+      <Stack.Screen name="ServiceCategory" component={ServiceCategoryScreen} />
       <Stack.Screen name="Service" component={ServiceScreen} />
+      <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
+      <Stack.Screen name="Customers" component={CustomersScreen} />
+      <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
       <Stack.Screen name="Offer" component={OfferScreen} />
+      <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
       <Stack.Screen name="Category" component={CategoryScreen} />
       <Stack.Screen name="Product" component={ProductScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="EmployeePassword" component={EmployeePasswordScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />
       <Stack.Screen name="MyService" component={MyServiceScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />

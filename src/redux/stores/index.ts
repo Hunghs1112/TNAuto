@@ -15,6 +15,7 @@ import { serviceApi } from '../../services/serviceApi';
 import { notificationApi } from '../../services/notificationApi';
 import { warrantyApi } from '../../services/warrantyApi';
 import { vehicleApi } from '../../services/vehicleApi';
+import { serviceCategoryApi } from '../../services/serviceCategoryApi';
 
 import authReducer from '../slices/authSlice';
 import loadingReducer from '../slices/loadingSlice';
@@ -36,7 +37,14 @@ const authPersistConfig = {
   timeout: 10000, // 10 giây timeout thay vì mặc định
 };
 
+// Cấu hình persist cho employee reducer
+const employeePersistConfig = {
+  key: 'employee',
+  storage: AsyncStorage,
+};
+
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
+const persistedEmployeeReducer = persistReducer(employeePersistConfig, employeeReducer);
 
 export const store = configureStore({
   reducer: {
@@ -48,7 +56,7 @@ export const store = configureStore({
     offers: offersReducer,
     product: productReducer,
     category: categoryReducer, // Added
-    employee: employeeReducer,
+    employee: persistedEmployeeReducer,
     image: imageReducer,
     notification: notificationReducer,
     warranty: warrantyReducer, // Added
@@ -64,6 +72,7 @@ export const store = configureStore({
     [notificationApi.reducerPath]: notificationApi.reducer,
     [warrantyApi.reducerPath]: warrantyApi.reducer,
     [vehicleApi.reducerPath]: vehicleApi.reducer,
+    [serviceCategoryApi.reducerPath]: serviceCategoryApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -83,7 +92,8 @@ export const store = configureStore({
       serviceApi.middleware,
       notificationApi.middleware,
       warrantyApi.middleware,
-      vehicleApi.middleware
+      vehicleApi.middleware,
+      serviceCategoryApi.middleware
     ),
 });
 
@@ -91,7 +101,7 @@ setupListeners(store.dispatch);
 
 export const persistor = persistStore(store);
 
-console.log('Store configured with all APIs including vehicleApi');
+console.log('Store configured with all APIs including serviceCategoryApi');
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

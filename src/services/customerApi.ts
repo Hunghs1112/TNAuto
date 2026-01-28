@@ -23,7 +23,9 @@ interface Service {
   id: number;
   name: string;
   description: string;
-  estimated_time: number;
+  estimated_time: number; // giây
+  image_url?: string | null; // URL ảnh dịch vụ
+  warranty_period?: number | null; // Thời gian bảo hành (giây) - có thể null nếu không có bảo hành
   created_at: string;
 }
 
@@ -135,8 +137,8 @@ export const customerApi = createApi({
       query: () => ENDPOINTS.health.path,
     }),
     registerCustomer: builder.mutation<
-      { success: boolean; customer_id?: number; customer?: Customer; message?: string }, 
-      { name: string; phone: string; license_plate?: string; avatar_url?: string }
+      { success: boolean; customer_id?: number; customer?: Customer; message?: string },
+      { name: string; phone?: string; license_plate?: string; avatar_url?: string }
     >({
       query: (body) => ({ url: ENDPOINTS.registerCustomer.path, method: 'POST', body }),
       invalidatesTags: ['Customer'],

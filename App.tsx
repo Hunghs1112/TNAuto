@@ -17,9 +17,6 @@ export default function App() {
       // Initialize notification service first (create channels)
       await notificationService.initialize();
 
-      // Request storage permission
-      await requestStoragePermission();
-
       // Small delay before next permission request to avoid spam
       await new Promise<void>(resolve => setTimeout(() => resolve(), 800));
 
@@ -163,55 +160,8 @@ export default function App() {
     }
   };
 
-  const requestStoragePermission = async () => {
-    console.log('📁 App: Starting permission request process');
-    
-    if (Platform.OS === 'android') {
-      let permissionKey;
-      if (Platform.Version >= 33) {
-        permissionKey = PERMISSIONS.ANDROID.READ_MEDIA_IMAGES;
-        console.log('📁 App: Targeting Android 13+ - READ_MEDIA_IMAGES');
-      } else {
-        permissionKey = PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE;
-        console.log('📁 App: Targeting Android <13 - READ_EXTERNAL_STORAGE');
-      }
-
-      try {
-        const status = await check(permissionKey);
-        console.log('📁 App: Current permission status:', status);
-
-        if (status === RESULTS.DENIED) {
-          console.log('📁 App: Permission denied, requesting...');
-          const result = await request(permissionKey);
-          console.log('📁 App: Request result:', result);
-          
-          if (result === RESULTS.DENIED) {
-            console.log('⚠️ App: User permanently denied permission');
-            Alert.alert(
-              'Cần quyền truy cập',
-              'Ứng dụng cần quyền truy cập bộ nhớ để chọn ảnh. Vui lòng bật trong cài đặt.',
-              [{ text: 'OK' }]
-            );
-          } else if (result === RESULTS.BLOCKED) {
-            console.log('⚠️ App: Permission blocked');
-            Alert.alert(
-              'Quyền bị chặn',
-              'Quyền truy cập bộ nhớ bị chặn. Vui lòng bật trong cài đặt.',
-              [{ text: 'OK' }]
-            );
-          }
-        } else if (status === RESULTS.GRANTED) {
-          console.log('✅ App: Permission already granted');
-        } else {
-          console.log('⚠️ App: Unexpected status:', status);
-        }
-      } catch (error) {
-        console.error('❌ App: Permission request error:', error);
-      }
-    } else {
-      console.log('📁 App: iOS - No permission request needed for gallery');
-    }
-  };
+  // Storage permission is now requested only when needed (e.g., when employee uploads images)
+  // This complies with Google Play's Photo and Video Permissions policy
 
   return (
     <Provider store={store}>

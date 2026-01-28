@@ -1,16 +1,8 @@
 // src/services/offerApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
-
-interface Offer {
-  id: number;
-  name: string;
-  image_url?: string;
-  service_id: number;
-  service_name: string;
-  created_at: string;
-}
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
+import { Offer, OfferImage } from '../types/api.types';
 
 interface CreateOfferRequest {
   name: string;
@@ -41,19 +33,32 @@ interface GetOffersResponse {
   count: number;
 }
 
-interface GetOfferResponse {
+export interface GetOfferResponse {
   success: boolean;
   data: Offer;
 }
 
+interface GetOfferImagesResponse {
+  success: boolean;
+  data: OfferImage[];
+  count: number;
+}
+
 export const offerApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'offerApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
-  tagTypes: ['Offer'] as const,
+  baseQuery: baseQueryWithRetry,
+  tagTypes: ['Offer', 'OfferImage'] as const,
   endpoints: (builder) => ({
     getOffers: builder.query<GetOffersResponse, void>({
       query: () => ENDPOINTS.getOffers.path,
-      providesTags: ['Offer'],
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...result.data.map(({ id }) => ({ type: 'Offer' as const, id })),
+              { type: 'Offer' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: GetOffersResponse) => {
         console.log('offerApi: getOffers response:', response); // Debug
         if (!response.success || !response.data) throw new Error('Failed to fetch offers');
@@ -62,7 +67,7 @@ export const offerApi = createApi({
     }),
     createOffer: builder.mutation<CreateOfferResponse, CreateOfferRequest>({
       query: (body) => ({ url: ENDPOINTS.createOffer.path, method: 'POST', body }),
-      invalidatesTags: ['Offer'],
+      invalidatesTags: [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: CreateOfferResponse) => {
         console.log('offerApi: createOffer response:', response); // Debug
         if (!response.success) throw new Error('Failed to create offer');
@@ -78,9 +83,28 @@ export const offerApi = createApi({
         return response;
       },
     }),
+    // Lấy danh sách ảnh của ưu đãi (nếu backend hỗ trợ endpoint riêng)
+    // Nếu không, có thể sử dụng images từ getOfferById
+    getOfferImages: builder.query<OfferImage[], number>({
+      query: (offerId) => `/offers/${offerId}/images`,
+      providesTags: (result, error, offerId) => [
+        { type: 'OfferImage' as const, id: offerId },
+        { type: 'Offer' as const, id: offerId }
+      ],
+      transformResponse: (response: GetOfferImagesResponse | OfferImage[]) => {
+        // Hỗ trợ cả 2 format: response trực tiếp là array hoặc có wrapper
+        if (Array.isArray(response)) {
+          return response;
+        }
+        if (response.success && response.data) {
+          return response.data;
+        }
+        throw new Error('Failed to fetch offer images');
+      },
+    }),
     updateOffer: builder.mutation<UpdateOfferResponse, { id: number; body: UpdateOfferRequest }>({
       query: ({ id, body }) => ({ url: buildEndpointUrl('updateOffer', { id: id.toString() }), method: 'PATCH', body }),
-      invalidatesTags: ['Offer'],
+      invalidatesTags: [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: UpdateOfferResponse) => {
         console.log('offerApi: updateOffer response:', response); // Debug
         if (!response.success) throw new Error('Failed to update offer');
@@ -89,7 +113,7 @@ export const offerApi = createApi({
     }),
     deleteOffer: builder.mutation<UpdateOfferResponse, number>({
       query: (id) => ({ url: buildEndpointUrl('deleteOffer', { id: id.toString() }), method: 'DELETE' }),
-      invalidatesTags: ['Offer'],
+      invalidatesTags: [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: UpdateOfferResponse) => {
         console.log('offerApi: deleteOffer response:', response); // Debug
         if (!response.success) throw new Error('Failed to delete offer');
@@ -103,6 +127,7 @@ export const {
   useGetOffersQuery,
   useCreateOfferMutation,
   useGetOfferByIdQuery,
+  useGetOfferImagesQuery,
   useUpdateOfferMutation,
   useDeleteOfferMutation,
 } = offerApi;

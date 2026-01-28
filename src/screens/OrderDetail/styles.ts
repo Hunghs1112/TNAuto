@@ -26,9 +26,6 @@ export const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 4,
   },
   scrollContent: {
     paddingBottom: 4,
@@ -113,11 +110,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
     width: 100,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   image: {
     width: 100,
     height: 100,
-    borderRadius: 8,
   },
   imageDesc: {
     fontSize: 10,
@@ -223,10 +221,7 @@ export const styles = StyleSheet.create({
     textAlign: 'right',
     flex: 1,
   },
-  errorText: {
-    textAlign: 'center',
-    color: Colors.text.secondary,
-    fontSize: 16,
+  scrollContentFull: {
     padding: 20,
   },
   // New styles for waiting confirmation button
@@ -310,6 +305,15 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalBackButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 10,
   },
   modalCloseButton: {
     position: 'absolute',

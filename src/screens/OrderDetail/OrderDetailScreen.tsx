@@ -1,54 +1,100 @@
 // src/screens/OrderDetail/OrderDetailScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StatusBar, FlatList, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, RefreshControl } from 'react-native';
-import { RootView } from '../../components/layout';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AppStackParamList } from '../../navigation/AppNavigator';
+import { View, Text, FlatList, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, RefreshControl } from 'react-native';
+import { Screen } from '../../components/layout';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
-import Header from '../../components/Header';
 import ConfirmButton from '../../components/ConfirmButton';
+import ErrorView from '../../components/Loading/ErrorView';
 import { useGetOrderDetailsQuery } from '../../services/customerApi';
 import { useCompleteServiceOrderMutation } from '../../services/serviceOrderApi';
+import { ServiceOrderImage } from '../../types/api.types';
 import { styles } from './styles';
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { useFocusEffect } from '@react-navigation/native';
 
 const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
-  const { refreshing, onRefresh } = useAutoRefresh();
-  const { data: orderData, isLoading, error, refetch } = useGetOrderDetailsQuery(id);
+  const [refreshing, setRefreshing] = useState(false);
+  const { data: orderData, isLoading, error, refetch } = useGetOrderDetailsQuery(id, {
+    refetchOnMountOrArgChange: true,
+  });
   const [completeServiceOrder] = useCompleteServiceOrderMutation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-  console.log('OrderDetailScreen: Loading order', id, { isLoading, error, data: orderData });
+  // Refetch when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      // Update image timestamp to force reload
+      setImageTimestamp(Date.now());
+    }, [refetch])
+  );
 
+  // Handle pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Refetch order data
+      await refetch();
+      // Update image timestamp to force reload
+      setImageTimestamp(Date.now());
+    } catch (error) {
+      console.error('Error refreshing order:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
+  // Add cache busting to image URLs - MUST be called before any early returns
+  const getImageUrl = useCallback((url: string) => {
+    if (!url) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}_t=${imageTimestamp}`;
+  }, [imageTimestamp]);
+
+  // Early returns MUST come after all hooks
   if (isLoading) {
     return (
-      <RootView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-        <Header title="Phiếu dịch vụ" />
+      <Screen
+        headerTitle="Phiếu dịch vụ"
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
         <View style={[styles.whiteSection, styles.centerContent]}>
           <ActivityIndicator size="large" color={Colors.text.primary} />
         </View>
-      </RootView>
+      </Screen>
     );
   }
 
   if (error || !orderData) {
     return (
-      <RootView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-        <Header title="Phiếu dịch vụ" />
+      <Screen
+        headerTitle="Phiếu dịch vụ"
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
         <View style={styles.whiteSection}>
           <View style={styles.body}>
-            <Text style={styles.errorText}>Không tìm thấy đơn hàng</Text>
+            <ErrorView 
+              message="Không tìm thấy đơn hàng"
+              onRetry={refetch}
+              icon="document-text-outline"
+            />
           </View>
         </View>
-      </RootView>
+      </Screen>
     );
   }
 
   const getStatusText = () => {
-    console.log('getStatusText: status =', orderData.status);
     switch (orderData.status) {
       case 'received':
         return 'Đã đặt lịch';
@@ -68,12 +114,11 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   };
 
   const getStatusColor = () => {
-    console.log('getStatusColor: status =', orderData.status);
     switch (orderData.status) {
       case 'received':
         return Colors.background.yellow; // #feb052
       case 'ready_for_pickup':
-        return Colors.warning; // #FFCC00
+        return Colors.status.warning; // #FFCC00
       case 'in_progress':
         return Colors.background.red; // #DA1C12
       case 'completed':
@@ -88,7 +133,6 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   };
 
   const renderRow = (label: string, value: string | undefined | null | number, style?: any) => {
-    console.log('renderRow:', label, value);
     if (value === null || value === undefined) return null;
     return (
       <View style={styles.row}>
@@ -103,16 +147,27 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     );
   };
 
-  const renderImage = ({ item }: { item: { image_url: string; description?: string; status_at_time: string; created_at?: string } }) => {
-    console.log('renderImage:', item);
+  const renderImage = ({ item }: { item: ServiceOrderImage }) => {
+    if (!item.image_url) {
+      return (
+        <View style={styles.imageContainer}>
+          <View style={[styles.image, { backgroundColor: Colors.neutral[200], justifyContent: 'center', alignItems: 'center' }]}>
+            <Ionicons name="image-outline" size={24} color={Colors.text.secondary} />
+          </View>
+          {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
+        </View>
+      );
+    }
+    const imageUrl = getImageUrl(item.image_url);
     return (
-      <TouchableOpacity onPress={() => setSelectedImage(item.image_url)} activeOpacity={0.8}>
+      <TouchableOpacity onPress={() => setSelectedImage(imageUrl)} activeOpacity={0.8}>
         <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: item.image_url }} 
+            source={{ uri: imageUrl }} 
             style={styles.image}
             resizeMode="cover"
-            onError={(error) => console.log('OrderDetailScreen - Image load error:', error.nativeEvent.error)}
+            onError={() => {}}
+            onLoad={() => {}}
           />
           {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
           {item.created_at && <Text style={styles.imageDate}>Ngày chụp: {new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>}
@@ -122,37 +177,38 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   };
 
   const handleConfirm = async () => {
-    console.log('Confirm order:', id);
     try {
       await completeServiceOrder({
         id,
+        // delivery_date is REQUIRED by backend. Use local date in YYYY-MM-DD.
         delivery_date: new Date().toISOString().split('T')[0],
-        warranty_period: 12,
+        // warranty_period: optional. If omitted, backend will use service.warranty_period.
       }).unwrap();
-      console.log('Service order completed successfully');
-      refetch();
+
+      // Refresh order detail to get warranty_start / warranty_end / warranty_period
+      await refetch();
     } catch (err) {
       console.error('Failed to complete service order:', err);
     }
   };
 
   const isCompleted = orderData.status === 'completed';
-  console.log('isCompleted:', isCompleted);
-
   const showConfirmationRow = orderData.status !== 'ready_for_pickup' && orderData.status !== 'completed';
-
-  const warrantyEndDate = orderData.warranty_end ? new Date(orderData.warranty_end) : null;
+  const warrantyEndStr = orderData.warranty?.warranty_end || (orderData.warranty as any)?.end_date;
+  const warrantyEndDate = warrantyEndStr ? new Date(warrantyEndStr) : null;
   const isWarrantyExpired = warrantyEndDate && warrantyEndDate < new Date();
-  console.log('Warranty expired:', isWarrantyExpired, warrantyEndDate);
 
   return (
-    <RootView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-      <Header title="Phiếu dịch vụ" />
+    <Screen
+      headerTitle="Phiếu dịch vụ"
+      showBackButton
+      safeAreaTopColor={Colors.primary}
+      statusBarStyle="light-content"
+    >
       
       <View style={styles.whiteSection}>
         <View style={styles.body}>
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
             {/* Main Bill Card - Ticket Style */}
             <View style={styles.billCard}>
               {/* Customer Name */}
@@ -180,13 +236,13 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
               {orderData.vehicle_type && renderRow('Loại xe', orderData.vehicle_type)}
 
               {/* Receive Date */}
-              {renderRow('Ngày nhận', orderData.receive_date)}
+              {renderRow('Ngày đặt lịch', orderData.receive_date)}
 
               {/* Delivery Date */}
-              {renderRow('Ngày bàn giao', orderData.delivery_date, { color: Colors.text.primary })}
+              {renderRow('Ngày nhận', orderData.delivery_date, { color: Colors.text.primary })}
 
               {/* Created Date */}
-              {renderRow('Ngày đặt lịch', orderData.created_at)}
+              {renderRow('Ngày tạo đơn', orderData.created_at)}
 
               {/* Divider */}
               <View style={styles.divider} />
@@ -195,8 +251,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
               <View style={styles.imageSection}>
                 <Text style={styles.imageLabel}>Ảnh khi nhận xe:</Text>
                 {(orderData.images || []).length > 0 ? (
-                  <FlatList
-                    data={(orderData.images || []).filter(img => img.status_at_time === 'received')}
+                  <FlatList<ServiceOrderImage>
+                    data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'received')}
                     keyExtractor={(item, index) => `receive-${index}`}
                     renderItem={renderImage}
                     horizontal
@@ -220,8 +276,8 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
               <View style={styles.imageSection}>
                 <Text style={styles.imageLabel}>Ảnh khi bàn giao xe:</Text>
                 {(orderData.images || []).length > 0 ? (
-                  <FlatList
-                    data={(orderData.images || []).filter(img => img.status_at_time === 'completed')}
+                  <FlatList<ServiceOrderImage>
+                    data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'completed')}
                     keyExtractor={(item, index) => `delivery-${index}`}
                     renderItem={renderImage}
                     horizontal
@@ -297,14 +353,14 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
             style={styles.modalCloseButton} 
             onPress={() => setSelectedImage(null)}
           >
-            <Ionicons name="close-outline" size={30} color={Colors.text.primary} />
+            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
           </TouchableOpacity>
           {selectedImage && (
-            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" key={imageTimestamp} />
           )}
         </View>
       </Modal>
-    </RootView>
+    </Screen>
   );
 };
 

@@ -1,7 +1,7 @@
 // src/screens/Home/components/OrdersList.tsx
 import React, { memo, useCallback } from 'react';
 import { View, Text, ActivityIndicator, FlatList } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../../constants/colors';
 import { PerformanceConfig } from '../../../config/performance';
 import ServiceOrderCard from '../../../components/ServiceOrderCard';

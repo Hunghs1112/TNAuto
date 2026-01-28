@@ -5,10 +5,23 @@ import { API_BASE_URL } from '../constants/config';
 /**
  * Base query with retry logic for failed requests
  */
-const baseQueryWithRetry = retry(
+export const baseQueryWithRetry = retry(
   fetchBaseQuery({ 
     baseUrl: API_BASE_URL,
     timeout: 15000, // 15 seconds timeout
+    prepareHeaders: (headers, { getState }) => {
+      // Set default headers for all requests
+      headers.set('Content-Type', 'application/json');
+      headers.set('Accept', 'application/json');
+      
+      // You can add authentication token here if needed
+      // const token = getState()?.auth?.token;
+      // if (token) {
+      //   headers.set('Authorization', `Bearer ${token}`);
+      // }
+      
+      return headers;
+    },
   }),
   {
     maxRetries: 2, // Retry failed requests up to 2 times

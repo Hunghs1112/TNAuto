@@ -1,6 +1,6 @@
 // src/services/vehicleApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { API_BASE_URL } from '../constants/config';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 import { Vehicle, ApiResponse, ServiceOrder } from '../types/api.types';
 
 export interface GetVehiclesResponse extends ApiResponse<Vehicle[]> {
@@ -12,8 +12,9 @@ export interface VehicleWithOrders extends Vehicle {
 }
 
 export const vehicleApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'vehicleApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Vehicle'] as const,
   endpoints: (builder) => ({
     // Get customer vehicles
@@ -24,7 +25,6 @@ export const vehicleApi = createApi({
       }),
       providesTags: ['Vehicle'],
       transformResponse: (response: any) => {
-        console.log('getCustomerVehicles response:', response);
         if (response.success && response.data) {
           return {
             success: true,
@@ -41,7 +41,6 @@ export const vehicleApi = createApi({
       query: (id) => `/vehicles/${id}`,
       providesTags: (result, error, id) => [{ type: 'Vehicle' as const, id }],
       transformResponse: (response: any) => {
-        console.log('getVehicleById response:', response);
         if (response.success && response.data) {
           return response.data;
         }
