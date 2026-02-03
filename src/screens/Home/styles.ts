@@ -9,6 +9,66 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.light, // White background
   },
+  homeRoot: {
+    flex: 1,
+    backgroundColor: Colors.background.light,
+  },
+  homeBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  homeDecorativeContainer: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0.12,
+  },
+  homeDecorativeCircle: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: Colors.background.light,
+  },
+  homeCircle1: {
+    width: 220,
+    height: 220,
+    top: -80,
+    right: -60,
+  },
+  homeCircle2: {
+    width: 150,
+    height: 150,
+    bottom: 180,
+    left: -50,
+  },
+  homeCircle3: {
+    width: 120,
+    height: 120,
+    top: "38%",
+    right: 30,
+  },
+  headerBackground: {
+    width: "100%",
+  },
+  serviceMenuOverlay: {
+    width: "100%",
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
+  bottomSheetContent: {
+    paddingTop: spacing.lg,
+  },
+  bottomSheet: {
+    width: "100%",
+    backgroundColor: Colors.background.light,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: spacing.lg,
+    gap: spacing.lg,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   contentWrapper: {
     flex: 1,
     backgroundColor: Colors.background.light, // White background for content
@@ -24,7 +84,7 @@ export const styles = StyleSheet.create({
     width: "100%",
   },
   servicesContainer: {
-    gap: spacing.md,
+    gap: spacing.lg,
     width: "100%",
   },
   loadingContainer: {

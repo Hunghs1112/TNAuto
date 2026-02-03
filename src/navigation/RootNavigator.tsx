@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Provider } from "react-redux";
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor, RootState } from "../redux/stores";
-import AppNavigator from "./AppNavigator";
+import RootStackNavigator from "./RootStackNavigator";
 import Loading from "../components/Loading/Loading";
 import { useAppSelector } from "../redux/hooks/useAppSelector";
 import { navigationRef } from "./RootNavigation";
@@ -26,7 +26,7 @@ const AppContent = React.memo(() => {
       <NavigationContainer ref={navigationRef}>
         <Loading visible={isLoading} text={message} />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="App" component={AppNavigator} />
+          <Stack.Screen name="App" component={RootStackNavigator} />
         </Stack.Navigator>
       </NavigationContainer>
     </ErrorBoundary>

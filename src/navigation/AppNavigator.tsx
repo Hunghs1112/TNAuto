@@ -4,7 +4,9 @@ import { createNativeStackNavigator, NativeStackNavigationOptions } from "@react
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/types";
 import { Platform } from "react-native";
-import HomeScreen from "../screens/Home/HomeScreen";
+import MainTabs from "./MainTabs";
+
+
 import ProfileScreen from "../screens/Profile/ProfileScreen";
 import ServiceScreen from "../screens/Service/ServiceScreen";
 import ServiceDetailScreen from "../screens/Service/ServiceDetailScreen";
@@ -87,8 +89,7 @@ export default function AppNavigator() {
 
   return (
     <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="ServiceCategory" component={ServiceCategoryScreen} />
+      <Stack.Screen name="Home" component={MainTabs} />
       <Stack.Screen name="Service" component={ServiceScreen} />
       <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
       <Stack.Screen name="Customers" component={CustomersScreen} />

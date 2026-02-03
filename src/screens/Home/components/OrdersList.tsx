@@ -23,7 +23,7 @@ interface Order {
 interface OrdersListProps {
   orders: Order[];
   isLoading: boolean;
-  services: Array<{ id: number; name: string }>;
+  services: Array<{ id: number; name: string; image_url?: string | null }>;
   userType: 'customer' | 'employee';
   onOrderPress: (id: string) => void;
   emptyMessage?: string;
@@ -55,6 +55,14 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
     return `Khách hàng: ${item.customer_name || 'Không xác định'}`;
   }, [userType]);
 
+  const getServiceImageUrl = useCallback((item: Order) => {
+    if (item.service_id && services) {
+      const service = services.find(s => s.id === Number(item.service_id));
+      return service?.image_url || null;
+    }
+    return null;
+  }, [services]);
+
   const renderOrderItem = useCallback(({ item }: { item: Order }) => (
     <ServiceOrderCard
       serviceName={getServiceName(item)}
@@ -62,9 +70,10 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
       receiveDate={item.receive_date}
       scheduleDate={item.delivery_date || 'Chưa xác định'}
       status={item.status}
+      serviceImageUrl={getServiceImageUrl(item)}
       onPress={() => onOrderPress(item.id.toString())}
     />
-  ), [getServiceName, getSecondaryName, onOrderPress]);
+  ), [getServiceName, getSecondaryName, getServiceImageUrl, onOrderPress]);
 
   const keyExtractor = useCallback((item: Order) => item.id.toString(), []);
 
@@ -94,6 +103,8 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
       keyExtractor={keyExtractor}
       renderItem={renderOrderItem}
       showsVerticalScrollIndicator={false}
+      scrollEnabled={false}
+      nestedScrollEnabled={false}
       style={styles.servicesContainer}
       initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
       maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}

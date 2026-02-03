@@ -1,10 +1,7 @@
-import React, { useCallback } from "react"
-import { View, TouchableOpacity, Text, ActivityIndicator, StyleSheet, Animated } from "react-native"
-import LinearGradient from 'react-native-linear-gradient'
+import React from "react"
 import { Colors } from "../constants/colors"
-import { Typography } from "../constants/typo"
-
-const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient)
+import ConfirmButtonView from "./ConfirmButtonView"
+import { useConfirmButton } from "./useConfirmButton"
 
 type ConfirmButtonProps = {
   title?: string
@@ -29,92 +26,24 @@ const ConfirmButton = ({
   height = 44,
   borderRadius = 15,
 }: ConfirmButtonProps) => {
-  const scaleValue = React.useRef(new Animated.Value(1)).current;
-  
-  // Use gradient colors by default, fallback to buttonColor if provided
-  const colors = gradientColors || [Colors.primary, Colors.primaryLight];
-
-  const handlePressIn = useCallback(() => {
-    if (!disabled && !loading) {
-      Animated.spring(scaleValue, {
-        toValue: 0.95,
-        useNativeDriver: true,
-        speed: 50,
-        bounciness: 4,
-      }).start();
-    }
-  }, [disabled, loading, scaleValue]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  }, [scaleValue]);
-
-  const handlePress = useCallback(() => {
-    if (!disabled && !loading) {
-      onPress();
-    }
-  }, [disabled, loading, onPress]);
+  const { colors, isDisabled, scaleValue, handlePress, handlePressIn, handlePressOut } =
+    useConfirmButton({ onPress, disabled, loading, gradientColors })
 
   return (
-    <TouchableOpacity
+    <ConfirmButtonView
+      title={title}
+      textColor={textColor}
+      height={height}
+      borderRadius={borderRadius}
+      loading={loading}
+      colors={colors}
+      scaleValue={scaleValue}
+      disabled={isDisabled}
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-    >
-      <View style={styles.buttonShadow}>
-        <AnimatedLinearGradient
-          colors={colors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[
-            styles.button,
-            {
-              height: height,
-              borderRadius: borderRadius,
-              opacity: disabled || loading ? 0.5 : 1,
-              transform: [{ scale: scaleValue }],
-            },
-          ]}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color={textColor} />
-          ) : (
-            <Text style={[styles.buttonText, { color: textColor }]}>{title}</Text>
-          )}
-        </AnimatedLinearGradient>
-      </View>
-    </TouchableOpacity>
+    />
   )
 }
-
-const styles = StyleSheet.create({
-  buttonShadow: {
-    width: "100%",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  button: {
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: 'hidden',
-  },
-  buttonText: {
-    fontSize: Typography.size.base,
-    fontWeight: Typography.weight.semibold,
-    fontFamily: Typography.fontFamily.semibold,
-    letterSpacing: 0.3,
-  },
-})
 
 export default React.memo(ConfirmButton)

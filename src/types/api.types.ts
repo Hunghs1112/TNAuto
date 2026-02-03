@@ -197,7 +197,7 @@ export interface Notification {
   id: number;
   recipient_id: number;
   recipient_type: 'customer' | 'employee';
-  message: string;
+  message?: string;
   type?: string;
   read: boolean;
   created_at: string;

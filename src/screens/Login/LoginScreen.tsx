@@ -1,21 +1,21 @@
 // src/screens/Auth/LoginScreen.tsx - Unified login screen with automatic user type detection
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, InteractionManager, Alert } from "react-native";
-import { Screen, FormContainer } from "../../components/layout";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
+import Screen from "../../components/layout/Screen/Screen";
+import { FormContainer } from "../../components/layout/FormContainer";
 import { Colors } from "../../constants/colors";
-import { Button } from "../../components/ui";
+import { Button } from "../../components/ui/Button";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import { styles } from "./styles";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useLoginCustomerMutation } from "../../services";
 import { useCheckPhoneMutation } from "../../services/authApi";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { setLoggedIn } from "../../redux/slices/authSlice";
-import { AppStackParamList } from "../../navigation/AppNavigator";
 import { registerFCMTokenAfterLogin } from "../../utils/fcmTokenManager";
 
-type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+type NavigationProp = NativeStackNavigationProp<any>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -86,7 +86,12 @@ export default function LoginScreen() {
             });
 
             // Navigate to Home after successful login
-            navigation.replace('Home');
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: "MainTabs" }],
+              })
+            );
           } else {
             Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại!");
           }
@@ -101,9 +106,9 @@ export default function LoginScreen() {
       if (checkResult.user_type === 'employee') {
         // Navigate to password screen for employee
         setIsLoading(false);
-        navigation.navigate('EmployeePassword', {
+        navigation.navigate("EmployeePassword", {
           phone: phone.trim(),
-          employeeData: checkResult.data!
+          employeeData: checkResult.data!,
         });
         return;
       }
@@ -124,24 +129,24 @@ export default function LoginScreen() {
 
   return (
     <Screen
-      headerTitle="Đăng nhập"
-      showBackButton
       statusBarStyle="light-content"
     >
       <FormContainer
         keyboardAvoiding
         withScroll
-        padding={0}
+        paddingCustom={{ horizontal: 'xl', top: 'lg', bottom: 'xl' }}
         dismissKeyboardOnPress
       >
         <Text style={styles.welcomeText}>Chào mừng trở lại</Text>
         <Text style={styles.subtitle}>Nhập số điện thoại để tiếp tục</Text>
 
-        <Image
-          style={styles.logo}
-          source={require('../../assets/logo.png')}
-          resizeMode="cover"
-        />
+        <View style={styles.logoFrame}>
+          <Image
+            style={styles.logo}
+            source={require('../../assets/logo.png')}
+            resizeMode="contain"
+          />
+        </View>
 
         <View style={styles.inputContainer}>
           <TextInputComponent

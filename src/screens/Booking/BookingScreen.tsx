@@ -177,10 +177,10 @@ const BookingScreen: React.FC = () => {
           if (navigation.canGoBack()) {
             navigation.goBack();
           } else {
-            navigation.navigate('Home');
+            navigation.navigate('HomeTab' as never);
           }
         } catch (navError) {
-          navigation.navigate('Home');
+          navigation.navigate('HomeTab' as never);
         }
       } else {
         Alert.alert('Lỗi', 'Đặt lịch thất bại!');

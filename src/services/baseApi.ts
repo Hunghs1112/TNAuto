@@ -68,7 +68,8 @@ export const baseApi = createApi({
     'Offer',
     'Warranty',
     'Notification',
-    'Image'
+    'Image',
+    'ProductImage'
   ],
   endpoints: () => ({}),
 });

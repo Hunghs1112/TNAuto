@@ -1,7 +1,7 @@
 // src/screens/Product/ProductScreen.tsx (Optimized with new loading pattern)
 import React, { useMemo, useCallback, useState } from "react";
 import { View, FlatList, RefreshControl } from "react-native";
-import { Screen } from "../../components/layout";
+import Screen from "../../components/layout/Screen/Screen";
 import { Colors } from "../../constants/colors";
 import Item from "../../components/Item";
 import { QueryWrapper, ScreenLoader } from "../../components/Loading";
@@ -149,11 +149,22 @@ const ProductScreen = () => {
             {() => {
               const productItems = filteredProducts.map((product: Product) => {
                 // Add cache busting timestamp to image URL
-                let imageUri = product.primary_image;
+                const rawImage = (product as any).primary_image;
+
+                let imageUri: string | undefined;
+
+                if (typeof rawImage === 'string') {
+                  imageUri = rawImage;
+                } else if (rawImage && typeof rawImage === 'object' && typeof (rawImage as any).uri === 'string') {
+                  imageUri = (rawImage as any).uri;
+                } else {
+                  imageUri = undefined;
+                }
+
                 if (imageUri) {
                   imageUri = `${imageUri}${imageUri.includes('?') ? '&' : '?'}_t=${imageTimestamp}`;
                 }
-                
+
                 return {
                   id: product.id,
                   title: product.name,

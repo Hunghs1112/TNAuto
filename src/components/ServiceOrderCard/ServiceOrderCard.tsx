@@ -1,6 +1,7 @@
 // src/components/ServiceOrderCard/ServiceOrderCard.tsx
 import React, { useMemo } from "react"
 import { View, Text, Pressable, StyleSheet } from "react-native"
+import { OptimizedImage } from "../OptimizedImage"
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient'
 import { Colors } from "../../constants/colors"
@@ -16,6 +17,7 @@ interface ServiceOrderCardProps {
   receiveDate: string
   scheduleDate: string
   status?: string
+  serviceImageUrl?: string | null
   onPress?: () => void
 }
 
@@ -40,24 +42,25 @@ const getStatusText = (status?: string) => {
 const getStatusColor = (status?: string): string => {
   switch (status) {
     case 'received':
-      return '#FEB052'; // Vàng cam
+      return Colors.status.pending;
     case 'ready_for_pickup':
-      return '#FF6B6B'; // Đỏ nhạt
+      return Colors.status.warning;
     case 'in_progress':
-      return '#DA1C12'; // Đỏ
+      return Colors.status.inProgress;
     case 'completed':
-      return '#34C759'; // Xanh lá
+      return Colors.status.success;
     case 'cancelled':
     case 'canceled':
-      return '#9CA3AF'; // Xám
+      return Colors.status.cancelled;
     default:
-      return '#FEB052'; // Vàng cam
+      return Colors.status.pending;
   }
 };
 
-const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, onPress }) => {
+const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, serviceImageUrl, onPress }) => {
   const statusText = useMemo(() => getStatusText(status), [status]);
   const statusColor = useMemo(() => getStatusColor(status), [status]);
+  const isCompleted = status === 'completed';
 
   return (
     <Pressable
@@ -72,14 +75,25 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, second
           <View style={styles.header}>
             <View style={styles.serviceInfo}>
               <View style={styles.iconContainerShadow}>
-                <LinearGradient
-                  colors={['#DA1C12', '#FF6B6B']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.iconContainer}
-                >
-                  <Ionicons name="settings" size={28} color={Colors.background.light} />
-                </LinearGradient>
+                <View style={styles.iconContainer}>
+                  {serviceImageUrl ? (
+                    <OptimizedImage
+                      source={{ uri: serviceImageUrl }}
+                      width={styles.iconContainer.width as number}
+                      height={styles.iconContainer.height as number}
+                      borderRadius={styles.iconContainer.borderRadius as number}
+                    />
+                  ) : (
+                    <LinearGradient
+                      colors={[Colors.primary, Colors.primaryLight]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.iconContainer}
+                    >
+                      <Ionicons name="settings" size={28} color={Colors.background.light} />
+                    </LinearGradient>
+                  )}
+                </View>
               </View>
               <View style={styles.textContainer}>
                 <View style={styles.serviceText}>
@@ -103,16 +117,19 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, second
 
         <View style={styles.footer}>
           <View style={styles.dateItem}>
-            <View style={[styles.dateIconContainer, styles.receiveDateIcon]}>
-              <Ionicons name="calendar-outline" size={18} color={Colors.secondary} />
+            <View style={[styles.dateIconContainer, isCompleted ? styles.scheduleDateIcon : styles.receiveDateIcon]}>
+              <Ionicons
+                name={isCompleted ? "calendar" : "calendar-outline"}
+                size={18}
+                color={isCompleted ? "#DA1C12" : Colors.secondary}
+              />
             </View>
-            <Text style={styles.receiveDate}>{receiveDate}</Text>
-          </View>
-          <View style={styles.dateItem}>
-            <View style={[styles.dateIconContainer, styles.scheduleDateIcon]}>
-              <Ionicons name="calendar" size={18} color="#DA1C12" />
-            </View>
-            <Text style={styles.scheduleDate}>{scheduleDate}</Text>
+            <Text style={styles.dateLabel} numberOfLines={1}>
+              {isCompleted ? "Đã nhận ngày" : "Ngày nhận dự kiến"}
+            </Text>
+            <Text style={styles.dateValue} numberOfLines={1}>
+              {isCompleted ? receiveDate : scheduleDate}
+            </Text>
           </View>
         </View>
       </View>
@@ -165,6 +182,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: 'hidden',
+    backgroundColor: Colors.primarySoft,
   },
   arrowContainer: {
     padding: spacing.xs,
@@ -197,7 +215,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   statusText: {
-    color: Colors.text.inverted,
+    color: Colors.background.light,
     ...textStyles.bodySmall,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: Typography.weight.semibold,
@@ -211,15 +229,14 @@ const styles = StyleSheet.create({
   footer: {
     flex: 1,
     flexDirection: "row",
-    gap: spacing.lg,
     alignItems: "center",
     paddingVertical: spacing.sm,
   },
   dateItem: {
     flexDirection: "row",
-    gap: spacing.sm,
     alignItems: "center",
     flex: 1,
+    gap: spacing.sm,
   },
   dateIconContainer: {
     width: 28,
@@ -242,6 +259,17 @@ const styles = StyleSheet.create({
   },
   scheduleDate: {
     color: '#DA1C12',
+    ...textStyles.bodySmall,
+    flex: 1,
+    fontWeight: Typography.weight.semibold,
+  },
+  dateLabel: {
+    color: Colors.text.secondary,
+    ...textStyles.bodySmall,
+    flexShrink: 0,
+  },
+  dateValue: {
+    color: Colors.text.primary,
     ...textStyles.bodySmall,
     flex: 1,
     fontWeight: Typography.weight.semibold,

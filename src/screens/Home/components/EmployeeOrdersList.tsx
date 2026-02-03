@@ -25,7 +25,7 @@ interface Order {
 interface EmployeeOrdersListProps {
   orders: Order[];
   isLoading: boolean;
-  services: Array<{ id: number; name: string }>;
+  services: Array<{ id: number; name: string; image_url?: string | null }>;
   onOrderPress: (id: string) => void;
   emptyMessage?: string;
 }
@@ -68,6 +68,14 @@ const EmployeeOrdersList: React.FC<EmployeeOrdersListProps> = ({
     return 'Dịch vụ không xác định';
   }, [services]);
 
+  const getServiceImageUrl = useCallback((item: Order) => {
+    if (item.service_id && services) {
+      const service = services.find(s => s.id === Number(item.service_id));
+      return service?.image_url || null;
+    }
+    return null;
+  }, [services]);
+
   const renderOrderItem = useCallback(({ item }: { item: Order }) => (
     <ServiceOrderCard
       serviceName={getServiceName(item)}
@@ -75,9 +83,10 @@ const EmployeeOrdersList: React.FC<EmployeeOrdersListProps> = ({
       receiveDate={item.receive_date}
       scheduleDate={item.delivery_date || 'Chưa xác định'}
       status={item.status}
+      serviceImageUrl={getServiceImageUrl(item)}
       onPress={() => onOrderPress(item.id.toString())}
     />
-  ), [getServiceName, onOrderPress]);
+  ), [getServiceName, getServiceImageUrl, onOrderPress]);
 
   const keyExtractor = useCallback((item: Order) => item.id.toString(), []);
 
@@ -139,6 +148,8 @@ const EmployeeOrdersList: React.FC<EmployeeOrdersListProps> = ({
           keyExtractor={keyExtractor}
           renderItem={renderOrderItem}
           showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+          nestedScrollEnabled={false}
           style={styles.servicesContainer}
           initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
           maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}

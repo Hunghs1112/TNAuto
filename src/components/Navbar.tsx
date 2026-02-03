@@ -1,275 +1,322 @@
-/**
- * Navbar - Modern Floating Bottom Navigation
- * Creative design with elevated home button
- * Only shows on main navigation screens
- */
+import React, { useCallback, useMemo } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+// import LinearGradient from "react-native-linear-gradient";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, {
+  Easing,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import React, { useCallback } from "react";
-import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
-import LinearGradient from 'react-native-linear-gradient';
-import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typo";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { AppStackParamList } from "../navigation/AppNavigator";
-import { spacing } from "../design-system/spacing";
 import { borderRadius } from "../design-system/borders";
+import { spacing } from "../design-system/spacing";
 import { useAppSelector } from "../redux/hooks/useAppSelector";
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+// -----------------------------------------------------------------------------------------
+// Helper hook for press animation
+function usePressActiveAnimation(isActive: boolean, pressedScale: number, activeScale: number) {
+  const pressed = useSharedValue(0);
+  const active = useSharedValue(isActive ? 1 : 0);
 
-// Danh sách các trang hiển thị navbar
-const NAVBAR_VISIBLE_ROUTES: (keyof AppStackParamList)[] = [
-  'Home',
-  'Service',
-  'Product',
-  'Customers', // Thêm cho nhân viên
-];
+  React.useEffect(() => {
+    active.value = withTiming(isActive ? 1 : 0, {
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [active, isActive]);
 
-const Navbar: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
-  const route = useRoute();
-  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const userType = useAppSelector((state) => state.auth.userType);
+  const onPressIn = useCallback(() => {
+    pressed.value = withTiming(1, { duration: 120, easing: Easing.out(Easing.quad) });
+  }, [pressed]);
+
+  const onPressOut = useCallback(() => {
+    pressed.value = withTiming(0, { duration: 120, easing: Easing.out(Easing.quad) });
+  }, [pressed]);
+
+  const animStyle = useAnimatedStyle(() => {
+    const scale = withTiming(pressed.value ? pressedScale : activeScale + active.value * 0.06, {
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    const opacity = 1 - pressed.value * 0.18;
+
+    return {
+      transform: [{ scale }],
+      opacity,
+    };
+  }, [pressedScale, activeScale]);
+
+  return { onPressIn, onPressOut, animStyle, active };
+}
+
+// -----------------------------------------------------------------------------------------
+// Tab button component
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const TabButton = React.memo(function TabButton({
+  label,
+  icon,
+  isActive,
+  onPress,
+}: {
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  const { onPressIn, onPressOut, animStyle, active } = usePressActiveAnimation(isActive, 0.95, 1);
+
+  const ACTIVE_COLOR = Colors.primary;
+
+  const iconColorStyle = useAnimatedStyle(() => {
+    const color = interpolateColor(active.value, [0, 1], [Colors.text.tertiary, ACTIVE_COLOR]);
+    return { color } as any;
+  });
+
+  const labelStyle = useAnimatedStyle(() => {
+    const color = interpolateColor(active.value, [0, 1], [Colors.text.tertiary, ACTIVE_COLOR]);
+    return { color } as any;
+  });
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      style={[styles.tabButton, animStyle]}
+      accessibilityRole="button"
+    >
+      <Animated.Text style={[styles.iconText, iconColorStyle]}>
+        <Ionicons name={icon} size={22} color={Colors.text.tertiary} />
+      </Animated.Text>
+      <Animated.Text style={[styles.tabLabel, labelStyle]}>{label}</Animated.Text>
+    </AnimatedPressable>
+  );
+});
+
+// -----------------------------------------------------------------------------------------
+// Center Home button
+const CenterHomeButton = React.memo(function CenterHomeButton({
+  isActive,
+  onPress,
+}: {
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  const { onPressIn, onPressOut, animStyle, active } = usePressActiveAnimation(isActive, 0.94, 1);
+
+  const ringStyle = useAnimatedStyle(() => {
+    return {
+      opacity: active.value,
+      transform: [{ scale: 1 + active.value * 0.08 }],
+    };
+  });
+
+  const activeBorderStyle = useAnimatedStyle(() => {
+    return {
+      opacity: active.value,
+      transform: [{ scale: 1 + active.value * 0.02 }],
+    };
+  });
+
+  return (
+    <View style={styles.centerSlot} pointerEvents="box-none">
+      <Animated.View style={[styles.centerRing, ringStyle]} />
+      <Animated.View style={[styles.centerActiveBorder, activeBorderStyle]} />
+      <AnimatedPressable
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={[styles.centerButton, animStyle]}
+        accessibilityRole="button"
+      >
+        <View
+          colors={[...Colors.gradients.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.centerGradient, { backgroundColor: Colors.primary }]}
+        >
+          <Ionicons name="home" size={28} color={Colors.text.inverted} />
+        </View>
+      </AnimatedPressable>
+    </View>
+  );
+});
+
+// -----------------------------------------------------------------------------------------
+// Main Navbar component
+const Navbar: React.FC<BottomTabBarProps> = (props) => {
+  const { navigation, state } = props;
   const insets = useSafeAreaInsets();
 
-  // Chỉ hiển thị navbar ở các trang được phép
-  const shouldShow = NAVBAR_VISIBLE_ROUTES.includes(route.name as keyof AppStackParamList);
+  const isLoggedIn = useAppSelector((s) => s.auth.isLoggedIn);
+  const userType = useAppSelector((s) => s.auth.userType);
 
-  const requireAuth = useCallback((action: () => void) => {
-    if (!isLoggedIn) {
-      Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tiếp tục.", [
-        { text: "Hủy", style: "cancel" },
-        { text: "Đăng nhập", onPress: () => navigation.navigate('Login') }
-      ]);
-      return;
-    }
-    action();
-  }, [isLoggedIn, navigation]);
+  const currentRouteName = state.routes[state.index].name;
 
-  // Không render nếu không phải trang được phép
-  if (!shouldShow) {
-    return null;
-  }
+  const requireAuth = useCallback(
+    (action: () => void) => {
+      if (!isLoggedIn) {
+        Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tiếp tục.", [
+          { text: "Hủy", style: "cancel" },
+          { text: "Đăng nhập", onPress: () => navigation.navigate("Login" as never) },
+        ]);
+        return;
+      }
+      action();
+    },
+    [isLoggedIn, navigation]
+  );
 
-  // Navbar đơn giản cho nhân viên - có Trang chủ, Khách hàng và Hồ sơ
-  if (userType === 'employee') {
-    const isHome = route.name === 'Home';
-    const isCustomers = route.name === 'Customers';
-    const isProfile = route.name === 'Profile';
-    
-    return (
-      <View style={[styles.wrapper, { paddingBottom: insets.bottom }]}>
-        <View style={styles.container}>
-          {/* Nút Trang chủ */}
-          <Pressable 
-            onPress={() => navigation.navigate('Home')} 
-            style={[styles.employeeButton, isHome && styles.employeeButtonActive]}
-          >
-            <Ionicons 
-              name="home" 
-              size={24} 
-              color={isHome ? Colors.primary : Colors.text.secondary} 
-            />
-            <Text style={[styles.sideButtonText, isHome && styles.employeeButtonTextActive]}>
-              Trang chủ
-            </Text>
-          </Pressable>
+  const tabs = useMemo(() => {
+    const common = [
+      { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "BookingTab", requiresAuth: true },
+      { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "CategoryTab" },
+      { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
+      { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceTab" },
+      { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "ProfileTab", requiresAuth: true },
+    ];
+    return common;
+  }, [userType]);
 
-          {/* Nút Khách hàng */}
-          <Pressable 
-            onPress={() => requireAuth(() => navigation.navigate('Customers'))} 
-            style={[styles.employeeButton, isCustomers && styles.employeeButtonActive]}
-          >
-            <Ionicons 
-              name="people-outline" 
-              size={24} 
-              color={isCustomers ? Colors.primary : Colors.text.secondary} 
-            />
-            <Text style={[styles.sideButtonText, isCustomers && styles.employeeButtonTextActive]}>
-              Khách hàng
-            </Text>
-          </Pressable>
+  const leftTabs = tabs.filter((t) => !t.isCenter).slice(0, 2);
+  const rightTabs = tabs.filter((t) => !t.isCenter).slice(2, 4);
+  const centerTab = tabs.find((t) => t.isCenter);
 
-          {/* Nút Hồ sơ */}
-          <Pressable 
-            onPress={() => requireAuth(() => navigation.navigate('Profile'))} 
-            style={[styles.employeeButton, isProfile && styles.employeeButtonActive]}
-          >
-            <Ionicons 
-              name="person-outline" 
-              size={24} 
-              color={isProfile ? Colors.primary : Colors.text.secondary} 
-            />
-            <Text style={[styles.sideButtonText, isProfile && styles.employeeButtonTextActive]}>
-              Hồ sơ
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
+  const navigateTo = (tab: typeof tabs[number]) => {
+    if (currentRouteName === tab.routeName) return;
+    const go = () => navigation.navigate(tab.routeName as never);
+    if (tab.requiresAuth) return requireAuth(go);
+    go();
+  };
 
-  // Navbar đầy đủ cho khách hàng
   return (
-    <View style={[styles.wrapper, { paddingBottom: insets.bottom }]}>
-      <View style={styles.container}>
-        {/* 2 nút bên trái */}
-        <View style={styles.leftSection}>
-          <Pressable 
-            onPress={() => requireAuth(() => navigation.navigate('Booking'))} 
-            style={styles.sideButton}
-          >
-            <Ionicons name="calendar-outline" size={24} color={Colors.text.secondary} />
-            <Text style={styles.sideButtonText}>Đặt lịch</Text>
-          </Pressable>
-
-          <Pressable 
-            onPress={() => navigation.navigate('Category')} 
-            style={styles.sideButton}
-          >
-            <Ionicons name="cube-outline" size={24} color={Colors.text.secondary} />
-            <Text style={styles.sideButtonText}>Sản phẩm</Text>
-          </Pressable>
+    <View style={[styles.wrapper, { paddingBottom: insets.bottom }]} pointerEvents="box-none">
+      <View style={[styles.container, { backgroundColor: Colors.background.light }]}>
+        <View style={styles.borderTop} />
+        <View style={styles.row}>
+          <View style={styles.sideGroup}>
+            {leftTabs.map((t) => (
+              <TabButton
+                key={t.key}
+                label={t.label}
+                icon={t.icon}
+                isActive={currentRouteName === t.routeName}
+                onPress={() => navigateTo(t)}
+              />
+            ))}
+          </View>
+          <View style={styles.centerGap} />
+          <View style={styles.sideGroup}>
+            {rightTabs.map((t) => (
+              <TabButton
+                key={t.key}
+                label={t.label}
+                icon={t.icon}
+                isActive={currentRouteName === t.routeName}
+                onPress={() => navigateTo(t)}
+              />
+            ))}
+          </View>
         </View>
-
-        {/* Nút Trang chủ nổi bật ở giữa */}
-        <Pressable 
-          onPress={() => navigation.navigate('Home')} 
-          style={styles.centerButton}
-        >
-          <LinearGradient
-            colors={[...Colors.gradients.primary, Colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.centerGradient}
-          >
-            <Ionicons name="home" size={28} color="#FFFFFF" />
-          </LinearGradient>
-        </Pressable>
-
-        {/* 2 nút bên phải */}
-        <View style={styles.rightSection}>
-          <Pressable 
-            onPress={() => navigation.navigate('ServiceCategory')} 
-            style={styles.sideButton}
-          >
-            <Ionicons name="construct-outline" size={24} color={Colors.text.secondary} />
-            <Text style={styles.sideButtonText}>Dịch vụ</Text>
-          </Pressable>
-
-          <Pressable 
-            onPress={() => requireAuth(() => navigation.navigate('Profile'))} 
-            style={styles.sideButton}
-          >
-            <Ionicons name="person-outline" size={24} color={Colors.text.secondary} />
-            <Text style={styles.sideButtonText}>Hồ sơ</Text>
-          </Pressable>
-        </View>
+        {centerTab && (
+          <CenterHomeButton
+            isActive={currentRouteName === centerTab.routeName}
+            onPress={() => navigateTo(centerTab)}
+          />
+        )}
       </View>
     </View>
   );
 };
 
+// -----------------------------------------------------------------------------------------
+// Styles
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    bottom: 0,
+  wrapper: { position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: Colors.background.light },
+  container: {
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingTop: 10,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    minHeight: 76,
+    borderTopWidth: 1,
+    borderTopColor: Colors.neutral[200],
+    shadowColor: Colors.background.light,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    elevation: 18,
+  },
+  borderTop: {
+    position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    backgroundColor: 'transparent',
-  },
-  container: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    height: 1,
     backgroundColor: Colors.background.light,
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: 16,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    shadowColor: Colors.shadow.default,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    opacity: 0.18,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
   },
-  leftSection: {
+  row: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  sideGroup: { flex: 1, flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end" },
+  centerGap: { width: 84 },
+  tabButton: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    gap: spacing.xs,
+    maxWidth: 92,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 16,
   },
-  rightSection: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: spacing.xs,
+  iconText: { lineHeight: 22 },
+  tabLabel: { marginTop: 4, fontSize: 10, fontFamily: Typography.fontFamily.medium },
+  centerSlot: {
+    position: "absolute",
+    left: "53%",
+    top: -18,
+    marginLeft: -32,
+    width: 64,
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  sideButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: spacing.sm,
-    minWidth: 60,
+  centerRing: {
+    position: "absolute",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.background.light,
+    opacity: 0.18,
   },
-  sideButtonText: {
-    fontSize: 10,
-    color: Colors.text.secondary,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: '500',
+  centerActiveBorder: {
+    position: "absolute",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 2,
+    borderColor: "#22c55e",
   },
   centerButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    marginHorizontal: spacing.sm,
-    marginBottom: -20,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 24,
   },
-  centerGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Employee navbar styles
-  employeeButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: spacing.sm,
-    minWidth: 80,
-  },
-  employeeButtonActive: {
-    backgroundColor: Colors.primarySoft,
-    borderRadius: 12,
-  },
-  employeeButtonTextActive: {
-    color: Colors.primary,
-    fontFamily: Typography.fontFamily.bold,
-  },
-  employeeButtonLeft: {
-    borderRightWidth: 1,
-    borderRightColor: Colors.border,
-  },
-  employeeButtonRight: {
-    borderLeftWidth: 1,
-    borderLeftColor: Colors.border,
-  },
+  centerGradient: { flex: 1, borderRadius: 32, alignItems: "center", justifyContent: "center" },
 });
 
-export default React.memo(Navbar);
+export default Navbar;

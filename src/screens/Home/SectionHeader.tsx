@@ -11,7 +11,7 @@ interface SectionHeaderProps {
   title: string;
 }
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title }) => {
+const SectionHeader = ({ title }: SectionHeaderProps) => {
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   leftBar: {
     width: 4,
     height: 28,
-    borderRadius: borderRadius.xs / 2,
+    borderRadius: borderRadius["2xl"] / 2,
     marginRight: spacing.md,
   },
   title: {

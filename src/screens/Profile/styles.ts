@@ -1,261 +1,169 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
+import { spacing } from "../../design-system/spacing";
+import { textStyles } from "../../design-system/typography";
 
 export const styles = StyleSheet.create({
+  // Root & ScrollView
   container: {
     flex: 1,
-    backgroundColor: Colors.background.light,
-  },
-  root: {
-    flex: 1,
-    backgroundColor: Colors.gradients.primary[0],
-  },
-  body: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.background.muted,
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: spacing.xl,
   },
-  
-  // Header Section với Avatar
-  headerSection: {
-    backgroundColor: Colors.background.light,
-    paddingBottom: 32,
-    paddingTop: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: Colors.neutral[300],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral[100],
+
+  // Hero Header Section
+  heroContainer: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing["4xl"],
+    paddingHorizontal: spacing.xl,
   },
-  avatarContainer: {
+  heroRow: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingTop: 8,
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 16,
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
     borderColor: Colors.background.light,
+    marginRight: spacing.lg,
   },
-  avatarBorder: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: Colors.primary + '30',
-    top: 0,
-    left: 0,
+  heroText: {
+    flex: 1,
   },
   userName: {
-    fontSize: Typography.size['2xl'],
-    fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
-    color: Colors.text.primary,
-    textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    ...textStyles.h2,
+    color: Colors.background.light,
+    marginBottom: 2,
   },
-  userTypeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primarySoft,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 8,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: Colors.primary + '20',
+  userPhone: {
+    ...textStyles.body,
+    color: Colors.neutral[200],
   },
-  userTypeText: {
-    fontSize: Typography.size.sm,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.primary,
+
+  // White sheet under header
+  body: {
+    marginTop: 30,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
   },
-  phoneContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+  bodyInner: {
+    backgroundColor: Colors.background.light,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  phoneText: {
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.regular,
-    color: Colors.text.secondary,
+
+  // Settings List
+  settingsCard: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
-  
-  // Menu Section
-  menuSection: {
-    flex: 1,
-    paddingTop: 24,
-    paddingHorizontal: 20,
-  },
-  menuCard: {
+  settingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    minHeight: 64,
     backgroundColor: Colors.background.light,
     borderRadius: 16,
-    paddingVertical: 8,
-    marginBottom: 20,
-    shadowColor: Colors.neutral[300],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
     borderWidth: 1,
     borderColor: Colors.neutral[100],
+    shadowColor: Colors.neutral[300],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    minHeight: 64,
-  },
-  menuItemPressed: {
+  settingItemPressed: {
     backgroundColor: Colors.neutral[50],
   },
-  menuContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    gap: 16,
-  },
-  menuIconContainer: {
+  settingIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Colors.primarySoft,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.lg,
   },
-  menuText: {
-    fontSize: Typography.size.lg,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.text.primary,
-    lineHeight: 24,
+  settingTextContainer: {
     flex: 1,
+    marginRight: spacing.sm,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginHorizontal: 20,
+  settingTitle: {
+    ...textStyles.bodyStrong,
+    color: Colors.text.primary,
+    marginBottom: 2,
   },
-  
-  // Action Section
+  settingSubtitle: {
+    ...textStyles.bodySmall,
+    color: Colors.text.secondary,
+  },
+
+  // Action Buttons
   actionSection: {
-    gap: 12,
-    paddingBottom: 20,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 10,
-    minHeight: 56,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 14,
+    minHeight: 48,
+    borderWidth: 1,
+    shadowColor: Colors.neutral[400],
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 3,
   },
   actionButtonPressed: {
-    opacity: 0.8,
+    opacity: 0.92,
   },
   actionButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
-  deleteButton: {
-    backgroundColor: Colors.primarySoft,
-    borderWidth: 1,
-    borderColor: Colors.status.error + '30',
-  },
-  deleteButtonText: {
-    fontSize: Typography.size.lg,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.status.error,
-  },
-  logoutButton: {
-    backgroundColor: Colors.primarySoft,
-    borderWidth: 1,
-    borderColor: Colors.background.red + '30',
-  },
-  logoutButtonText: {
-    fontSize: Typography.size.lg,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.background.red,
-  },
-  
-  // Legacy styles (có thể xóa sau)
-  form: {
-    flex: 1,
-  },
-  spacer: {
-    height: 20,
-  },
-  menuContainer: {
-    flex: 1,
-  },
-  menuItemWrapper: {
-    marginBottom: 0,
-  },
-  deleteAccountItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    marginTop: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-    gap: 12,
-  },
-  deleteAccountItemDisabled: {
-    opacity: 0.5,
-  },
-  deleteAccountText: {
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.status.error,
-    lineHeight: 24,
-  },
-  logoutItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    marginTop: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  logoutIconContainer: {
-    width: 16,
-    height: 16,
-    marginRight: 12,
+
+  actionIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: spacing.sm,
   },
-  logoutText: {
-    fontSize: Typography.size.base,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.error,
-    lineHeight: 24,
+
+  // Delete: filled danger
+  deleteButton: {
+    backgroundColor: Colors.status.error,
+    borderColor: Colors.status.error,
+  },
+  deleteIconWrap: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  deleteButtonText: {
+    ...textStyles.bodyStrong,
+    color: Colors.background.light,
+  },
+
+  // Logout: outline (secondary hierarchy) but still prominent
+  logoutButton: {
+    backgroundColor: Colors.background.light,
+    borderColor: Colors.primary,
+  },
+  logoutIconWrap: {
+    backgroundColor: Colors.primarySoft,
+  },
+  logoutButtonText: {
+    ...textStyles.bodyStrong,
+    color: Colors.primary,
   },
 });

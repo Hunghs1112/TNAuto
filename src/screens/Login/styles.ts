@@ -14,7 +14,7 @@ export const styles = StyleSheet.create({
   welcomeText: {
     ...textStyles.h2,
     color: Colors.primary,
-    marginTop: spacing.md,
+    marginTop: 0,
     marginBottom: spacing.sm,
   },
   subtitle: {
@@ -22,12 +22,16 @@ export const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginBottom: spacing.xl,
   },
-  logo: {
-    width: 320,
-    height: 140,
-    marginTop: spacing['3xl'],
-    marginBottom: spacing['3xl'],
+  logoFrame: {
+    width: "100%",
+    maxWidth: 520,
+    height: 260,
     alignSelf: "center",
+    marginVertical: spacing.xl,
+  },
+  logo: {
+    width: "100%",
+    height: "100%",
   },
   
   // Input area spacing

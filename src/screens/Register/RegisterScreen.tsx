@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
-import { Screen, FormContainer } from "../../components/layout";
+import Screen from "../../components/layout/Screen/Screen";
+import { FormContainer } from "../../components/layout/FormContainer";
 import { Colors } from "../../constants/colors";
-import { Button } from "../../components/ui";
+import { Button } from "../../components/ui/Button";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import { styles } from "./styles";
 import { useNavigation } from "@react-navigation/native";
@@ -154,25 +155,24 @@ export default function RegisterScreen() {
 
   return (
     <Screen
-      headerTitle="Đăng ký"
-      showBackButton
-      safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"
     >
       <FormContainer
         keyboardAvoiding
         withScroll
-        padding={0}
+        paddingCustom={{ horizontal: 'xl', top: 'lg', bottom: 'xl' }}
         dismissKeyboardOnPress
       >
         <Text style={styles.welcomeText}>Chào mừng đến với TN Auto</Text>
         <Text style={styles.subtitle}>Đăng ký tại đây</Text>
 
-        <Image
-          style={styles.logo}
-          source={require('../../assets/logo.png')}
-          resizeMode="cover"
-        />
+        <View style={styles.logoFrame}>
+          <Image
+            style={styles.logo}
+            source={require('../../assets/logo.png')}
+            resizeMode="contain"
+          />
+        </View>
 
         <View style={styles.inputContainer}>
           <TextInputComponent

@@ -51,7 +51,7 @@ interface Warranty {
   created_at: string;
 }
 
-interface Notification {
+interface ServiceOrderNotification {
   id: number;
   recipient_id: number;
   recipient_type: 'customer' | 'employee';
@@ -63,7 +63,7 @@ interface Notification {
 interface DetailedServiceOrder extends ExtendedServiceOrder {
   images: ServiceOrderImage[];
   warranty: Warranty[];
-  notifications: Notification[];
+  notifications: ServiceOrderNotification[];
 }
 
 interface ApiResponse<T> {
@@ -96,7 +96,6 @@ export const serviceOrderApi = createApi({
       query: (body) => ({ url: ENDPOINTS.createServiceOrder.path, method: 'POST', body }),
       invalidatesTags: ['ServiceOrder'],
       transformResponse: (response: ApiResponse<{ id: number }>) => {
-        console.log('createServiceOrder response:', response);
         if (!response.success) throw new Error(response.error || 'Failed to create service order');
         return { id: response.data?.id || response.order_id || 0 };
       },

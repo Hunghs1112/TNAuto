@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typo";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
@@ -9,14 +8,22 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { spacing } from "../design-system/spacing";
 import { getShadowStyle } from "../design-system/shadows";
 import { borderRadius } from "../design-system/borders";
-import { textStyles } from "../design-system/typography";
 
 type HeaderProps = {
   title?: string;
+  subtitle?: string;
   hideBackButton?: boolean; // Optional prop to force hide back button
+  hideRightButton?: boolean;
+  onPressRight?: () => void;
 };
 
-const Header = ({ title = "Đăng nhập", hideBackButton = false }: HeaderProps) => {
+const Header = ({
+  title = "Đăng nhập",
+  subtitle,
+  hideBackButton = false,
+  hideRightButton = false,
+  onPressRight,
+}: HeaderProps) => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   const handleBackPress = useCallback(() => {
@@ -27,7 +34,7 @@ const Header = ({ title = "Đăng nhập", hideBackButton = false }: HeaderProps
     } catch (error) {
       // Fallback: try to navigate to Home if goBack fails
       try {
-        navigation.navigate('Home' as never);
+        navigation.navigate('HomeTab' as never);
       } catch (fallbackError) {
         // Silent fail
       }
@@ -38,59 +45,92 @@ const Header = ({ title = "Đăng nhập", hideBackButton = false }: HeaderProps
   const showBackButton = useMemo(() => !hideBackButton && canGoBack, [hideBackButton, canGoBack]);
 
   return (
-    <LinearGradient
-      colors={[...Colors.gradients.primary, Colors.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradientContainer}
-    >
+    <View style={styles.headerContainer}>
       <View style={styles.container}>
-        {showBackButton && (
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <Ionicons name="chevron-back-outline" size={28} color={Colors.background.light} />
-          </TouchableOpacity>
-        )}
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.spacer} />
+        <View style={styles.leftSlot}>
+          {showBackButton && (
+            <TouchableOpacity onPress={handleBackPress} style={styles.iconButton}>
+              <Ionicons name="chevron-back-outline" size={22} color={Colors.text.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.centerSlot}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {!!subtitle && (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.rightSlot} />
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  gradientContainer: {
+  headerContainer: {
     width: "100%",
-    position: 'relative',
+    position: "relative",
     zIndex: 1000,
-    elevation: 10, // For Android
-    ...getShadowStyle('sm'),
+    elevation: 10,
+    backgroundColor: Colors.background.light,
+    ...getShadowStyle("sm"),
   },
   container: {
     width: "100%",
-    minHeight: 56,
+    minHeight: 44,
     paddingHorizontal: spacing.base,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     marginTop: 0,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
   },
-  backButton: {
-    width: 40,
-    height: 40,
+  leftSlot: {
+    width: 44,
+    height: 44,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  centerSlot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.sm,
+  },
+  rightSlot: {
+    width: 44,
+    height: 44,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
   },
   title: {
-    color: Colors.background.light,
-    ...textStyles.h3,
-    marginLeft: spacing.md,
+    color: Colors.text.primary,
+    fontSize: 16,
+    lineHeight: 20,
+    fontFamily: Typography.fontFamily.medium,
   },
-  spacer: {
-    width: 40,
+  subtitle: {
+    marginTop: 1,
+    color: Colors.text.tertiary,
+    opacity: 1,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: Typography.fontFamily.regular,
   },
 });
 

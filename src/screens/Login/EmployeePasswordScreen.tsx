@@ -6,7 +6,7 @@ import { Colors } from "../../constants/colors";
 import { Button } from "../../components/ui";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import { styles } from "./styles";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { CommonActions, useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useLoginEmployeeMutation } from "../../services";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
@@ -61,8 +61,13 @@ export default function EmployeePasswordScreen() {
           console.error('Failed to register FCM token:', error);
         });
 
-        // Navigate to Home after successful login
-        navigation.replace('Home');
+        // Navigate to MainTabs after successful login
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "MainTabs" as never }],
+          })
+        );
       } else {
         Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại!");
       }

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, StatusBar } from 'react-native';
+import { View, StyleSheet, StatusBar, ScrollView } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from '../../../constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,11 @@ export interface ScreenProps {
   hideHeader?: boolean;
   backgroundColor?: string;
   statusBarStyle?: 'light-content' | 'dark-content';
+  /**
+   * Disable built-in ScrollView to avoid nesting issues when the screen's
+   * content already contains a VirtualizedList (FlatList, SectionList, ...)
+   */
+  useScrollView?: boolean; // default true
 }
 
 const Screen: React.FC<ScreenProps> = ({
@@ -26,8 +31,11 @@ const Screen: React.FC<ScreenProps> = ({
   hideHeader = false,
   backgroundColor = Colors.background.light,
   statusBarStyle = 'light-content',
+  useScrollView = true,
 }) => {
   const insets = useSafeAreaInsets();
+
+  const TAB_BAR_HEIGHT = 76;
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -57,9 +65,22 @@ const Screen: React.FC<ScreenProps> = ({
       )}
 
       {/* Content */}
-      <View style={styles.content}>
+      {useScrollView ? (
+        <ScrollView
+        style={styles.content}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: TAB_BAR_HEIGHT + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {children}
-      </View>
+      </ScrollView>
+      ) : (
+        <View style={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}>
+          {children}
+        </View>
+      )}
     </View>
   );
 };
@@ -80,8 +101,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16, // Consistent padding for all screens
     zIndex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
 });
 

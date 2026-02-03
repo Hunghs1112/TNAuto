@@ -1,5 +1,5 @@
 // screens/Service/ServiceMenu.tsx
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useEffect } from "react";
 import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -9,10 +9,13 @@ import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
+import { useGetOffersQuery } from "../../services/offerApi";
+import { setOffers } from "../../redux/slices/offersSlice";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-type NoParamsRoute = 'Offer' | 'Category' | 'Warranty' | 'ServiceCategory';
+type NoParamsRoute = 'Offer' | 'CategoryTab' | 'Warranty' | 'ServiceTab';
 
 interface MenuItem {
   id: number;
@@ -23,11 +26,24 @@ interface MenuItem {
 
 const ServiceMenu: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const dispatch = useAppDispatch();
   const offerCount = useAppSelector((state) => state.offers.count);
+
+  // Fetch offers for badge if not yet fetched
+  const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(undefined, {
+    skip: offerCount > 0, // avoid refetch if we already have offers
+  });
+
+  // Sync to redux when fetched
+  useEffect(() => {
+    if (offersSuccess && offersData?.data) {
+      dispatch(setOffers({ data: offersData.data, count: offersData.count }));
+    }
+  }, [offersSuccess, offersData, dispatch]);
   
   const menuItems: MenuItem[] = useMemo(() => [
     { id: 1, title: "Ưu đãi", icon: "pricetag-outline", route: "Offer" },
-    { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "Category" },
+    { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "CategoryTab" },
     { id: 3, title: "Tích điểm", icon: "star-outline" },
     { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline", route: "Warranty" },
   ], []);
@@ -105,7 +121,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 16,
-    backgroundColor: Colors.background.light,
+    backgroundColor: 'transparent',
   },
   iconContainer: {
     width: 64,
@@ -143,7 +159,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    color: Colors.text.primary,
+    color: Colors.background.light,
     fontFamily: Typography.fontFamily.medium,
     fontSize: 14,
     textAlign: "center",
@@ -160,7 +176,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 5,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#22c55e',
     borderWidth: 2,
     borderColor: Colors.background.light,
     shadowColor: Colors.shadow.primary,

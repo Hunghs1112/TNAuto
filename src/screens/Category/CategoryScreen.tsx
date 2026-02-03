@@ -45,6 +45,7 @@ const CategoryScreen = () => {
   return (
     <Screen
       headerTitle="Danh mục sản phẩm"
+      useScrollView={false}
       showBackButton
       safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"

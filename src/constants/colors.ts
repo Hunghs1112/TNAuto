@@ -1,116 +1,184 @@
 // src/constants/colors.ts
 export const Colors = {
-  // 🎨 Brand Colors - Màu thương hiệu chính
-  primary: '#0C7779',      // Xanh teal chính
-  primaryLight: '#3BC1A8', // Xanh teal nhạt cho gradients
-  primarySoft: '#E6F6F6',  // Xanh teal rất nhạt cho backgrounds
-  secondary: '#249E94',    // Xanh teal phụ
+  // 🎨 Brand Colors - Màu thương hiệu TN Gara (từ logo)
+  primary: '#0F3D5E',        // Xanh dương đậm (main brand)
+  primaryLight: '#2563EB',   // Xanh dương sáng hơn
+  primarySoft: '#EFF6FF',    // Xanh rất nhạt (background phụ)
   
+  secondary: '#22C55E',      // Xanh lá (từ logo) - CTA chính
+  secondaryLight: '#4ADE80', // Xanh lá sáng
+  secondarySoft: '#F0FDF4',  // Xanh lá rất nhạt
+  
+  tertiary: '#F59E0B',       // Vàng/Cam (accent)
+
   // 🖼 Background Colors - Màu nền
   background: {
-    light: '#FFFFFF',      // Trắng
-    dark: '#002A3A',       // Xanh đen
-    muted: '#F0F9F9',      // Xanh xám rất nhạt
-    red: '#DA1C12',        // Đỏ (brand)
-    yellow: '#FEB052',     // Vàng cam
-    orange: '#FF9500',     // Cam
-    green: '#34C759',      // Xanh lá
-    blue: '#0A84FF',       // Xanh dương
-    indigo: '#5856D6',     // Xanh tím
-    purple: '#AF52DE',     // Tím
-    pink: '#FF2D55',       // Hồng
-    gray: '#9CA3AF',       // Xám
+    primary: '#FFFFFF',      // Nền chính
+    secondary: '#F8FAFC',    // Nền phụ (cards)
+    tertiary: '#F1F5F9',     // Nền input
+    light: '#FFFFFF',        // Trắng (giữ lại cho tương thích)
+    dark: '#0B1F2A',         // Xanh đen (dark mode)
+    muted: '#F8FAFC',        // Xám rất nhạt (surface)
+    overlay: 'rgba(15, 61, 94, 0.6)', // Overlay với primary
+    red: '#EF4444',
+    yellow: '#F59E0B',
+    orange: '#FB923C',
+    green: '#22C55E',
+    blue: '#0F3D5E',
+    indigo: '#1E40AF',
+    purple: '#7C3AED',
+    pink: '#EC4899',
+    gray: '#9CA3AF',
   },
 
   // 📝 Text Colors - Màu chữ
   text: {
-    primary: '#005461',    // Xanh đen (thay cho đen)
-    secondary: '#6B7280',  // Xám
-    tertiary: '#9CA3AF',   // Xám nhạt
-    inverted: '#FFFFFF',   // Trắng (cho nền tối)
-    placeholder: '#9CA3AF', // Xám placeholder
-    disabled: '#D1D5DB',   // Xám disabled
+    primary: '#0F172A',      // Text chính (đậm hơn)
+    secondary: '#475569',    // Text phụ
+    tertiary: '#94A3B8',     // Text mờ
+    disabled: '#CBD5E1',     // Text disabled
+    inverted: '#FFFFFF',     // Trắng (text trên nền tối)
+    placeholder: '#94A3B8',  // Placeholder
+    link: '#2563EB',         // Link
   },
 
-  // 🎯 Status Colors - Màu trạng thái
+  // 🎯 Status Colors - Màu trạng thái (RÕ - KHÔNG PASTEL)
   status: {
-    success: '#34C759',    // Xanh lá - Thành công
-    error: '#FF3B30',      // Đỏ - Lỗi
-    warning: '#FFCC00',    // Vàng - Cảnh báo
-    info: '#0A84FF',       // Xanh dương - Thông tin
-    pending: '#FEB052',    // Vàng cam - Đang chờ
-    inProgress: '#0C7779', // Xanh teal - Đang xử lý
-    completed: '#34C759',  // Xanh lá - Hoàn thành
-    cancelled: '#9CA3AF',  // Xám - Đã hủy
+    success: '#22C55E',      // Thành công (xanh lá brand)
+    error: '#EF4444',        // Lỗi
+    warning: '#F59E0B',      // Cảnh báo
+    info: '#3B82F6',         // Thông tin
+    pending: '#F59E0B',      // Đang chờ (vàng)
+    inProgress: '#3B82F6',   // Đang xử lý (xanh dương)
+    completed: '#22C55E',    // Hoàn thành (xanh lá)
+    cancelled: '#94A3B8',    // Hủy (xám)
   },
 
-  // 🟣 Neutral Scale - Thang màu xám
+  // 🚗 Service Status - Cho garage app
+  service: {
+    pending: '#F59E0B',      // Chờ xử lý
+    inProgress: '#3B82F6',   // Đang sửa
+    completed: '#22C55E',    // Hoàn thành
+    cancelled: '#94A3B8',    // Hủy
+    warranty: '#8B5CF6',     // Bảo hành
+  },
+
+  // 🟦 Neutral Scale - Slate (hiện đại hơn gray)
   neutral: {
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#E5E7EB',
-    300: '#D1D5DB',
-    400: '#9CA3AF',
-    500: '#6B7280',
-    600: '#4B5563',
-    700: '#374151',
-    800: '#1F2937',
-    900: '#111827',
+    50: '#F8FAFC',
+    100: '#F1F5F9',
+    200: '#E2E8F0',
+    300: '#CBD5E1',
+    400: '#94A3B8',
+    500: '#64748B',
+    600: '#475569',
+    700: '#334155',
+    800: '#1E293B',
+    900: '#0F172A',
   },
 
   // 🌈 Accent Colors - Màu nhấn
   accent: {
-    yellow: '#FBBF24',
-    orange: '#FF9500',
-    green: '#10B981',
-    blue: '#0A84FF',
-    purple: '#AF52DE',
-    pink: '#FF2D55',
+    green: '#22C55E',        // CTA chính (FAB, xác nhận)
+    blue: '#0F3D5E',         // Brand blue
+    yellow: '#FACC15',       // Vàng
+    orange: '#FB923C',       // Cam
+    purple: '#8B5CF6',       // Tím
+    pink: '#EC4899',         // Hồng
   },
 
   // 📦 UI Elements - Phần tử giao diện
-  border: '#E5E7EB',       // Viền
-  divider: '#D1D5DB',      // Đường phân cách
+  border: {
+    light: '#E2E8F0',        // Border nhẹ
+    default: '#CBD5E1',      // Border mặc định
+    focus: '#0F3D5E',        // Border khi focus
+    error: '#EF4444',        // Border lỗi
+  },
+  
+  divider: '#E2E8F0',        // Divider
+  
   shadow: {
-    default: '#00000029',  // Bóng đổ mặc định
-    primary: '#0C777920',  // Bóng đổ màu teal
+    default: '#0000001A',    // Shadow nhẹ
+    primary: '#0F3D5E26',    // Shadow theo brand
   },
-  overlay: '#00000080',    // Lớp phủ
+  
+  overlay: '#00000066',      // Overlay modal (giữ lại cho tương thích)
 
-  // 🔘 Button Colors - Màu nút
+  // 🎨 Surface Colors - Cho cards, modals
+  surface: {
+    default: '#FFFFFF',      // Surface mặc định
+    elevated: '#FFFFFF',     // Card nổi (có shadow)
+    muted: '#F8FAFC',        // Background nhẹ
+  },
+
+  // 💫 Interactive States
+  interactive: {
+    hover: 'rgba(15, 61, 94, 0.04)',   // Hover
+    pressed: 'rgba(15, 61, 94, 0.08)',  // Pressed
+    focus: 'rgba(15, 61, 94, 0.12)',    // Focus
+    disabled: '#F1F5F9',                 // Disabled
+  },
+
+  // 🔘 Button Colors - Màu nút (mở rộng)
   button: {
-    primary: '#0C7779',    // Nút chính
-    secondary: '#249E94',  // Nút phụ
-    disabled: '#D1D5DB',   // Nút disabled
-    text: '#FFFFFF',       // Chữ trên nút
+    primary: {
+      bg: '#0F3D5E',         // Nút chính
+      text: '#FFFFFF',
+      hover: '#1E5A82',
+      disabled: '#CBD5E1',
+    },
+    secondary: {
+      bg: '#22C55E',         // Nút hành động (FAB)
+      text: '#FFFFFF',
+      hover: '#16A34A',
+    },
+    ghost: {
+      bg: 'transparent',
+      text: '#0F3D5E',
+      hover: '#EFF6FF',
+    },
+    outline: {
+      bg: 'transparent',
+      border: '#E2E8F0',
+      text: '#334155',
+      hover: '#F8FAFC',
+    },
   },
 
-  // 🛡️ Warranty Colors - Màu bảo hành
+  // 🛡️ Warranty / Service Status - Màu bảo hành / dịch vụ
   warranty: {
-    active: '#34C759',     // Còn hiệu lực
-    expiring: '#FFCC00',   // Sắp hết hạn
-    expired: '#FF3B30',    // Hết hạn
+    active: '#22C55E',       // Còn hiệu lực
+    expiring: '#F59E0B',     // Sắp hết hạn
+    expired: '#64748B',      // Hết hạn (đổi sang xám thay vì đỏ)
   },
 
-  // 🌈 Gradients - Màu gradient
-  gradients: {
-    // Gradient đỏ cam chủ đạo
-    primary: ['#0C7779', '#3BC1A8'],           // Teal → Teal nhạt
-    primaryReverse: ['#3BC1A8', '#0C7779'],    // Teal nhạt → Teal
-    
-    // Gradient warm - ấm áp
-    warm: ['#FF9500', '#FEB052'],              // Cam → Vàng cam
-    sunset: ['#DA1C12', '#FF9500', '#FEB052'], // Đỏ → Cam → Vàng
-    
-    // Gradient cool - mát mẻ
-    ocean: ['#0A84FF', '#5856D6'],             // Xanh dương → Tím
-    success: ['#34C759', '#10B981'],           // Xanh lá
-    
-    // Gradient neutral
-    dark: ['#1F2937', '#111827'],              // Xám tối
-    light: ['#FFFFFF', '#F5F5F5'],             // Trắng → Xám nhạt
-    
-    // Gradient special effects
-    shimmer: ['#E5E7EB', '#F5F5F5', '#E5E7EB'], // Cho skeleton
+  // 🎯 Priority Colors - Cho độ ưu tiên
+  priority: {
+    critical: '#EF4444',     // Nghiêm trọng
+    high: '#F59E0B',         // Cao
+    medium: '#3B82F6',       // Trung bình
+    low: '#94A3B8',          // Thấp
   },
+
+  // 🌈 Gradients - Gradient (TIẾT CHẾ)
+  gradients: {
+    primary: ['#0F3D5E', '#1E5A82'],           // Xanh dương
+    primaryReverse: ['#1E5A82', '#0F3D5E'],   
+    secondary: ['#22C55E', '#16A34A'],         // Xanh lá
+    brand: ['#0F3D5E', '#22C55E'],             // Brand mix (xanh dương → xanh lá)
+    light: ['#FFFFFF', '#F8FAFC'],             // Light
+    dark: ['#1F2933', '#111827'],              // Dark
+    shimmer: ['#F8FAFC', '#F1F5F9', '#F8FAFC'], // Shimmer
+    overlay: ['rgba(15,61,94,0)', 'rgba(15,61,94,0.8)'], // Overlay gradient
+  },
+
+  // 🎨 Chart Colors - Nếu có biểu đồ
+  chart: [
+    '#0F3D5E',  // Primary (xanh dương)
+    '#22C55E',  // Secondary (xanh lá)
+    '#3B82F6',  // Blue
+    '#F59E0B',  // Orange
+    '#8B5CF6',  // Purple
+    '#EC4899',  // Pink
+  ],
 };

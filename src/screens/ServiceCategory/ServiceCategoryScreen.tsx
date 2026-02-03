@@ -39,6 +39,7 @@ const ServiceCategoryScreen = () => {
   return (
     <Screen
       headerTitle="Danh mục dịch vụ"
+      useScrollView={false}
       showBackButton
       safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"

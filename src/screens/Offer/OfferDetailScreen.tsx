@@ -12,7 +12,7 @@ import {
   NativeSyntheticEvent,
   RefreshControl
 } from "react-native";
-import { Screen } from "../../components/layout";
+import Screen from "../../components/layout/Screen/Screen";
 import { Colors } from "../../constants/colors";
 import { useRoute, RouteProp, useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -22,6 +22,8 @@ import { QueryWrapper, ScreenLoader } from "../../components/Loading";
 import { styles } from "./styles";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import ConfirmButton from "../../components/ConfirmButton";
+import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
+import { offerApi } from "../../services/offerApi";
 
 type OfferDetailRouteProp = RouteProp<AppStackParamList, 'OfferDetail'>;
 type OfferDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'OfferDetail'>;
@@ -334,7 +336,7 @@ const OfferDetailScreen = () => {
                   title="Áp dụng ưu đãi"
                   onPress={() => {
                     if (offer.service_id) {
-                      navigation.navigate('Booking', { serviceId: offer.service_id });
+                      navigation.navigate('BookingTab' as never, { serviceId: offer.service_id } as never);
                     }
                   }}
                   buttonColor={Colors.primary}

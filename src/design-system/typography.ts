@@ -99,6 +99,15 @@ export const textStyles = {
     letterSpacing: letterSpacing.normal,
     } as TextStyle,
 
+  /** Body Strong - Default body but semibold weight */
+  bodyStrong: {
+    fontSize: BaseTypography.size.base, // 16px
+    fontFamily: BaseTypography.fontFamily.bold,
+    fontWeight: BaseTypography.weight.semibold,
+    lineHeight: getLineHeight(BaseTypography.size.base, lineHeight.normal),
+    letterSpacing: letterSpacing.normal,
+  } as TextStyle,
+
   /** Body small - Small body text */
   bodySmall: {
     fontSize: BaseTypography.size.sm, // 14px

@@ -2,12 +2,9 @@
 import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import { spacing } from "../../design-system/spacing";
-import { borderRadius } from "../../design-system/borders";
-import { getShadowStyle } from "../../design-system/shadows";
 import { textStyles } from "../../design-system/typography";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -36,59 +33,32 @@ const UserHeader: React.FC<UserHeaderProps> = ({ userName, notificationCount, on
 
   return (
     <View style={styles.container}>
-      {/* Top spacing */}
       <View style={styles.topSpacing} />
-      
-      {/* Main card */}
-      <View style={styles.cardWrapper}>
-        <LinearGradient
-          colors={[...Colors.gradients.primary, Colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientCard}
-        >
-          {/* Decorative background elements */}
-          <View style={styles.decorativeContainer}>
-            <View style={[styles.decorativeCircle, styles.circle1]} />
-            <View style={[styles.decorativeCircle, styles.circle2]} />
-            <View style={[styles.decorativeCircle, styles.circle3]} />
+
+      <View style={styles.content}>
+        <View style={styles.headerContent}>
+          <View style={styles.greetingContainer}>
+            <Text style={styles.greeting}>Xin chào!</Text>
+            <Text style={styles.userName}>{userName}</Text>
           </View>
-          
-          {/* Content */}
-          <View style={styles.content}>
-            <View style={styles.headerContent}>
-              <View style={styles.greetingContainer}>
-                <Text style={styles.greeting}>Xin chào!</Text>
-                <Text style={styles.userName}>{userName}</Text>
-              </View>
-              <View style={styles.actionContainer}>
-                {isLoggedIn ? (
-                  <Pressable 
-                    style={styles.notificationButton}
-                    onPress={onNotificationPress}
-                  >
-                    <Ionicons name="notifications-outline" size={24} color={Colors.background.light} />
-                    {showBadge && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>
-                          {badgeText}
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                ) : (
-                  <TouchableOpacity 
-                    style={styles.loginButton}
-                    onPress={handleLoginPress}
-                  >
-                    <Ionicons name="log-in-outline" size={20} color={Colors.background.light} />
-                    <Text style={styles.loginButtonText}>Đăng nhập</Text>
-                  </TouchableOpacity>
+          <View style={styles.actionContainer}>
+            {isLoggedIn ? (
+              <Pressable style={styles.notificationButton} onPress={onNotificationPress}>
+                <Ionicons name="notifications-outline" size={24} color={Colors.background.light} />
+                {showBadge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{badgeText}</Text>
+                  </View>
                 )}
-              </View>
-            </View>
+              </Pressable>
+            ) : (
+              <TouchableOpacity style={styles.loginButton} onPress={handleLoginPress}>
+                <Ionicons name="log-in-outline" size={20} color={Colors.background.light} />
+                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        </LinearGradient>
+        </View>
       </View>
     </View>
   );
@@ -100,46 +70,6 @@ const styles = StyleSheet.create({
   },
   topSpacing: {
     height: spacing.lg,
-  },
-  cardWrapper: {
-    width: "100%",
-    borderRadius: borderRadius['2xl'],
-    overflow: 'hidden',
-    ...getShadowStyle('lg'),
-  },
-  gradientCard: {
-    width: "100%",
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  decorativeContainer: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    opacity: 0.12,
-  },
-  decorativeCircle: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: Colors.background.light,
-  },
-  circle1: {
-    width: 140,
-    height: 140,
-    top: -50,
-    right: -30,
-  },
-  circle2: {
-    width: 90,
-    height: 90,
-    bottom: -40,
-    left: -20,
-  },
-  circle3: {
-    width: 70,
-    height: 70,
-    top: '45%',
-    right: 40,
   },
   content: {
     paddingVertical: spacing['2xl'],
@@ -180,14 +110,13 @@ const styles = StyleSheet.create({
   notificationButton: {
     width: 44,
     height: 44,
-    borderRadius: borderRadius.full,
+    borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.4)',
-    ...getShadowStyle('sm'),
   },
   badge: {
     position: "absolute",
@@ -195,13 +124,12 @@ const styles = StyleSheet.create({
     right: -2,
     minWidth: 18,
     height: 18,
-    borderRadius: borderRadius.sm,
+    borderRadius: 6,
     backgroundColor: Colors.secondary,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
     borderColor: Colors.background.light,
-    ...getShadowStyle('sm'),
   },
   badgeText: {
     color: Colors.text.inverted,
@@ -218,10 +146,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.4)',
-    ...getShadowStyle('sm'),
   },
   loginButtonText: {
     color: Colors.background.light,

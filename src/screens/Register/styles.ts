@@ -33,7 +33,7 @@ export const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.primary,
-    marginTop: spacing.md,
+    marginTop: 0,
     marginBottom: 8,
   },
   subtitle: {
@@ -43,12 +43,16 @@ export const styles = StyleSheet.create({
     fontWeight: Typography.weight.medium,
     color: Colors.text.secondary,
   },
-  logo: {
-    width: 320,
-    height: 140,
-    marginTop: 30,
-    marginBottom: 30,
+  logoFrame: {
+    width: "100%",
+    maxWidth: 520,
+    height: 260,
     alignSelf: "center",
+    marginVertical: spacing.xl,
+  },
+  logo: {
+    width: "100%",
+    height: "100%",
   },
   
   // Input Container - unified spacing

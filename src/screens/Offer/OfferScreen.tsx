@@ -1,10 +1,12 @@
 // src/screens/Offer/OfferScreen.tsx
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import GenericListScreen from "../../components/GenericListScreen";
 import { useGetOffersQuery } from "../../services/offerApi";
 import { AppStackParamList } from "../../navigation/AppNavigator";
+import { setOffers } from "../../redux/slices/offersSlice";
 
 type OfferScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Offer'>;
 
@@ -13,6 +15,13 @@ const OfferScreen = () => {
   const dispatch = useAppDispatch();
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   const { data, isLoading, error } = useGetOffersQuery(undefined);
+
+  // Sync offers to redux slice when fetched – for badge count
+  useEffect(() => {
+    if (data?.success && data?.data) {
+      dispatch(setOffers({ data: data.data, count: data.count }));
+    }
+  }, [data, dispatch]);
 
   // Avoid refetch/invalidate on every focus to prevent too many requests.
   // Freshness is handled globally by API_CONFIG.refetchOnMountOrArgChange (30s).

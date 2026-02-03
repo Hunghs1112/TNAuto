@@ -185,7 +185,7 @@ const ServiceDetailScreen = () => {
                 <ConfirmButton
                   title="Đặt lịch dịch vụ"
                   onPress={() => {
-                    navigation.navigate('Booking', { serviceId: Number(service.id) });
+                    navigation.navigate('BookingTab' as never, { serviceId: Number(service.id) } as never);
                   }}
                   buttonColor={Colors.primary}
                   textColor={Colors.text.inverted}
