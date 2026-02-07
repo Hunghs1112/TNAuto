@@ -23,7 +23,7 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 const NotificationScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh();
+  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Notification'] });
   const userType = useAppSelector((state: RootState) => state.auth.userType || 'customer');
   const userId = useAppSelector((state: RootState) => state.auth.userId || '');
   const recipientId = userId;
@@ -194,7 +194,7 @@ const NotificationScreen: React.FC = () => {
         <View style={styles.errorContainer}>
           <ErrorView 
             message="Lỗi tải thông báo"
-            onRetry={refetch}
+            onRetry={refetchNotifications}
             icon="notifications-outline"
           />
         </View>

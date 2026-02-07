@@ -13,22 +13,28 @@ import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { PerformanceConfig } from '../../config/performance';
 import { styles } from './styles';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
+import { useRefreshQueries } from '../../hooks/useRefreshQueries';
 import { RefreshControl } from 'react-native';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const CustomersScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh } = useAutoRefresh();
   const userId = useAppSelector((state) => state.auth.userId);
   const currentEmployee = useAppSelector((state) => state.auth.currentEmployee);
   
   const employeeId = currentEmployee?.id || userId;
   
-  const { data: assignedResponse, isLoading, refetch } = useGetAssignedOrdersQuery(
+  const { data: assignedResponse, isLoading, refetch, isFetching } = useGetAssignedOrdersQuery(
     { employee_id: employeeId || '' },
     { skip: !employeeId }
   );
+
+  const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Customer', 'ServiceOrder'] });
+
+  const { refreshing: queryRefreshing, onRefresh: queryOnRefresh } = useRefreshQueries([
+    { refetch, isFetching },
+  ]);
 
   // Group orders by customer
   const customersMap = useMemo(() => {
@@ -130,11 +136,9 @@ const CustomersScreen: React.FC = () => {
   const keyExtractor = useCallback((item: typeof customersMap[0]) => item.customer_id.toString(), []);
 
   const handleRefresh = useCallback(async () => {
-    onRefresh();
-    if (refetch) {
-      await refetch();
-    }
-  }, [onRefresh, refetch]);
+    baseOnRefresh();
+    await queryOnRefresh();
+  }, [baseOnRefresh, queryOnRefresh]);
 
   if (isLoading && customersMap.length === 0) {
     return (
@@ -166,7 +170,7 @@ const CustomersScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={autoRefreshing || queryRefreshing} onRefresh={handleRefresh} />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

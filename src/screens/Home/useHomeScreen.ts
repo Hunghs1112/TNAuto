@@ -21,13 +21,14 @@ import { setNotifications, setUnreadCount } from "../../redux/slices/notificatio
 import { useGetNotificationsQuery, useGetUnreadCountQuery } from "../../services/notificationApi"
 import { useOrdersData } from "./hooks/useOrdersData"
 import { AppStackParamList } from "../../navigation/AppNavigator"
+import { useRefreshQueries } from "../../hooks/useRefreshQueries"
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>
 
 export const useHomeScreen = () => {
   const dispatch = useAppDispatch()
   const navigation = useNavigation<NavigationProp>()
-  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh()
+  const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh()
   const insets = useSafeAreaInsets()
 
   const navbarHeight =
@@ -80,40 +81,19 @@ export const useHomeScreen = () => {
     { skip: !userId || !isLoggedIn },
   )
 
-  const isAnyFetching =
-    isFetchingOrders ||
-    isFetchingAssignedOrders ||
-    isFetchingNotifications ||
-    isFetchingUnreadCount
-  const actualRefreshing = refreshing || isAnyFetching
+  const { refreshing: queryRefreshing, onRefresh: queryOnRefresh } = useRefreshQueries([
+    { refetch: refetchOrders, isFetching: isFetchingOrders },
+    { refetch: refetchAssignedOrders, isFetching: isFetchingAssignedOrders },
+    { refetch: refetchNotifications, isFetching: isFetchingNotifications },
+    { refetch: refetchUnreadCount, isFetching: isFetchingUnreadCount },
+  ])
+
+  const actualRefreshing = autoRefreshing || queryRefreshing
 
   const handleRefresh = useCallback(async () => {
     baseOnRefresh()
-
-    const refetchPromises: Promise<any>[] = []
-
-    if (refetchOrders) {
-      refetchPromises.push(refetchOrders())
-    }
-
-    if (refetchAssignedOrders) {
-      refetchPromises.push(refetchAssignedOrders())
-    }
-
-    if (refetchNotifications) {
-      refetchPromises.push(refetchNotifications())
-    }
-
-    if (refetchUnreadCount) {
-      refetchPromises.push(refetchUnreadCount())
-    }
-
-    try {
-      await Promise.all(refetchPromises)
-    } catch (error) {
-      console.error("HomeScreen: Error during refetch:", error)
-    }
-  }, [baseOnRefresh, refetchOrders, refetchAssignedOrders, refetchNotifications, refetchUnreadCount])
+    await queryOnRefresh()
+  }, [baseOnRefresh, queryOnRefresh])
 
   useEffect(() => {
     if (notifications) {
@@ -202,4 +182,3 @@ export const useHomeScreen = () => {
     isLoggedIn,
   }
 }
-

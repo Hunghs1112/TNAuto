@@ -242,7 +242,6 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
                 source={{ uri: vehicle.image_url }} 
                 style={styles.vehicleImage}
                 resizeMode="cover"
-                onError={(error) => console.log('VehicleDetailScreen - Image load error:', error.nativeEvent.error)}
               />
             ) : (
               <View style={[styles.vehicleImage, styles.placeholderImage]}>

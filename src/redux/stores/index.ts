@@ -101,7 +101,6 @@ setupListeners(store.dispatch);
 
 export const persistor = persistStore(store);
 
-console.log('Store configured with all APIs including serviceCategoryApi');
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

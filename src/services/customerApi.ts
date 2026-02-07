@@ -143,7 +143,6 @@ export const customerApi = createApi({
       query: (body) => ({ url: ENDPOINTS.registerCustomer.path, method: 'POST', body }),
       invalidatesTags: ['Customer'],
       transformResponse: (response: any) => {
-        console.log('registerCustomer response:', response); // Debug
         // Backend returns: { success: true, customer_id: number, message: string }
         if (!response.success) throw new Error(response.error || response.message || 'Failed to register customer');
         return { 
@@ -157,7 +156,6 @@ export const customerApi = createApi({
     loginCustomer: builder.mutation<LoginCustomerResponse, { phone: string }>({
       query: (body) => ({ url: ENDPOINTS.loginCustomer.path, method: 'POST', body }),
       transformResponse: (response: LoginCustomerResponse) => {
-        console.log('loginCustomer response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to login customer');
         return response; // Return direct response since backend returns flat object
       },
@@ -166,7 +164,6 @@ export const customerApi = createApi({
       query: () => ENDPOINTS.getServices.path,
       providesTags: ['Service'],
       transformResponse: (response: ApiResponse<Service[]>) => {
-        console.log('getServices response:', response); // Debug
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch services');
         return { success: true, data: response.data, count: response.count || response.data.length };
       },
@@ -175,7 +172,6 @@ export const customerApi = createApi({
       query: (phone) => ({ url: `${ENDPOINTS.getCustomerOrders.path}?phone=${phone}` }),
       providesTags: ['ServiceOrder'],
       transformResponse: (response: ApiResponse<GetCustomerOrdersResponse>) => {
-        console.log('getCustomerOrders response:', response); // Debug
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch customer orders');
         return { success: true, data: response.data, count: response.count || response.data.length, customer: response.customer };
       },
@@ -184,7 +180,6 @@ export const customerApi = createApi({
       query: (id) => buildEndpointUrl('getOrderDetails', { id }),
       providesTags: (result, error, id) => [{ type: 'ServiceOrder' as const, id }],
       transformResponse: (response: ApiResponse<DetailedServiceOrder>) => {
-        console.log('getOrderDetails response:', response); // Debug
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch order details');
         return {
           ...response.data,
@@ -197,7 +192,6 @@ export const customerApi = createApi({
       query: (body) => ({ url: ENDPOINTS.createOrder.path, method: 'POST', body }),
       invalidatesTags: ['ServiceOrder'],
       transformResponse: (response: ApiResponse<CreateOrderResponse>) => {
-        console.log('createOrder response:', response); // Debug
         if (!response.success) throw new Error(response.error || 'Failed to create order');
         return { success: true };
       },
@@ -210,7 +204,6 @@ export const customerApi = createApi({
       }),
       invalidatesTags: ['Customer'],
       transformResponse: (response: UpdateProfileResponse) => {
-        console.log('updateProfile response:', response);
         if (!response.success) throw new Error('Failed to update profile');
         return response;
       },
@@ -223,7 +216,6 @@ export const customerApi = createApi({
       }),
       invalidatesTags: ['Customer', 'ServiceOrder'],
       transformResponse: (response: DeleteAccountResponse) => {
-        console.log('deleteAccount response:', response);
         if (!response.success) throw new Error(response.message || 'Failed to delete account');
         return response;
       },

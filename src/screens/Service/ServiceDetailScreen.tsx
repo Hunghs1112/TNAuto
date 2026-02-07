@@ -1,5 +1,5 @@
 // src/screens/Service/ServiceDetailScreen.tsx
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect as useReactEffect } from "react";
 import { 
   View, 
   Text, 
@@ -41,49 +41,50 @@ const ServiceDetailScreen = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Fetch service details from API with refetch on mount
-  const serviceQuery = useGetServiceByIdQuery(serviceId, {
-    refetchOnMountOrArgChange: true, // Always refetch when component mounts
-  });
+  // Fetch service details from API (rely on global refetch config)
+  const serviceQuery = useGetServiceByIdQuery(serviceId);
   
   const service = serviceQuery.data?.data;
   
   // Prepare image with cache busting timestamp
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  const [imageRetry, setImageRetry] = useState(0);
   const imageUrl = service?.image_url 
     ? `${service.image_url}${service.image_url.includes('?') ? '&' : '?'}_t=${imageTimestamp}`
     : PLACEHOLDER_IMAGE;
 
-  // Refetch when screen comes into focus
+  // When screen comes into focus, only update image timestamp to avoid extra refetch
   useFocusEffect(
     useCallback(() => {
-      // Invalidate cache and refetch when screen is focused
-      dispatch(serviceApi.util.invalidateTags([{ type: 'Service', id: serviceId.toString() }, 'Service']));
-      serviceQuery.refetch();
-      // Update image timestamp to force reload
       setImageTimestamp(Date.now());
-    }, [serviceId, dispatch, serviceQuery])
+    }, [])
   );
+
+  // Force a second image reload shortly after first mount to avoid initial render/cache timing issues
+  useReactEffect(() => {
+    const t = setTimeout(() => setImageTimestamp(Date.now()), 50);
+    return () => clearTimeout(t);
+  }, [serviceId]);
+
+  const handleImageError = useCallback(() => {
+    setImageRetry(prev => prev + 1);
+    setImageTimestamp(Date.now());
+  }, []);
 
   // Handle pull-to-refresh
   const handleRefresh = useCallback(async () => {
+    if (!serviceQuery.refetch) return;
+
     setRefreshing(true);
     try {
-      // Invalidate service tags to clear cache first
-      dispatch(serviceApi.util.invalidateTags([{ type: 'Service', id: serviceId.toString() }, 'Service']));
-      // Wait a bit for cache invalidation to take effect
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 100));
-      // Refetch service data
       await serviceQuery.refetch();
-      // Update image timestamp to force reload after refetch completes
       setImageTimestamp(Date.now());
     } catch (error) {
       console.error('Error refreshing service:', error);
     } finally {
-      // Ensure refreshing is set to false
-      setTimeout(() => setRefreshing(false), 100);
+      setRefreshing(false);
     }
-  }, [serviceQuery, dispatch, serviceId]);
+  }, [serviceQuery]);
 
   return (
     <Screen
@@ -128,9 +129,11 @@ const ServiceDetailScreen = () => {
                       activeOpacity={0.9}
                     >
                       <Image 
+                        key={`${imageUrl}::${imageRetry}`}
                         source={{ uri: imageUrl }}
                         style={styles.serviceImage}
-                        resizeMode="cover"
+                        resizeMode="contain"
+                        onError={handleImageError}
                       />
                     </TouchableOpacity>
                   </View>
@@ -138,6 +141,7 @@ const ServiceDetailScreen = () => {
                   {/* Service Info */}
                   <View style={styles.infoSection}>
                     <Text style={styles.serviceName}>{service.name}</Text>
+
                     
                     {/* Service Description */}
                     {service.description && (
@@ -185,7 +189,7 @@ const ServiceDetailScreen = () => {
                 <ConfirmButton
                   title="Đặt lịch dịch vụ"
                   onPress={() => {
-                    navigation.navigate('BookingTab' as never, { serviceId: Number(service.id) } as never);
+                    navigation.navigate('Booking' as never, { serviceId: Number(service.id) } as never);
                   }}
                   buttonColor={Colors.primary}
                   textColor={Colors.text.inverted}

@@ -14,6 +14,7 @@ import ServiceOrderCard from '../../components/ServiceOrderCard';
 import { PerformanceConfig } from '../../config/performance';
 import { styles } from './styles';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
+import { useRefreshQueries } from '../../hooks/useRefreshQueries';
 import { RefreshControl } from 'react-native';
 
 type CustomerDetailRouteProp = RouteProp<AppStackParamList, 'CustomerDetail'>;
@@ -22,7 +23,7 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 const CustomerDetailScreen: React.FC = () => {
   const route = useRoute<CustomerDetailRouteProp>();
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh } = useAutoRefresh();
+  const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh();
   const { customerId, customerName, customerPhone } = route.params;
   const userId = useAppSelector((state) => state.auth.userId);
   const currentEmployee = useAppSelector((state) => state.auth.currentEmployee);
@@ -30,7 +31,7 @@ const CustomerDetailScreen: React.FC = () => {
   
   const employeeId = currentEmployee?.id || userId;
   
-  const { data: assignedResponse, isLoading, refetch } = useGetAssignedOrdersQuery(
+  const { data: assignedResponse, isLoading, refetch, isFetching } = useGetAssignedOrdersQuery(
     { employee_id: employeeId || '' },
     { skip: !employeeId }
   );
@@ -74,12 +75,15 @@ const CustomerDetailScreen: React.FC = () => {
     navigation.navigate('EmployeeOrderDetail', { id: orderId });
   };
 
+  const { refreshing: queryRefreshing, onRefresh: queryOnRefresh } = useRefreshQueries([
+    { refetch, isFetching },
+  ]);
+
   const handleRefresh = async () => {
-    onRefresh();
-    if (refetch) {
-      await refetch();
-    }
+    baseOnRefresh();
+    await queryOnRefresh();
   };
+
 
   if (isLoading && customerOrders.length === 0) {
     return (
@@ -166,7 +170,7 @@ const CustomerDetailScreen: React.FC = () => {
               )}
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+                <RefreshControl refreshing={autoRefreshing || queryRefreshing} onRefresh={handleRefresh} />
               }
               contentContainerStyle={{ gap: 12 }}
               initialNumToRender={PerformanceConfig.flatList.initialNumToRender}

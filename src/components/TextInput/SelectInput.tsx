@@ -59,50 +59,20 @@ const SelectInput: React.FC<SelectInputProps> = ({
     skip: !selectedCategoryId || !useCategories || viewMode !== 'services',
   });
 
-  // Debug logging
-  React.useEffect(() => {
-    if (showModal && useCategories) {
-      console.log('SelectInput - Modal opened, fetching categories...');
-      console.log('Categories data:', categories);
-      console.log('Categories loading:', categoriesLoading);
-      console.log('Categories error:', categoriesError);
-    }
-  }, [showModal, useCategories, categories, categoriesLoading, categoriesError]);
-
-  React.useEffect(() => {
-    if (selectedCategoryId && viewMode === 'services') {
-      console.log('SelectInput - Fetching services for category:', selectedCategoryId);
-      console.log('Category detail:', categoryDetail);
-      console.log('Services loading:', servicesLoading);
-      console.log('Services error:', servicesError);
-    }
-  }, [selectedCategoryId, viewMode, categoryDetail, servicesLoading, servicesError]);
-
   // Determine if we should use categories mode
   const shouldUseCategories = useCategories && categories && Array.isArray(categories) && categories.length > 0 && !categoriesError;
   
-  // Debug shouldUseCategories
-  React.useEffect(() => {
-    console.log('shouldUseCategories:', shouldUseCategories);
-    console.log('useCategories:', useCategories);
-    console.log('categories:', categories);
-    console.log('categoriesError:', categoriesError);
-  }, [shouldUseCategories, useCategories, categories, categoriesError]);
-
   // Filter categories
   const filteredCategories = useMemo(() => {
     if (!categories || !Array.isArray(categories)) {
-      console.log('filteredCategories: categories is not an array', categories);
       return [];
     }
     if (!searchQuery.trim()) {
-      console.log('filteredCategories: returning all categories', categories.length);
       return categories;
     }
     const filtered = categories.filter(category =>
       category.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    console.log('filteredCategories: filtered result', filtered.length);
     return filtered;
   }, [categories, searchQuery]);
 
@@ -155,7 +125,6 @@ const SelectInput: React.FC<SelectInputProps> = ({
 
   // Render Category Card
   const renderCategory = ({ item }: { item: ServiceCategory }) => {
-    console.log('Rendering category:', item.name, 'ID:', item.id);
     return (
       <TouchableOpacity
         style={styles.categoryCard}

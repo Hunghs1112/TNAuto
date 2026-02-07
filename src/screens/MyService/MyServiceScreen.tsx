@@ -23,7 +23,7 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const MyServiceScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh();
+  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['ServiceOrder'] });
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const userPhone = useAppSelector((state: RootState) => state.auth.userPhone || '');
   const services = useAppSelector((state: RootState) => state.services.services);

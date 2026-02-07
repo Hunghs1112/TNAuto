@@ -264,7 +264,7 @@ export interface GetOrdersResponse extends PaginatedResponse<ServiceOrder> {
 
 // ==================== Utility Types ====================
 
-export type UserType = 'customer' | 'employee';
+export type UserType = 'customer' | 'employee' | 'dealer';
 
 export type OrderStatus = 
   | 'pending' 

@@ -4,6 +4,8 @@ import { Platform } from "react-native";
 import LoginScreen from "../screens/Login/LoginScreen";
 import RegisterScreen from "../screens/Register/RegisterScreen";
 import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
+import DealerLoginScreen from "../screens/Login/DealerLoginScreen";
+import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -18,6 +20,10 @@ export type AuthStackParamList = {
       position?: string;
     };
   };
+  DealerLogin: {
+    phone: string;
+  };
+  DealerRegister: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -36,6 +42,8 @@ export default function AuthNavigator() {
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="DealerLogin" component={DealerLoginScreen} />
+      <Stack.Screen name="DealerRegister" component={DealerRegisterScreen} />
       <Stack.Screen name="EmployeePassword" component={EmployeePasswordScreen} />
     </Stack.Navigator>
   );

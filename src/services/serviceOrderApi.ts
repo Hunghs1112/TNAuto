@@ -111,7 +111,6 @@ export const serviceOrderApi = createApi({
       }),
       providesTags: ['ServiceOrder'],
       transformResponse: (response: ApiResponse<ExtendedServiceOrder[]>) => {
-        console.log('getAllServiceOrders response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch service orders');
         return response.data;
       },
@@ -120,7 +119,6 @@ export const serviceOrderApi = createApi({
       query: (id) => buildEndpointUrl('getServiceOrderById', { id }),
       providesTags: (result, error, id) => [{ type: 'ServiceOrder' as const, id }],
       transformResponse: (response: ApiResponse<DetailedServiceOrder>) => {
-        console.log('getServiceOrderById response:', response);
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch service order details');
         return response.data;
       },
@@ -133,7 +131,6 @@ export const serviceOrderApi = createApi({
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'ServiceOrder' as const, id }],
       transformResponse: (response: ApiResponse<void>) => {
-        console.log('updateServiceOrderStatus response:', response);
         if (!response.success) throw new Error(response.error || 'Failed to update service order status');
       },
     }),
@@ -145,7 +142,6 @@ export const serviceOrderApi = createApi({
       }),
       invalidatesTags: ['ServiceOrder', 'Warranty'],
       transformResponse: (response: ApiResponse<{ warranty_id: number }>) => {
-        console.log('completeServiceOrder response:', response);
         if (!response.success) throw new Error(response.error || 'Failed to complete service order');
         return { warranty_id: response.warranty_id || response.data?.warranty_id || 0 };
       },

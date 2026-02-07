@@ -33,9 +33,7 @@ import { useFocusEffect } from '@react-navigation/native';
 const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
   const [refreshing, setRefreshing] = useState(false);
-  const { data: orderData, isLoading, error, refetch } = useGetEmployeeOrderDetailsQuery(id, {
-    refetchOnMountOrArgChange: true,
-  });
+  const { data: orderData, isLoading, error, refetch, isFetching } = useGetEmployeeOrderDetailsQuery(id);
   const [uploadSingleImage] = useUploadSingleImageMutation();
   const [uploadServiceOrderImage] = useUploadServiceOrderImageMutation();
   const [updateEmployeeOrderStatus] = useUpdateEmployeeOrderStatusMutation();
@@ -44,13 +42,11 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-  // Refetch when screen comes into focus
+  // When screen comes into focus, only update image timestamp to avoid extra refetch
   useFocusEffect(
     useCallback(() => {
-      refetch();
-      // Update image timestamp to force reload
       setImageTimestamp(Date.now());
-    }, [refetch])
+    }, [])
   );
 
   // Handle pull-to-refresh
@@ -312,10 +308,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
             style={styles.image}
             resizeMode="cover"
             onError={(error) => {
-              console.log('EmployeeOrderDetailScreen - Image load error:', error.nativeEvent.error);
-              console.log('Failed image URL:', imageUrl);
             }}
-            onLoad={() => console.log('EmployeeOrderDetailScreen - Image loaded successfully:', imageUrl)}
           />
           {item.description && <Text style={styles.imageDesc}>{item.description} ({item.status_at_time})</Text>}
           {item.created_at && <Text style={styles.imageDate}>Ngày chụp: {new Date(item.created_at).toLocaleDateString('vi-VN')}</Text>}
@@ -333,7 +326,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
       
       <View style={styles.whiteSection}>
         <View style={[styles.body, { paddingHorizontal: 16 }]}>
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing || isFetching} onRefresh={handleRefresh} />}>
             <View style={styles.billCard}>
               {renderRow('Khách hàng', orderData.customer_name || orderData.receiver_name)}
               {renderRow('Loại dịch vụ', orderData.service_name)}

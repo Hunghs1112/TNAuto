@@ -15,7 +15,7 @@ import { setOffers } from "../../redux/slices/offersSlice";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-type NoParamsRoute = 'Offer' | 'CategoryTab' | 'Warranty' | 'ServiceTab';
+type NoParamsRoute = 'Offer' | 'Category' | 'Warranty' | 'ServiceCategory';
 
 interface MenuItem {
   id: number;
@@ -43,7 +43,7 @@ const ServiceMenu: React.FC = () => {
   
   const menuItems: MenuItem[] = useMemo(() => [
     { id: 1, title: "Ưu đãi", icon: "pricetag-outline", route: "Offer" },
-    { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "CategoryTab" },
+    { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "Category" },
     { id: 3, title: "Tích điểm", icon: "star-outline" },
     { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline", route: "Warranty" },
   ], []);
@@ -100,7 +100,7 @@ const ServiceMenu: React.FC = () => {
               </View>
             )}
           </View>
-          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>{item.title}</Text>
         </Pressable>
       ))}
     </View>
@@ -165,6 +165,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
     fontWeight: Typography.weight.medium,
+  },
+  titleOneLine: {
+    flexShrink: 1,
   },
   badge: {
     position: "absolute",

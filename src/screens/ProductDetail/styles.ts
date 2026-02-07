@@ -22,13 +22,17 @@ export const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   
   // Image Carousel
   imageCarousel: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: IMAGE_HEIGHT,
     backgroundColor: Colors.neutral[100],
     position: 'relative',
+    overflow: 'hidden',
   },
   productImage: {
     width: '100%',
@@ -73,6 +77,7 @@ export const styles = StyleSheet.create({
   
   // Info Section
   infoSection: {
+    padding: 16,
   },
   productName: {
     fontSize: Typography.size['2xl'],
@@ -116,6 +121,7 @@ export const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: Colors.divider,
+    paddingHorizontal: 16,
   },
   thumbnailScroll: {
     marginTop: 12,
@@ -142,6 +148,7 @@ export const styles = StyleSheet.create({
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: Colors.divider,
+    paddingHorizontal: 16,
   },
   metadataRow: {
     flexDirection: 'row',

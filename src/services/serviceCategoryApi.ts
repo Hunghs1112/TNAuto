@@ -55,12 +55,10 @@ export const serviceCategoryApi = createApi({
     getServiceCategories: builder.query<ServiceCategory[], void>({
       query: () => {
         const path = ENDPOINTS.getServiceCategories?.path || '/service-categories';
-        console.log('Fetching service categories from:', path);
         return path;
       },
       providesTags: ['ServiceCategory'],
       transformResponse: (response: ApiResponse<ServiceCategory[]>) => {
-        console.log('Service categories response:', response);
         if (!response.success || !response.data) {
           console.error('Failed to fetch service categories:', response.error);
           throw new Error(response.error || 'Failed to fetch service categories');
@@ -79,12 +77,10 @@ export const serviceCategoryApi = createApi({
         // Use endpoint path directly and replace :id
         let path = ENDPOINTS.getServiceCategoryById?.path || '/service-categories/:id';
         path = path.replace(':id', id.toString());
-        console.log('Fetching service category by id:', id, 'from:', path);
         return path;
       },
       providesTags: (result, error, id) => [{ type: 'ServiceCategory' as const, id }],
       transformResponse: (response: ApiResponse<ServiceCategory>) => {
-        console.log('Service category detail response:', response);
         if (!response.success || !response.data) {
           console.error('Failed to fetch service category:', response.error);
           throw new Error(response.error || 'Failed to fetch service category');

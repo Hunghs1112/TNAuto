@@ -1,5 +1,6 @@
 // src/screens/Warranty/WarrantyScreen.tsx
 import React, { useEffect } from 'react';
+import { setWarranties } from '../../redux/slices/warrantySlice';
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ import { useAppDispatch } from '../../redux/hooks/useAppDispatch';
 import { RootState } from '../../redux/types';
 import { useGetWarrantiesQuery } from '../../services/warrantyApi';
 import { useGetServiceOrderByIdQuery } from '../../services/serviceOrderApi';
-import { setWarranties } from '../../redux/slices/warrantySlice';
+
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -47,7 +48,7 @@ interface WarrantyItem {
 const WarrantyScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh } = useAutoRefresh();
+  const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Warranty'] });
   const userId = useAppSelector((state: RootState) => state.auth.userId);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
   const warranties = useAppSelector((state: RootState) => state.warranty.items);
@@ -55,10 +56,16 @@ const WarrantyScreen: React.FC = () => {
   const {
     data: warrantiesData,
     isLoading,
+    isFetching,
     error,
     refetch,
-  } = useGetWarrantiesQuery();
+  } = useGetWarrantiesQuery(
+    userType === 'dealer' || userType === 'customer'
+      ? { userType: userType as any, userId }
+      : undefined
+  );
 
+  // Sync query data into local slice for rendering
   useEffect(() => {
     if (warrantiesData) {
       dispatch(setWarranties(warrantiesData));

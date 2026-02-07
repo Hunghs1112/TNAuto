@@ -1,5 +1,5 @@
 // src/screens/ProductDetail/ProductDetailScreen.tsx
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -39,14 +39,11 @@ const ProductDetailScreen = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  const [imageRetry, setImageRetry] = useState(0);
   
   // Fetch product details from API with refetch on mount
-  const productQuery = useGetProductByIdQuery(productId, {
-    refetchOnMountOrArgChange: true,
-  });
-  const productImagesQuery = useGetProductImagesQuery(productId, {
-    refetchOnMountOrArgChange: true,
-  });
+  const productQuery = useGetProductByIdQuery(productId);
+  const productImagesQuery = useGetProductImagesQuery(productId);
   
   // Fetch categories to get category name
   const { data: categories = [] } = useGetCategoriesQuery();
@@ -58,40 +55,42 @@ const ProductDetailScreen = () => {
     ? categories.find(cat => cat.id === product.category_id)?.name
     : undefined;
 
-  // Refetch when screen comes into focus
+  // When screen comes into focus, only update image timestamp to avoid extra refetch
   useFocusEffect(
     useCallback(() => {
-      // Invalidate cache and refetch when screen is focused
-      dispatch(productApi.util.invalidateTags([{ type: 'Product', id: productId.toString() }, 'Product', 'ProductImage']));
-      productQuery.refetch();
-      productImagesQuery.refetch();
-      // Update image timestamp to force reload
       setImageTimestamp(Date.now());
-    }, [productId, dispatch, productQuery, productImagesQuery])
+    }, [])
   );
 
-  // Handle pull-to-refresh
+  // Force a second image reload shortly after first mount to avoid initial render/cache timing issues
+  useEffect(() => {
+    const t = setTimeout(() => setImageTimestamp(Date.now()), 50);
+    return () => clearTimeout(t);
+  }, [productId]);
+
+  // Helper to force retry on image load error
+  const handleImageError = useCallback(() => {
+    setImageRetry(prev => prev + 1);
+    setImageTimestamp(Date.now());
+  }, []);
+
+  // Handle pull-to-refresh (single grouped refetch)
   const handleRefresh = useCallback(async () => {
+    if (!productQuery.refetch && !productImagesQuery.refetch) return;
+
     setRefreshing(true);
     try {
-      // Invalidate product tags to clear cache first
-      dispatch(productApi.util.invalidateTags([{ type: 'Product', id: productId.toString() }, 'Product', 'ProductImage']));
-      // Wait a bit for cache invalidation to take effect
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 100));
-      // Refetch product data
-      const [productResult, imagesResult] = await Promise.all([
-        productQuery.refetch(),
-        productImagesQuery.refetch(),
+      await Promise.all([
+        productQuery.refetch?.(),
+        productImagesQuery.refetch?.(),
       ]);
-      // Update image timestamp to force reload after refetch completes
       setImageTimestamp(Date.now());
     } catch (error) {
       console.error('Error refreshing product:', error);
     } finally {
-      // Ensure refreshing is set to false
-      setTimeout(() => setRefreshing(false), 100);
+      setRefreshing(false);
     }
-  }, [productQuery, productImagesQuery, dispatch, productId]);
+  }, [productQuery, productImagesQuery]);
 
   // Prepare images array with cache busting - prioritize product images query, then product.images, then primary_image
   const images = useMemo(() => {
@@ -150,6 +149,7 @@ const ProductDetailScreen = () => {
             <ScrollView 
               style={styles.whiteSection} 
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
               }
@@ -162,9 +162,11 @@ const ProductDetailScreen = () => {
                   activeOpacity={0.9}
                 >
                   <Image 
+                    key={`${images[currentImageIndex]}::${imageRetry}`}
                     source={{ uri: images[currentImageIndex] }}
                     style={styles.productImage}
                     resizeMode="cover"
+                    onError={handleImageError}
                   />
                   
                   {/* Image Navigation */}
@@ -204,22 +206,6 @@ const ProductDetailScreen = () => {
                 <View style={styles.infoSection}>
                   <Text style={styles.productName}>{product.name}</Text>
 
-                  {/* Product Video */}
-                  {product.video_url && (
-                    <View style={styles.videoSection}>
-                      <Text style={styles.sectionTitle}>Video sản phẩm</Text>
-                      <ProductVideo videoUrl={product.video_url} />
-                    </View>
-                  )}
-
-                  {/* Product Description */}
-                  {product.description && (
-                    <View style={styles.descriptionSection}>
-                      <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
-                      <Text style={styles.descriptionText}>{product.description}</Text>
-                    </View>
-                  )}
-
                   {/* Image Gallery Thumbnails */}
                   {images.length > 1 && (
                     <View style={styles.thumbnailSection}>
@@ -242,13 +228,31 @@ const ProductDetailScreen = () => {
                             ]}
                           >
                             <Image 
+                              key={`${imageUrl}::${imageRetry}`}
                               source={{ uri: imageUrl }}
                               style={styles.thumbnailImage}
                               resizeMode="cover"
+                              onError={handleImageError}
                             />
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
+                    </View>
+                  )}
+
+                  {/* Product Video */}
+                  {product.video_url && (
+                    <View style={styles.videoSection}>
+                      <Text style={styles.sectionTitle}>Video sản phẩm</Text>
+                      <ProductVideo videoUrl={product.video_url} />
+                    </View>
+                  )}
+
+                  {/* Product Description */}
+                  {product.description && (
+                    <View style={styles.descriptionSection}>
+                      <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
+                      <Text style={styles.descriptionText}>{product.description}</Text>
                     </View>
                   )}
 

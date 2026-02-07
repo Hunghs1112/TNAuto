@@ -27,7 +27,7 @@ interface VehicleListScreenProps {
 const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
   const { userPhone } = route.params;
   const navigation = useNavigation<NavigationProp>();
-  const { refreshing, onRefresh } = useAutoRefresh();
+  const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Customer'] });
   const { data: vehiclesData, isLoading, refetch } = useGetCustomerVehiclesQuery({ phone: userPhone });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -59,7 +59,7 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
               source={{ uri: item.image_url }} 
               style={styles.vehicleImage}
               resizeMode="cover"
-              onError={(error) => console.log('VehicleListScreen - Image load error for', item.license_plate, ':', error.nativeEvent.error)}
+              onError={() => {}}
             />
           ) : (
             <View style={[styles.vehicleImage, styles.placeholderImage]}>

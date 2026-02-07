@@ -85,11 +85,11 @@ export default function LoginScreen() {
               console.error('Failed to register FCM token:', error);
             });
 
-            // Navigate to Home after successful login
+            // Navigate to Home (which contains MainTabs) after successful login
             navigation.dispatch(
               CommonActions.reset({
                 index: 0,
-                routes: [{ name: "MainTabs" }],
+                routes: [{ name: "Home" }],
               })
             );
           } else {
@@ -100,6 +100,15 @@ export default function LoginScreen() {
           Alert.alert("Lỗi", "Không thể đăng nhập. Vui lòng thử lại.");
         }
         setIsLoading(false);
+        return;
+      }
+      
+      if (checkResult.user_type === 'dealer') {
+        // Navigate to Dealer login screen
+        setIsLoading(false);
+        navigation.navigate("DealerLogin", {
+          phone: phone.trim(),
+        });
         return;
       }
       

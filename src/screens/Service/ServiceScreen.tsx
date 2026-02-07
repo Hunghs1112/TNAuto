@@ -6,6 +6,7 @@ import { AppStackParamList } from "../../navigation/AppNavigator";
 import GenericListScreen from "../../components/GenericListScreen";
 import { useGetServicesQuery } from "../../services";
 import { useGetServiceCategoryByIdQuery } from "../../services/serviceCategoryApi";
+import { useRefreshQueries } from "../../hooks/useRefreshQueries";
 import { formatSecondsToDaysHours, secondsToMonths } from "../../utils/dateHelpers";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 
@@ -18,7 +19,7 @@ const ServiceScreen = () => {
   const dispatch = useAppDispatch();
   const categoryId = route.params?.categoryId;
   const categoryName = route.params?.categoryName;
-  const [refreshing, setRefreshing] = useState(false);
+
   
   // Image cache busting timestamp - use state to trigger re-render
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
@@ -32,6 +33,12 @@ const ServiceScreen = () => {
   const allServicesQuery = useGetServicesQuery(undefined, {
     skip: !!categoryId,
   });
+
+  const { refreshing, onRefresh } = useRefreshQueries([
+    categoryId
+      ? { refetch: categoryQuery.refetch, isFetching: categoryQuery.isFetching }
+      : { refetch: allServicesQuery.refetch, isFetching: allServicesQuery.isFetching },
+  ]);
 
   // Avoid refetch/invalidate on every focus to prevent too many requests.
   // Freshness is handled globally by API_CONFIG.refetchOnMountOrArgChange (30s).
@@ -58,33 +65,11 @@ const ServiceScreen = () => {
     return allServicesQuery.data;
   }, [categoryId, categoryQuery.data, allServicesQuery.data]);
 
-  // Handle pull-to-refresh
+  // Handle pull-to-refresh: single grouped refetch via hook
   const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      // Invalidate service tags to clear cache first
-      dispatch(serviceApi.util.invalidateTags(['Service']));
-      if (categoryId) {
-        dispatch(serviceCategoryApi.util.invalidateTags([{ type: 'ServiceCategory', id: categoryId.toString() }]));
-      }
-      // Wait a bit for cache invalidation to take effect
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 100));
-      
-      // Refetch the appropriate query based on whether we have a categoryId
-      if (categoryId) {
-        await categoryQuery.refetch();
-      } else {
-        await allServicesQuery.refetch();
-      }
-      
-      // Update image timestamp to force reload after refetch completes
-      setImageTimestamp(Date.now());
-    } catch (error) {
-      console.error('Error refreshing services:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [categoryId, categoryQuery, allServicesQuery, dispatch]);
+    await onRefresh();
+    setImageTimestamp(Date.now());
+  }, [onRefresh]);
 
   return (
     <GenericListScreen

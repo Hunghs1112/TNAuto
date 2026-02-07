@@ -4,32 +4,37 @@ import { spacing } from "../../design-system/spacing";
 import { textStyles } from "../../design-system/typography";
 
 export const styles = StyleSheet.create({
-  // Root & ScrollView
+  // Root
   container: {
     flex: 1,
     backgroundColor: Colors.background.muted,
   },
   scrollContent: {
-    paddingBottom: spacing.xl,
+    flexGrow: 1,
   },
 
-  // Hero Header Section
+  // Hero (Phần màu)
   heroContainer: {
-    paddingTop: spacing.lg,
-    paddingBottom: spacing["4xl"],
-    paddingHorizontal: spacing.xl,
+    height: 220,
   },
-  heroRow: {
+  heroGradient: {
+    flex: 1,
+    paddingBottom: spacing["6xl"],
+  },
+  heroTopRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingTop: spacing["2xl"],
+    paddingHorizontal: spacing.xl,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     borderWidth: 3,
-    borderColor: Colors.background.light,
+    borderColor: "rgba(255,255,255,0.65)",
     marginRight: spacing.lg,
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   heroText: {
     flex: 1,
@@ -41,73 +46,87 @@ export const styles = StyleSheet.create({
   },
   userPhone: {
     ...textStyles.body,
-    color: Colors.neutral[200],
+    color: "rgba(255,255,255,0.85)",
+  },
+  userRole: {
+    ...textStyles.bodySmall,
+    color: "rgba(255,255,255,0.78)",
+    marginTop: 4,
   },
 
-  // White sheet under header
-  body: {
-    marginTop: 30,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: "hidden",
-  },
-  bodyInner: {
+  // White sheet (Phần trắng)
+  sheet: {
+    marginTop: -28,
     backgroundColor: Colors.background.light,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
+    flex: 1,
+  },
+  sheetContent: {
+    paddingVertical: spacing.xl,
+    gap: spacing.xl,
   },
 
-  // Settings List
-  settingsCard: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-    marginBottom: spacing.lg,
+  // Section
+  section: {
+    paddingHorizontal: spacing.xl,
   },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    minHeight: 64,
+  sectionTitle: {
+    ...textStyles.bodyStrong,
+    color: Colors.text.secondary,
+    marginBottom: spacing.sm,
+  },
+
+  // List
+  listCard: {
     backgroundColor: Colors.background.light,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.neutral[100],
-    shadowColor: Colors.neutral[300],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
+    overflow: "hidden",
   },
-  settingItemPressed: {
-    backgroundColor: Colors.neutral[50],
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    minHeight: 56,
   },
-  settingIconContainer: {
+  rowPressed: {
+    opacity: 0.92,
+  },
+  rowDivider: {
+    height: 1,
+    backgroundColor: Colors.neutral[100],
+    marginLeft: spacing.lg + 40 + spacing.md,
+  },
+  rowIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
     backgroundColor: Colors.primarySoft,
-    justifyContent: "center",
     alignItems: "center",
-    marginRight: spacing.lg,
+    justifyContent: "center",
+    marginRight: spacing.md,
   },
-  settingTextContainer: {
+  rowText: {
     flex: 1,
     marginRight: spacing.sm,
   },
-  settingTitle: {
+  rowTitle: {
     ...textStyles.bodyStrong,
     color: Colors.text.primary,
     marginBottom: 2,
   },
-  settingSubtitle: {
+  rowSubtitle: {
     ...textStyles.bodySmall,
     color: Colors.text.secondary,
   },
 
-  // Action Buttons
-  actionSection: {
-    paddingHorizontal: spacing.lg,
+  // Actions
+  actions: {
+    paddingHorizontal: spacing.xl,
     gap: spacing.md,
   },
   actionButton: {
@@ -119,11 +138,6 @@ export const styles = StyleSheet.create({
     borderRadius: 14,
     minHeight: 48,
     borderWidth: 1,
-    shadowColor: Colors.neutral[400],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 3,
   },
   actionButtonPressed: {
     opacity: 0.92,
@@ -131,7 +145,6 @@ export const styles = StyleSheet.create({
   actionButtonDisabled: {
     opacity: 0.6,
   },
-
   actionIconWrap: {
     width: 30,
     height: 30,
@@ -141,7 +154,6 @@ export const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
 
-  // Delete: filled danger
   deleteButton: {
     backgroundColor: Colors.status.error,
     borderColor: Colors.status.error,
@@ -154,7 +166,6 @@ export const styles = StyleSheet.create({
     color: Colors.background.light,
   },
 
-  // Logout: outline (secondary hierarchy) but still prominent
   logoutButton: {
     backgroundColor: Colors.background.light,
     borderColor: Colors.primary,

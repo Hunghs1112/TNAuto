@@ -34,7 +34,7 @@ const Header = ({
     } catch (error) {
       // Fallback: try to navigate to Home if goBack fails
       try {
-        navigation.navigate('HomeTab' as never);
+        navigation.navigate('Home' as never);
       } catch (fallbackError) {
         // Silent fail
       }

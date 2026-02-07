@@ -26,7 +26,6 @@ import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { offerApi } from "../../services/offerApi";
 
 type OfferDetailRouteProp = RouteProp<AppStackParamList, 'OfferDetail'>;
-type OfferDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, 'OfferDetail'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_HEIGHT = SCREEN_WIDTH * 0.8;
@@ -36,7 +35,7 @@ const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x400/cccccc/666666?tex
 
 const OfferDetailScreen = () => {
   const route = useRoute<OfferDetailRouteProp>();
-  const navigation = useNavigation<OfferDetailNavigationProp>();
+  const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
   const { offerId } = route.params;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -335,9 +334,7 @@ const OfferDetailScreen = () => {
                 <ConfirmButton
                   title="Áp dụng ưu đãi"
                   onPress={() => {
-                    if (offer.service_id) {
-                      navigation.navigate('BookingTab' as never, { serviceId: offer.service_id } as never);
-                    }
+                    navigation.navigate('Booking' as never);
                   }}
                   buttonColor={Colors.primary}
                   textColor={Colors.text.inverted}

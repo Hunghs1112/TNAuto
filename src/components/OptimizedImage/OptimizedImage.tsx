@@ -48,7 +48,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
   }, [fadeAnim]);
 
   const handleError = useCallback((error: any) => {
-    console.log('OptimizedImage - Image load error:', error);
     setLoading(false);
     setError(true);
     // Still show the image even if there's an error, let React Native handle it

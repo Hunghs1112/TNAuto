@@ -3,6 +3,7 @@ import React, { useCallback, useMemo } from "react";
 import { View, FlatList, RefreshControl } from "react-native";
 import { Screen } from "../../components/layout";
 import { Colors } from "../../constants/colors";
+import { API_BASE_URL } from "../../constants/config";
 import Item from "../../components/Item";
 import { QueryWrapper, ScreenLoader, ErrorView, EmptyView } from "../../components/Loading";
 import { AppStackParamList } from "../../navigation/AppNavigator";
@@ -36,11 +37,6 @@ const CategoryScreen = () => {
     }
   }, [baseOnRefresh, query]);
 
-  console.log('CategoryScreen: Rendering with query state:', {
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    categoriesCount: query.data?.length
-  });
 
   return (
     <Screen
@@ -77,7 +73,7 @@ const CategoryScreen = () => {
                   id: category.id,
                   title: category.name,
                   description: descriptionParts.join(' - '),
-                  imageUri: category.image_url,
+                  imageUri: category.image_url ? `${category.image_url}${category.image_url.includes('?') ? '&' : '?'}_t=${Date.now()}` : undefined,
                   onPress: () => {
                     navigation.navigate('Product', { 
                       categoryId: category.id, 

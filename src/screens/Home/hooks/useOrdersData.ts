@@ -38,48 +38,33 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
   // Log for debugging and error handling
   useEffect(() => {
     if (userType === 'employee') {
-      console.log('useOrdersData: Employee mode', {
-        currentEmployeeId,
-        hasAssignedResponse: !!assignedResponse,
-        assignedResponseType: assignedResponse ? typeof assignedResponse : 'null',
-        assignedResponseKeys: assignedResponse && typeof assignedResponse === 'object' ? Object.keys(assignedResponse) : null,
-        assignedLoading,
-        assignedError: assignedError ? JSON.stringify(assignedError, null, 2) : null,
-        skipCondition: userType !== 'employee' || !currentEmployeeId,
-      });
-      
       // Log errors
       if (assignedError) {
         console.error('useOrdersData: Error fetching assigned orders:', assignedError);
       }
     }
-  }, [userType, currentEmployeeId, assignedResponse, assignedLoading, assignedError]);
-
+  }, [userType, assignedError]);
   // Memoized orders data
   const orders = useMemo(() => ordersResponse?.data || [], [ordersResponse]);
   
   // Handle different response formats for assigned orders
   const assignedOrders = useMemo(() => {
     if (!assignedResponse) {
-      console.log('useOrdersData: No assigned response');
       return [];
     }
     
     // Check if response is ApiResponse format
     if (assignedResponse.success && assignedResponse.data) {
-      console.log('useOrdersData: Assigned orders (ApiResponse format):', assignedResponse.data.length);
       return assignedResponse.data;
     }
     
     // Check if response is array directly
     if (Array.isArray(assignedResponse)) {
-      console.log('useOrdersData: Assigned orders (Array format):', assignedResponse.length);
       return assignedResponse;
     }
     
     // Check if response has data property
     if (assignedResponse.data && Array.isArray(assignedResponse.data)) {
-      console.log('useOrdersData: Assigned orders (data property):', assignedResponse.data.length);
       return assignedResponse.data;
     }
     

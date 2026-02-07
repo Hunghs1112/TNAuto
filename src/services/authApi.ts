@@ -14,7 +14,7 @@ interface CheckPhoneData {
 
 interface CheckPhoneResponse {
   success: boolean;
-  user_type: 'customer' | 'employee' | 'not_found';
+  user_type: 'customer' | 'employee' | 'dealer' | 'not_found';
   message: string;
   data?: CheckPhoneData;
   error?: string;
@@ -41,10 +41,24 @@ export const authApi = createApi({
         return response;
       },
     }),
+    dealerLogin: builder.mutation<any, { phone: string; password: string }>({
+      query: (body) => ({
+        url: '/auth/dealer/login',
+        method: 'POST',
+        body,
+      }),
+    }),
+    dealerRegister: builder.mutation<any, { name: string; phone: string; password: string; email?: string; address?: string; avatar_url?: string }>({
+      query: (body) => ({
+        url: '/auth/dealer/register',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useCheckPhoneMutation } = authApi;
+export const { useCheckPhoneMutation, useDealerLoginMutation, useDealerRegisterMutation } = authApi;
 
 // Re-export types for convenience
 export type { CheckPhoneResponse, CheckPhoneData };

@@ -11,6 +11,10 @@ import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { logout } from "../../redux/slices/authSlice";
 import { clearCurrentEmployee } from "../../redux/slices/employeeSlice";
+import { clearWarranties } from "../../redux/slices/warrantySlice";
+import { warrantyApi } from "../../services/warrantyApi";
+import { serviceOrderApi } from "../../services/serviceOrderApi";
+import { vehicleApi } from "../../services/vehicleApi";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { clearAuthStorage } from "../../utils/authStorage";
@@ -20,6 +24,14 @@ import { useDeleteAccountMutation } from "../../services/customerApi";
 import { styles } from "./styles";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+
+type SettingItem = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  icon: string;
+  onPress: () => void;
+};
 
 const ProfileScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -53,6 +65,13 @@ const ProfileScreen = () => {
     }
 
     await clearAuthStorage();
+
+    // Clear cached/persisted user-scoped data to avoid leaking previous account data
+    dispatch(clearWarranties());
+    dispatch(warrantyApi.util.resetApiState());
+    dispatch(serviceOrderApi.util.resetApiState());
+    dispatch(vehicleApi.util.resetApiState());
+
     dispatch(clearCurrentEmployee());
     dispatch(logout());
   };
@@ -87,7 +106,7 @@ const ProfileScreen = () => {
     }
   };
 
-  const settingsItems =
+  const settingsItems: SettingItem[] =
     userType === "employee"
       ? [
           {
@@ -136,44 +155,54 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <LinearGradient
-          colors={[...Colors.gradients.primary, Colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroContainer}
-        >
-          <View style={styles.heroRow}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
-            <View style={styles.heroText}>
-              <Text style={styles.userName}>{userName}</Text>
-              <Text style={styles.userPhone}>{userPhone}</Text>
+        <View style={styles.heroContainer}>
+          <LinearGradient
+            colors={[...Colors.gradients.primary, Colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroTopRow}>
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
+              <View style={styles.heroText}>
+                <Text style={styles.userName}>{userName}</Text>
+                <Text style={styles.userPhone}>{userPhone}</Text>
+                <Text style={styles.userRole}>
+                  {userType === "employee" ? "Nhân viên" : "Khách hàng"}
+                </Text>
+              </View>
             </View>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </View>
 
-        <View style={styles.body}>
-          <View style={styles.bodyInner}>
-            <View style={styles.settingsCard}>
-              {settingsItems.map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-                  onPress={item.onPress}
-                  android_ripple={{ color: Colors.neutral[100] }}
-                >
-                  <View style={styles.settingIconContainer}>
-                    <Ionicons name={item.icon as any} size={22} color={Colors.primary} />
-                  </View>
-                  <View style={styles.settingTextContainer}>
-                    <Text style={styles.settingTitle}>{item.title}</Text>
-                    <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.neutral[400]} />
-                </Pressable>
-              ))}
+        <View style={styles.sheet}>
+          <View style={styles.sheetContent}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Cài đặt</Text>
+              <View style={styles.listCard}>
+                {settingsItems.map((item, index) => (
+                  <React.Fragment key={item.id}>
+                    <Pressable
+                      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                      onPress={item.onPress}
+                      android_ripple={{ color: Colors.neutral[100] }}
+                    >
+                      <View style={styles.rowIcon}>
+                        <Ionicons name={item.icon as any} size={22} color={Colors.primary} />
+                      </View>
+                      <View style={styles.rowText}>
+                        <Text style={styles.rowTitle}>{item.title}</Text>
+                        {!!item.subtitle && <Text style={styles.rowSubtitle}>{item.subtitle}</Text>}
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={Colors.neutral[400]} />
+                    </Pressable>
+                    {index < settingsItems.length - 1 && <View style={styles.rowDivider} />}
+                  </React.Fragment>
+                ))}
+              </View>
             </View>
 
-            <View style={styles.actionSection}>
+            <View style={styles.actions}>
               {userType !== "employee" && (
                 <Pressable
                   style={({ pressed }) => [

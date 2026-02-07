@@ -60,8 +60,16 @@ export const warrantyApi = createApi({
   tagTypes: ['Warranty'] as const,
   endpoints: (builder) => ({
     // 1. GET /api/warranties - Lấy danh sách warranty
-    getWarranties: builder.query<Warranty[], void>({
-      query: () => ENDPOINTS.getAllWarranties?.path || '/api/warranties',
+    getWarranties: builder.query<Warranty[], { userType: 'customer' | 'dealer'; userId: string } | undefined>({
+      query: (args) => {
+        const basePath = ENDPOINTS.getAllWarranties?.path || '/api/warranties';
+        if (!args?.userId) return basePath;
+
+        // Backend suggestion: FE filter by dealer_id. For customer flow, filter by customer_id.
+        const key = args.userType === 'dealer' ? 'dealer_id' : 'customer_id';
+        const separator = basePath.includes('?') ? '&' : '?';
+        return `${basePath}${separator}${key}=${encodeURIComponent(args.userId)}`;
+      },
       providesTags: ['Warranty'],
       transformResponse: (response: ApiResponse<Warranty[]>) => {
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch warranties');

@@ -80,7 +80,6 @@ export const notificationApi = createApi({
       }),
       providesTags: ['Notification'],
       transformResponse: (response: ApiResponse<BackendNotification[]>) => {
-        console.log('notificationApi: getNotifications response:', response); // Debug
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to fetch notifications');
         }
@@ -103,7 +102,6 @@ export const notificationApi = createApi({
       }),
       providesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ unread_count: number }>) => {
-        console.log('notificationApi: getUnreadCount response:', response); // Debug
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to get unread count');
         }
@@ -118,7 +116,6 @@ export const notificationApi = createApi({
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ notification_id: string }>) => {
-        console.log('notificationApi: createNotification response:', response); // Debug
         if (!response.success) {
           throw new Error(response.error || 'Failed to create notification');
         }
@@ -131,7 +128,6 @@ export const notificationApi = createApi({
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {
-        console.log('notificationApi: markNotificationRead response:', response); // Debug
         if (!response.success) {
           throw new Error(response.error || 'Failed to mark as read');
         }
@@ -145,7 +141,6 @@ export const notificationApi = createApi({
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string; updated_count: number }>) => {
-        console.log('notificationApi: markAllNotificationsRead response:', response); // Debug
         if (!response.success) {
           throw new Error(response.error || 'Failed to mark all as read');
         }
@@ -158,7 +153,6 @@ export const notificationApi = createApi({
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {
-        console.log('notificationApi: deleteNotification response:', response); // Debug
         if (!response.success) {
           throw new Error(response.error || 'Failed to delete notification');
         }
@@ -171,7 +165,6 @@ export const notificationApi = createApi({
         body 
       }),
       transformResponse: (response: ApiResponse<{ message: string; token_id?: number; is_new?: boolean }>) => {
-        console.log('notificationApi: registerFcmToken response:', response); // Debug
         if (!response.success) {
           throw new Error(response.error || 'Failed to register FCM token');
         }
@@ -183,7 +176,6 @@ export const notificationApi = createApi({
         params 
       }),
       transformResponse: (response: ApiResponse<{ tokens: any[]; count: number }>) => {
-        console.log('notificationApi: getUserFcmTokens response:', response); // Debug
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to get FCM tokens');
         }
@@ -197,7 +189,6 @@ export const notificationApi = createApi({
         body 
       }),
       transformResponse: (response: ApiResponse<{ message: string }>) => {
-        console.log('notificationApi: deleteFcmToken response:', response); // Debug
         if (!response.success) {
           throw new Error(response.error || 'Failed to delete FCM token');
         }
@@ -208,7 +199,6 @@ export const notificationApi = createApi({
         url: ENDPOINTS.getActiveFcmTokens.path 
       }),
       transformResponse: (response: ApiResponse<{ tokens: any[]; count: number }>) => {
-        console.log('notificationApi: getActiveFcmTokens response:', response); // Debug
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to get active FCM tokens');
         }

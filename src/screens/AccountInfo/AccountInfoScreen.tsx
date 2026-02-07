@@ -29,6 +29,7 @@ import { useUpdateProfileMutation } from "../../services/customerApi";
 import { pickImageFromGallery, pickImageFromCamera, showImagePickerOptions, validateImageSize, createImageFormData } from "../../utils/imageUpload";
 import { Asset } from 'react-native-image-picker';
 import { API_BASE_URL } from "../../constants/config";
+import limitedFetch from '../../utils/limitedFetch';
 import { clearAuthStorage } from "../../utils/authStorage";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
@@ -82,7 +83,7 @@ const AccountInfoScreen = () => {
       setIsUploadingAvatar(true);
       const formData = createImageFormData(asset, 'image');
 
-      const response = await fetch(`${API_BASE_URL}/upload/single`, {
+      const response = await limitedFetch(`${API_BASE_URL}/upload/single`, {
         method: 'POST',
         body: formData,
         headers: {

@@ -1,6 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-// import LinearGradient from "react-native-linear-gradient";
+import React, { useCallback, useEffect, useMemo } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,13 +17,11 @@ import { borderRadius } from "../design-system/borders";
 import { spacing } from "../design-system/spacing";
 import { useAppSelector } from "../redux/hooks/useAppSelector";
 
-// -----------------------------------------------------------------------------------------
-// Helper hook for press animation
 function usePressActiveAnimation(isActive: boolean, pressedScale: number, activeScale: number) {
   const pressed = useSharedValue(0);
   const active = useSharedValue(isActive ? 1 : 0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     active.value = withTiming(isActive ? 1 : 0, {
       duration: 220,
       easing: Easing.out(Easing.cubic),
@@ -56,8 +53,6 @@ function usePressActiveAnimation(isActive: boolean, pressedScale: number, active
   return { onPressIn, onPressOut, animStyle, active };
 }
 
-// -----------------------------------------------------------------------------------------
-// Tab button component
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const TabButton = React.memo(function TabButton({
@@ -67,7 +62,7 @@ const TabButton = React.memo(function TabButton({
   onPress,
 }: {
   label: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
+  icon: string;
   isActive: boolean;
   onPress: () => void;
 }) {
@@ -94,15 +89,13 @@ const TabButton = React.memo(function TabButton({
       accessibilityRole="button"
     >
       <Animated.Text style={[styles.iconText, iconColorStyle]}>
-        <Ionicons name={icon} size={22} color={Colors.text.tertiary} />
+        <Ionicons name={icon as any} size={22} color={Colors.text.tertiary} />
       </Animated.Text>
       <Animated.Text style={[styles.tabLabel, labelStyle]}>{label}</Animated.Text>
     </AnimatedPressable>
   );
 });
 
-// -----------------------------------------------------------------------------------------
-// Center Home button
 const CenterHomeButton = React.memo(function CenterHomeButton({
   isActive,
   onPress,
@@ -150,16 +143,14 @@ const CenterHomeButton = React.memo(function CenterHomeButton({
   );
 });
 
-// -----------------------------------------------------------------------------------------
-// Main Navbar component
-const Navbar: React.FC<BottomTabBarProps> = (props) => {
+const Navbar = (props: BottomTabBarProps) => {
   const { navigation, state } = props;
   const insets = useSafeAreaInsets();
 
   const isLoggedIn = useAppSelector((s) => s.auth.isLoggedIn);
   const userType = useAppSelector((s) => s.auth.userType);
 
-  const currentRouteName = state.routes[state.index].name;
+  const currentRouteName = state?.routes?.[state.index]?.name;
 
   const requireAuth = useCallback(
     (action: () => void) => {
@@ -177,11 +168,11 @@ const Navbar: React.FC<BottomTabBarProps> = (props) => {
 
   const tabs = useMemo(() => {
     const common = [
-      { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "BookingTab", requiresAuth: true },
-      { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "CategoryTab" },
-      { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
-      { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceTab" },
-      { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "ProfileTab", requiresAuth: true },
+      { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "Booking", requiresAuth: true },
+      { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
+      { key: "home", label: "Trang chủ", icon: "home", routeName: "Home", isCenter: true },
+      { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceCategory" },
+      { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
     ];
     return common;
   }, [userType]);
@@ -190,7 +181,7 @@ const Navbar: React.FC<BottomTabBarProps> = (props) => {
   const rightTabs = tabs.filter((t) => !t.isCenter).slice(2, 4);
   const centerTab = tabs.find((t) => t.isCenter);
 
-  const navigateTo = (tab: typeof tabs[number]) => {
+  const navigateTo = (tab: (typeof tabs)[number]) => {
     if (currentRouteName === tab.routeName) return;
     const go = () => navigation.navigate(tab.routeName as never);
     if (tab.requiresAuth) return requireAuth(go);
@@ -199,7 +190,8 @@ const Navbar: React.FC<BottomTabBarProps> = (props) => {
 
   return (
     <View style={[styles.wrapper, { paddingBottom: insets.bottom }]} pointerEvents="box-none">
-      <View style={[styles.container, { backgroundColor: Colors.background.light }]}>
+      <View style={[styles.container, { backgroundColor: Colors.background.light }]}
+      >
         <View style={styles.borderTop} />
         <View style={styles.row}>
           <View style={styles.sideGroup}>
@@ -237,8 +229,6 @@ const Navbar: React.FC<BottomTabBarProps> = (props) => {
   );
 };
 
-// -----------------------------------------------------------------------------------------
-// Styles
 const styles = StyleSheet.create({
   wrapper: { position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: Colors.background.light },
   container: {

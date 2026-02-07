@@ -42,7 +42,6 @@ class NotificationService {
    * Must be called before displaying any notifications
    */
   async initialize() {
-    console.log('🔔 NotificationService: Initializing...');
     
     try {
       if (Platform.OS === 'android') {
@@ -81,13 +80,11 @@ class NotificationService {
         });
 
         this.channelCreated = true;
-        console.log('✅ NotificationService: Channels created');
       }
 
       // Setup event handlers for notification interactions
       this.setupEventHandlers();
 
-      console.log('✅ NotificationService: Initialization complete');
     } catch (error) {
       console.error('❌ NotificationService: Initialization error:', error);
     }
@@ -98,31 +95,25 @@ class NotificationService {
    * Handles both foreground and background events
    */
   setupEventHandlers() {
-    console.log('👆 NotificationService: Setting up event handlers...');
 
     // Foreground events (when app is open)
     notifee.onForegroundEvent(({ type, detail }) => {
-      console.log('📱 NotificationService: Foreground event:', type, detail);
 
       if (type === EventType.PRESS) {
         this.handleNotificationPress(detail.notification?.data);
       } else if (type === EventType.DISMISS) {
-        console.log('📱 NotificationService: Notification dismissed');
       }
     });
 
     // Background events (when app is in background or terminated)
     notifee.onBackgroundEvent(async ({ type, detail }) => {
-      console.log('🔵 NotificationService: Background event:', type, detail);
 
       if (type === EventType.PRESS) {
         this.handleNotificationPress(detail.notification?.data);
       } else if (type === EventType.DISMISS) {
-        console.log('🔵 NotificationService: Notification dismissed');
       }
     });
 
-    console.log('✅ NotificationService: Event handlers setup complete');
   }
 
   /**
@@ -130,7 +121,6 @@ class NotificationService {
    * Works in all app states: foreground, background, terminated, locked
    */
   async displayNotification(title: string, body: string, data?: NotificationData) {
-    console.log('🔔 NotificationService: Displaying notification', { title, body, data });
 
     try {
       // Ensure channels are created (for Android)
@@ -190,7 +180,6 @@ class NotificationService {
 
       // Display notification
       const notificationId = await notifee.displayNotification(notification);
-      console.log('✅ NotificationService: Notification displayed with ID:', notificationId);
 
       // Increment badge count (iOS)
       if (Platform.OS === 'ios') {
@@ -205,10 +194,8 @@ class NotificationService {
    * Handle notification press - navigate to appropriate screen
    */
   handleNotificationPress(data?: NotificationData | Record<string, any>) {
-    console.log('👆 NotificationService: Handling notification press', data);
 
     if (!data) {
-      console.log('⚠️ NotificationService: No data, navigating to Notifications screen');
       RootNavigation.navigate('Notification');
       return;
     }
@@ -291,7 +278,6 @@ class NotificationService {
    * Navigate to order detail screen based on user type
    */
   private navigateToOrderDetail(orderId: string, userType: 'customer' | 'employee' | null) {
-    console.log('🔄 NotificationService: Navigating to order detail:', orderId, userType);
 
     if (userType === 'employee') {
       RootNavigation.navigate('EmployeeOrderDetail', { id: orderId });
@@ -306,7 +292,6 @@ class NotificationService {
   async cancelAllNotifications() {
     try {
       await notifee.cancelAllNotifications();
-      console.log('✅ NotificationService: All notifications cancelled');
     } catch (error) {
       console.error('❌ NotificationService: Cancel all error:', error);
     }
@@ -318,7 +303,6 @@ class NotificationService {
   async cancelNotification(notificationId: string) {
     try {
       await notifee.cancelNotification(notificationId);
-      console.log('✅ NotificationService: Notification cancelled:', notificationId);
     } catch (error) {
       console.error('❌ NotificationService: Cancel notification error:', error);
     }
@@ -346,7 +330,6 @@ class NotificationService {
     try {
       if (Platform.OS === 'ios') {
         await notifee.setBadgeCount(count);
-        console.log('✅ NotificationService: Badge count set to:', count);
       }
     } catch (error) {
       console.error('❌ NotificationService: Set badge count error:', error);
@@ -360,7 +343,6 @@ class NotificationService {
     try {
       if (Platform.OS === 'ios') {
         await notifee.incrementBadgeCount();
-        console.log('✅ NotificationService: Badge count incremented');
       }
     } catch (error) {
       console.error('❌ NotificationService: Increment badge count error:', error);
@@ -374,7 +356,6 @@ class NotificationService {
     try {
       if (Platform.OS === 'ios') {
         await notifee.decrementBadgeCount();
-        console.log('✅ NotificationService: Badge count decremented');
       }
     } catch (error) {
       console.error('❌ NotificationService: Decrement badge count error:', error);

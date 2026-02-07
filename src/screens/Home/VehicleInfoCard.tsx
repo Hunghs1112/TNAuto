@@ -20,9 +20,14 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) => {
   const navigation = useNavigation<NavigationProp>();
-  const { data: vehiclesData, isLoading, error } = useGetCustomerVehiclesQuery({
-    phone: userPhone,
-  });
+  const { data: vehiclesData, isLoading, error, refetch } = useGetCustomerVehiclesQuery(
+    { phone: userPhone },
+    {
+      refetchOnMountOrArgChange: false,
+      refetchOnFocus: false,
+      refetchOnReconnect: false,
+    },
+  );
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
 
   // All hooks must be called before any early returns
@@ -62,6 +67,20 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
   }, []);
 
   // Early returns after all hooks
+  if (error && (error as any)?.status === 429) {
+    // Too many requests - show graceful fallback
+    return (
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Thông tin xe</Text>
+        </View>
+        <View style={styles.grid}>
+          <Text style={styles.stateText}>Đang tải quá nhanh. Vui lòng thử lại sau.</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (isLoading) {
     return <VehicleCardSkeleton />;
   }

@@ -1,11 +1,8 @@
-// src/navigation/AppNavigator.tsx (Updated: Added Auth screens and made HomeScreen initial)
+// src/navigation/AppNavigator.tsx (App stack: Home tabs + detail screens)
 import React from "react";
 import { createNativeStackNavigator, NativeStackNavigationOptions } from "@react-navigation/native-stack";
-import { useSelector } from "react-redux";
-import { RootState } from "../redux/types";
 import { Platform } from "react-native";
 import MainTabs from "./MainTabs";
-
 
 import ProfileScreen from "../screens/Profile/ProfileScreen";
 import ServiceScreen from "../screens/Service/ServiceScreen";
@@ -22,7 +19,6 @@ import EmployeeOrderDetailScreen from "../screens/OrderDetail/EmployeeOrderDetai
 import NotificationScreen from "../screens/Notification/NotificationScreen";
 import WarrantyScreen from "../screens/Warranty/WarrantyScreen";
 import CategoryScreen from "../screens/Category/CategoryScreen";
-import ServiceCategoryScreen from "../screens/ServiceCategory/ServiceCategoryScreen";
 import ProductDetailScreen from "../screens/ProductDetail/ProductDetailScreen";
 import VehicleListScreen from "../screens/Vehicle/VehicleListScreen";
 import VehicleDetailScreen from "../screens/Vehicle/VehicleDetailScreen";
@@ -30,6 +26,8 @@ import AccountInfoScreen from "../screens/AccountInfo/AccountInfoScreen";
 import LoginScreen from "../screens/Login/LoginScreen";
 import RegisterScreen from "../screens/Register/RegisterScreen";
 import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
+import DealerLoginScreen from "../screens/Login/DealerLoginScreen";
+import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
 import { usePrefetchData } from "../redux/hooks/usePrefetchData";
 
 export type AppStackParamList = {
@@ -66,17 +64,21 @@ export type AppStackParamList = {
       position?: string;
     };
   };
+  DealerLogin: {
+    phone: string;
+  };
+  DealerRegister: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 export default function AppNavigator() {
-  const userType = useSelector((state: RootState) => state.auth.userType);
 
   // Prefetch critical data (services, categories, offers) when app loads
   usePrefetchData();
 
-  const initialRouteName = userType === 'employee' ? 'Home' : 'Home';
+  // Luồng hiện tại: luôn vào Home (MainTabs), không chặn bằng auth
+  const initialRouteName: keyof AppStackParamList = "Home";
 
   // Smooth screen transition configuration - Slide từ phải qua trái
   const screenOptions: NativeStackNavigationOptions = {
@@ -88,8 +90,11 @@ export default function AppNavigator() {
   };
 
   return (
-    <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
+    <Stack.Navigator screenOptions={screenOptions} initialRouteName={initialRouteName}>
+      {/* Tabs with Navbar (bottom tab visible) */}
       <Stack.Screen name="Home" component={MainTabs} />
+
+      {/* Fullscreen/detail screens (no Navbar) */}
       <Stack.Screen name="Service" component={ServiceScreen} />
       <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
       <Stack.Screen name="Customers" component={CustomersScreen} />
@@ -101,6 +106,8 @@ export default function AppNavigator() {
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="DealerLogin" component={DealerLoginScreen} />
+      <Stack.Screen name="DealerRegister" component={DealerRegisterScreen} />
       <Stack.Screen name="EmployeePassword" component={EmployeePasswordScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />

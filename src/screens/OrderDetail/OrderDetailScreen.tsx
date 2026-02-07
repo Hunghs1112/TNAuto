@@ -20,20 +20,16 @@ import { useFocusEffect } from '@react-navigation/native';
 const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
   const [refreshing, setRefreshing] = useState(false);
-  const { data: orderData, isLoading, error, refetch } = useGetOrderDetailsQuery(id, {
-    refetchOnMountOrArgChange: true,
-  });
+  const { data: orderData, isLoading, error, refetch, isFetching } = useGetOrderDetailsQuery(id);
   const [completeServiceOrder] = useCompleteServiceOrderMutation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-  // Refetch when screen comes into focus
+  // When screen comes into focus, only update image timestamp to avoid extra refetch
   useFocusEffect(
     useCallback(() => {
-      refetch();
-      // Update image timestamp to force reload
       setImageTimestamp(Date.now());
-    }, [refetch])
+    }, [])
   );
 
   // Handle pull-to-refresh
@@ -208,7 +204,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
       
       <View style={styles.whiteSection}>
         <View style={styles.body}>
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing || isFetching} onRefresh={handleRefresh} />}>
             {/* Main Bill Card - Ticket Style */}
             <View style={styles.billCard}>
               {/* Customer Name */}

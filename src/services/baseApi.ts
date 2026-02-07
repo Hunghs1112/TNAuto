@@ -1,5 +1,6 @@
 // src/services/baseApi.ts - Base API configuration with optimized caching
 import { createApi, fetchBaseQuery, retry } from '@reduxjs/toolkit/query/react';
+import limitedFetch from '../utils/limitedFetch';
 import { API_BASE_URL } from '../constants/config';
 
 /**
@@ -7,6 +8,8 @@ import { API_BASE_URL } from '../constants/config';
  */
 export const baseQueryWithRetry = retry(
   fetchBaseQuery({ 
+    fetchFn: limitedFetch,
+
     baseUrl: API_BASE_URL,
     timeout: 15000, // 15 seconds timeout
     prepareHeaders: (headers, { getState }) => {
@@ -41,8 +44,9 @@ export const API_CONFIG = {
   // Cache unused data for 5 minutes before garbage collection
   keepUnusedDataFor: 300, // 5 minutes
   
-  // Only refetch on mount if data is older than 30 seconds
-  refetchOnMountOrArgChange: 30, // 30 seconds
+  // Only refetch on mount if data is older than 2 minutes (120 seconds)
+  // This helps reduce unnecessary requests while allowing some freshness
+  refetchOnMountOrArgChange: 120, 
   
   // Disable refetch on window focus (manual refresh via pull-to-refresh instead)
   refetchOnFocus: false,

@@ -3,7 +3,7 @@
  * Wrapper cơ bản cho các màn hình với header và safe area
  */
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { View, StyleSheet, StatusBar, ScrollView } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from '../../../constants/colors';
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../Header';
 
 export interface ScreenProps {
-  children: React.ReactNode;
+  children: ReactNode;
   headerTitle?: string;
   showBackButton?: boolean;
   hideHeader?: boolean;
@@ -24,7 +24,7 @@ export interface ScreenProps {
   useScrollView?: boolean; // default true
 }
 
-const Screen: React.FC<ScreenProps> = ({
+const Screen = ({
   children,
   headerTitle,
   showBackButton = true,
@@ -32,19 +32,19 @@ const Screen: React.FC<ScreenProps> = ({
   backgroundColor = Colors.background.light,
   statusBarStyle = 'light-content',
   useScrollView = true,
-}) => {
+}: ScreenProps) => {
   const insets = useSafeAreaInsets();
 
   const TAB_BAR_HEIGHT = 76;
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor }]}> 
       <StatusBar
         barStyle={statusBarStyle}
         backgroundColor={Colors.primary}
         translucent={false}
       />
-      
+
       {/* Top safe area với gradient */}
       {insets.top > 0 && (
         <View style={styles.topSafeAreaContainer}>
@@ -67,15 +67,15 @@ const Screen: React.FC<ScreenProps> = ({
       {/* Content */}
       {useScrollView ? (
         <ScrollView
-        style={styles.content}
-        contentContainerStyle={[
-          styles.contentContainer,
-          { paddingBottom: TAB_BAR_HEIGHT + insets.bottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ScrollView>
+          style={styles.content}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { paddingBottom: TAB_BAR_HEIGHT + insets.bottom },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
       ) : (
         <View style={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}>
           {children}

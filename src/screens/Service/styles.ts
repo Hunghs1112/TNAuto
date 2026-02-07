@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
     paddingTop: 10,
   },
   imageCarousel: {
-    width: SCREEN_WIDTH - 20,
+    width: '100%',
     height: SCREEN_WIDTH - 20, // Hình vuông
     backgroundColor: Colors.neutral[100],
     borderRadius: 12, // Bo góc nhỏ

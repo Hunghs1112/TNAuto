@@ -1,7 +1,11 @@
 // src/hooks/useAutoRefresh.ts (Optimized hook for auto-refresh and pull-to-refresh)
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../stores';
+
+// Global tracking to prevent spamming across different screens
+let lastGlobalRefreshTime = 0;
+const GLOBAL_COOLDOWN = 30000; // 30 seconds cooldown
 
 import { customerApi } from '../../services/customerApi';
 import { offerApi } from '../../services/offerApi';
@@ -34,7 +38,10 @@ interface UseAutoRefreshOptions {
    * Disable auto-refresh on screen focus (default: true)
    * Set to false to enable auto-refresh on focus
    */
-  disableAutoRefresh?: boolean;
+  /**
+   * Cooldown time in milliseconds (default: 30000ms)
+   */
+  cooldownMs?: number;
 }
 
 /**
@@ -52,15 +59,29 @@ interface UseAutoRefreshOptions {
  * ```
  */
 export const useAutoRefresh = (options: UseAutoRefreshOptions = {}) => {
-  const { tags, disableAutoRefresh = true } = options;
+  const {
+    tags,
+    disableAutoRefresh = true,
+    cooldownMs = GLOBAL_COOLDOWN,
+  } = options as UseAutoRefreshOptions & { cooldownMs?: number };
   const dispatch = useDispatch<AppDispatch>();
   const [refreshing, setRefreshing] = useState(false);
 
   const refreshData = useCallback(async () => {
     if (refreshing) return; // Prevent multiple simultaneous refreshes
-    
+
+    const now = Date.now();
+    if (now - lastGlobalRefreshTime < cooldownMs) {
+      setRefreshing(true);
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 350);
+      return;
+    }
+    lastGlobalRefreshTime = now;
+
     setRefreshing(true);
-    
+
     try {
       // If specific tags provided, only invalidate those
       if (tags && tags.length > 0) {

@@ -12,6 +12,7 @@ import { Product, useGetProductsQuery, productApi } from "../../services/product
 import { useGetCategoryByIdQuery, categoryApi } from "../../services/categoryApi";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { useRefreshQueries } from "../../hooks/useRefreshQueries";
 import { ListItemSkeleton } from "../../components/SkeletonLoader";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 
@@ -22,7 +23,7 @@ const ProductScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductScreenRouteProp>();
   const dispatch = useAppDispatch();
-  const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Product', 'Category'] });
+  const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Product', 'Category'] });
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   
   // Get category filter from route params
@@ -37,6 +38,12 @@ const ProductScreen = () => {
     skip: !categoryId,
   });
 
+  const { refreshing: queryRefreshing, onRefresh: queryOnRefresh } = useRefreshQueries([
+    categoryId
+      ? { refetch: categoryQuery.refetch, isFetching: categoryQuery.isFetching }
+      : { refetch: allProductsQuery.refetch, isFetching: allProductsQuery.isFetching },
+  ]);
+
   // Avoid refetch/invalidate on every focus to prevent too many requests.
   // Freshness is handled globally by API_CONFIG.refetchOnMountOrArgChange (30s).
   useFocusEffect(
@@ -49,26 +56,13 @@ const ProductScreen = () => {
   const activeQuery = categoryId ? categoryQuery : allProductsQuery;
 
   // Use isFetching to determine actual refreshing state
-  const actualRefreshing = refreshing || activeQuery.isFetching;
+  const actualRefreshing = autoRefreshing || queryRefreshing;
 
   // Enhanced refresh handler that refetches the active query
   const handleRefresh = useCallback(async () => {
     baseOnRefresh();
-    
-    const refetchPromises: Promise<any>[] = [];
-    
-    if (categoryId && categoryQuery.refetch) {
-      refetchPromises.push(categoryQuery.refetch());
-    } else if (allProductsQuery.refetch) {
-      refetchPromises.push(allProductsQuery.refetch());
-    }
-    
-    try {
-      await Promise.all(refetchPromises);
-    } catch (error) {
-      console.error('ProductScreen: Error during refetch:', error);
-    }
-  }, [baseOnRefresh, categoryId, categoryQuery, allProductsQuery]);
+    await queryOnRefresh();
+  }, [baseOnRefresh, queryOnRefresh]);
   
   // Extract products from the appropriate source
   const filteredProducts = useMemo(() => {
@@ -129,8 +123,8 @@ const ProductScreen = () => {
     <Screen
       headerTitle={headerTitle}
       showBackButton
-      safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"
+      useScrollView={false}
     >
         <View style={styles.whiteSection}>
         <View style={styles.body}>
@@ -155,10 +149,17 @@ const ProductScreen = () => {
 
                 if (typeof rawImage === 'string') {
                   imageUri = rawImage;
-                } else if (rawImage && typeof rawImage === 'object' && typeof (rawImage as any).uri === 'string') {
-                  imageUri = (rawImage as any).uri;
-                } else {
-                  imageUri = undefined;
+                } else if (rawImage && typeof rawImage === 'object') {
+                  if (typeof (rawImage as any).image_url === 'string') {
+                    imageUri = (rawImage as any).image_url;
+                  } else if (typeof (rawImage as any).uri === 'string') {
+                    imageUri = (rawImage as any).uri;
+                  }
+                }
+
+                // Ensure undefined if still not string
+                if (imageUri && typeof imageUri !== 'string') {
+                  imageUri = undefined as any;
                 }
 
                 if (imageUri) {

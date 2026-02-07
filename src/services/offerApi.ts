@@ -60,7 +60,6 @@ export const offerApi = createApi({
             ]
           : [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: GetOffersResponse) => {
-        console.log('offerApi: getOffers response:', response); // Debug
         if (!response.success || !response.data) throw new Error('Failed to fetch offers');
         return response;
       },
@@ -69,7 +68,6 @@ export const offerApi = createApi({
       query: (body) => ({ url: ENDPOINTS.createOffer.path, method: 'POST', body }),
       invalidatesTags: [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: CreateOfferResponse) => {
-        console.log('offerApi: createOffer response:', response); // Debug
         if (!response.success) throw new Error('Failed to create offer');
         return response;
       },
@@ -78,7 +76,6 @@ export const offerApi = createApi({
       query: (id) => buildEndpointUrl('getOfferById', { id: id.toString() }),
       providesTags: (result, error, id) => [{ type: 'Offer' as const, id }],
       transformResponse: (response: GetOfferResponse) => {
-        console.log('offerApi: getOfferById response:', response); // Debug
         if (!response.success || !response.data) throw new Error('Failed to fetch offer');
         return response;
       },
@@ -106,7 +103,6 @@ export const offerApi = createApi({
       query: ({ id, body }) => ({ url: buildEndpointUrl('updateOffer', { id: id.toString() }), method: 'PATCH', body }),
       invalidatesTags: [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: UpdateOfferResponse) => {
-        console.log('offerApi: updateOffer response:', response); // Debug
         if (!response.success) throw new Error('Failed to update offer');
         return response;
       },
@@ -115,7 +111,6 @@ export const offerApi = createApi({
       query: (id) => ({ url: buildEndpointUrl('deleteOffer', { id: id.toString() }), method: 'DELETE' }),
       invalidatesTags: [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: UpdateOfferResponse) => {
-        console.log('offerApi: deleteOffer response:', response); // Debug
         if (!response.success) throw new Error('Failed to delete offer');
         return response;
       },

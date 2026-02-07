@@ -100,6 +100,7 @@ export const Colors = {
   shadow: {
     default: '#0000001A',    // Shadow nhẹ
     primary: '#0F3D5E26',    // Shadow theo brand
+    red: '#EF44441A',        // Shadow đỏ (matching error)
   },
   
   overlay: '#00000066',      // Overlay modal (giữ lại cho tương thích)

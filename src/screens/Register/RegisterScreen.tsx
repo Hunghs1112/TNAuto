@@ -81,9 +81,7 @@ export default function RegisterScreen() {
         requestBody.license_plate = formattedPlate;
       }
 
-      console.log('RegisterScreen: Registering with:', requestBody);
       const result = await registerCustomer(requestBody).unwrap();
-      console.log('RegisterScreen: Registration result:', result);
       
       if (result.success) {
         Alert.alert(
@@ -212,6 +210,13 @@ export default function RegisterScreen() {
           <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
           <TouchableOpacity onPress={handleLogin}>
             <Text style={styles.registerLink}>Đăng nhập</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.signup}>
+          <Text style={styles.registerPrompt}>Bạn muốn làm đại lí để nhận thêm nhiều ưu đãi?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('DealerRegister' as any)}>
+            <Text style={styles.registerLink}>Đăng ký đại lí</Text>
           </TouchableOpacity>
         </View>
       </FormContainer>
