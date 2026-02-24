@@ -15,6 +15,7 @@ import { Screen, FormContainer } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import TextInput from "../../components/TextInput/TextInput";
+import DateInput from "../../components/TextInput/DateInput";
 import { Button } from "../../components/ui";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { styles } from "./styles";
@@ -25,7 +26,13 @@ import { logout, updateUserProfile } from "../../redux/slices/authSlice";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
-import { useUpdateProfileMutation } from "../../services/customerApi";
+import { 
+  useUpdateProfileMutation,
+  useGetCustomerDriverLicenseQuery,
+  useUpsertCustomerDriverLicenseMutation,
+  useDeleteCustomerDriverLicenseMutation,
+  useGetUiVisibilityQuery,
+} from "../../services/customerApi";
 import { pickImageFromGallery, pickImageFromCamera, showImagePickerOptions, validateImageSize, createImageFormData } from "../../utils/imageUpload";
 import { Asset } from 'react-native-image-picker';
 import { API_BASE_URL } from "../../constants/config";
@@ -43,6 +50,7 @@ const AccountInfoScreen = () => {
   const userPhone = useAppSelector((state: RootState) => state.auth.userPhone || '');
   const avatarUrl = useAppSelector((state: RootState) => state.auth.avatarUrl || '');
   const userEmail = useAppSelector((state: RootState) => state.auth.userEmail || '');
+  const userId = useAppSelector((state: RootState) => state.auth.userId || '');
 
   // Form state
   const [name, setName] = useState(userName);
@@ -50,12 +58,86 @@ const AccountInfoScreen = () => {
   const [selectedAvatar, setSelectedAvatar] = useState<string>(avatarUrl);
   const [avatarAsset, setAvatarAsset] = useState<Asset | null>(null);
 
+  // Driver license state
+  const [driverLicenseNumber, setDriverLicenseNumber] = useState<string>('');
+  const [driverLicenseExpiry, setDriverLicenseExpiry] = useState<string>('');
+
   // API mutations
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
+  const { data: driverLicense, isLoading: isLoadingDriverLicense } = useGetCustomerDriverLicenseQuery(userId, {
+    skip: !userId,
+  });
+  const [upsertCustomerDriverLicense, { isLoading: isSavingDriverLicense }] =
+    useUpsertCustomerDriverLicenseMutation();
+  const [deleteCustomerDriverLicense, { isLoading: isDeletingDriverLicense }] =
+    useDeleteCustomerDriverLicenseMutation();
+
+  // UI visibility (admin-controlled)
+  const { data: uiVisibility } = useGetUiVisibilityQuery();
 
   // Upload state
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Helper: convert date string to 'YYYY-MM-DD' for backend (accepts 'DD/MM/YYYY' or 'YYYY-MM-DD')
+  const toBackendDate = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    // Nếu đã là dạng YYYY-MM-DD thì dùng luôn
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    // Dạng DD/MM/YYYY -> chuyển sang YYYY-MM-DD
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+    if (match) {
+      const [, dd, mm, yyyy] = match;
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // Fallback: để backend tự parse, hoặc null nếu không hợp lệ
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      const yyyy = parsed.getFullYear();
+      const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+      const dd = String(parsed.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    return null;
+  };
+
+  // Sync driver license from API to local state when loaded
+  React.useEffect(() => {
+    console.log('AccountInfoScreen - userId:', userId);
+    console.log('AccountInfoScreen - driverLicense from API:', driverLicense);
+
+    // Ưu tiên dùng đúng field backend: license_no / expires_at
+    if (driverLicense) {
+      const numberFromApi = driverLicense.license_no ?? driverLicense.license_number ?? '';
+      setDriverLicenseNumber(numberFromApi || '');
+
+      // Hạn GPLX
+      const rawExpiry = driverLicense.expires_at ?? driverLicense.expiry_date ?? '';
+      if (rawExpiry) {
+        // Ưu tiên hiển thị dạng DD/MM/YYYY cho người dùng
+        let display = rawExpiry;
+
+        // Nếu đã ở dạng có "/" (ví dụ 31/12/2026) thì dùng luôn
+        if (!rawExpiry.includes("/")) {
+          const parsed = new Date(rawExpiry);
+          if (!isNaN(parsed.getTime())) {
+            display = parsed.toLocaleDateString("vi-VN");
+          }
+        }
+
+        setDriverLicenseExpiry(display);
+      } else {
+        setDriverLicenseExpiry('');
+      }
+    }
+  }, [driverLicense]);
 
   // Handle avatar selection
   const handleAvatarPress = () => {
@@ -134,34 +216,72 @@ const AccountInfoScreen = () => {
         updateData.avatar_url = avatarUrlToUpdate;
       }
 
-      // Check if there's anything to update
-      if (Object.keys(updateData).length === 1) { // Only has phone
+      // Track whether anything changed
+      const hasProfileChanges = Object.keys(updateData).length > 1; // More than just phone
+      const trimmedLicenseNumber = driverLicenseNumber.trim();
+      const trimmedExpiry = driverLicenseExpiry.trim();
+      const hadDriverLicense = !!driverLicense;
+      const backendExpiryFromForm = toBackendDate(trimmedExpiry) || '';
+      const currentBackendExpiry = driverLicense?.expires_at ?? driverLicense?.expiry_date ?? '';
+      const currentNumber = driverLicense?.license_no ?? driverLicense?.license_number ?? '';
+
+      const hasDriverLicenseChange =
+        trimmedLicenseNumber !== (currentNumber || '') ||
+        backendExpiryFromForm !== (currentBackendExpiry || '');
+
+      if (!hasProfileChanges && !hasDriverLicenseChange) {
         Alert.alert('Thông báo', 'Không có thay đổi nào để cập nhật.');
         return;
       }
 
-      // Call API to update profile
-      const result = await updateProfile(updateData).unwrap();
+      // 1. Update profile if needed
+      let profileResult: any = null;
+      if (hasProfileChanges) {
+        profileResult = await updateProfile(updateData).unwrap();
 
-      if (result.success) {
-        // Update Redux store
-        dispatch(updateUserProfile({
-          userName: result.customer.name,
-          userEmail: result.customer.email,
-          avatarUrl: result.customer.avatar_url,
-        }));
-
-        Alert.alert('Thành công', result.message || 'Cập nhật thông tin thành công!', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
+        if (profileResult.success) {
+          // Update Redux store
+          dispatch(updateUserProfile({
+            userName: profileResult.customer.name,
+            userEmail: profileResult.customer.email,
+            avatarUrl: profileResult.customer.avatar_url,
+          }));
+        }
       }
+
+      // 2. Update or delete driver license if needed
+      if (hasDriverLicenseChange && userId) {
+        if (trimmedLicenseNumber) {
+          await upsertCustomerDriverLicense({
+            customerId: userId,
+            license_no: trimmedLicenseNumber,
+            // Backend expects 'YYYY-MM-DD' cho ngày, có thể null nếu không có
+            expires_at: toBackendDate(trimmedExpiry),
+          }).unwrap();
+        } else if (hadDriverLicense) {
+          await deleteCustomerDriverLicense({ customerId: userId }).unwrap();
+        }
+      }
+
+      Alert.alert(
+        'Thành công',
+        profileResult?.message || 'Cập nhật thông tin thành công!',
+        [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]
+      );
     } catch (error: any) {
       console.error('Error updating profile:', error);
       Alert.alert('Lỗi', error.message || 'Không thể cập nhật thông tin. Vui lòng thử lại.');
     }
   };
 
-  const isLoading = isUpdating || isUploadingAvatar;
+  const isLoading =
+    isUpdating ||
+    isUploadingAvatar ||
+    isLoadingDriverLicense ||
+    isSavingDriverLicense ||
+    isDeletingDriverLicense;
   const PLACEHOLDER_AVATAR = 'https://i.pravatar.cc/150?img=12';
 
   return (
@@ -257,6 +377,33 @@ const AccountInfoScreen = () => {
                 style={styles.input}
               />
             </View>
+
+            {/* Driver License Field */}
+            {uiVisibility?.is_hidden === 0 && (
+              <View style={styles.fieldContainer}>
+                <View style={styles.fieldLabelRow}>
+                  <Ionicons name="card-outline" size={18} color={Colors.text.secondary} />
+                  <Text style={styles.fieldLabel}>Giấy phép lái xe (số GPLX)</Text>
+                </View>
+                <TextInput
+                  value={driverLicenseNumber}
+                  onChangeText={setDriverLicenseNumber}
+                  placeholder="Nhập số giấy phép lái xe"
+                  style={styles.input}
+                />
+                <View style={{ height: 12 }} />
+                <DateInput
+                  value={driverLicenseExpiry}
+                  onChangeText={setDriverLicenseExpiry}
+                  placeholder="Chọn hạn GPLX"
+                  label="Hạn GPLX"
+                  fullWidth
+                />
+                <Text style={styles.fieldHint}>
+                  Thông tin GPLX (số & hạn) được lưu gắn với tài khoản khách hàng.
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Save Button */}

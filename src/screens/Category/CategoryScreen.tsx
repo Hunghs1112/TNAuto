@@ -73,7 +73,7 @@ const CategoryScreen = () => {
                   id: category.id,
                   title: category.name,
                   description: descriptionParts.join(' - '),
-                  imageUri: category.image_url ? `${category.image_url}${category.image_url.includes('?') ? '&' : '?'}_t=${Date.now()}` : undefined,
+                  imageUri: category.image_url ? category.image_url : undefined,
                   onPress: () => {
                     navigation.navigate('Product', { 
                       categoryId: category.id, 
@@ -109,13 +109,14 @@ const CategoryScreen = () => {
               return (
                 <View style={styles.form}>
                   <FlatList
+                    alwaysBounceVertical={true}
                     data={categoryItems}
                     keyExtractor={keyExtractor}
                     renderItem={renderItem}
                     getItemLayout={getItemLayout}
                     ItemSeparatorComponent={renderSeparator}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[styles.listContent, { flexGrow: 1, paddingHorizontal: 16 }]}
                     refreshControl={
                       <RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />
                     }

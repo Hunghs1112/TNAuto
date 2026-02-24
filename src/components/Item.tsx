@@ -1,5 +1,5 @@
-import React, { useCallback, useRef, useState, useMemo } from "react";
-import { View, Text, Pressable, StyleSheet, Animated, Modal, TouchableOpacity, Image } from "react-native";
+import React, { useCallback, useRef, useMemo } from "react";
+import { View, Text, Pressable, StyleSheet, Animated } from "react-native";
 import LinearGradient from 'react-native-linear-gradient';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../constants/colors";
@@ -7,7 +7,6 @@ import { Typography } from "../constants/typo";
 import { OptimizedImage } from "./OptimizedImage";
 import { spacing } from "../design-system/spacing";
 import { borderRadius } from "../design-system/borders";
-import { getShadowStyle } from "../design-system/shadows";
 import { textStyles } from "../design-system/typography";
 
 const AnimatedView = Animated.createAnimatedComponent(View) as typeof View;
@@ -23,18 +22,15 @@ type ItemProps = {
 const Item = ({ title, description, imageUri, onPress, isPressable = true }: ItemProps) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
   const opacityValue = useRef(new Animated.Value(1)).current;
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Normalize imageUri to ensure it's a valid string
   const normalizedImageUri = useMemo(() => {
     if (!imageUri) return null;
     
-    // If imageUri is already a string, use it directly
     if (typeof imageUri === 'string') {
       return imageUri.trim().length > 0 ? imageUri : null;
     }
     
-    // If imageUri is an object, try to extract the URI
     if (typeof imageUri === 'object' && imageUri !== null) {
       const uri = (imageUri as any).uri || (imageUri as any).image_url || (imageUri as any).url;
       if (uri && typeof uri === 'string' && uri.trim().length > 0) {
@@ -90,13 +86,9 @@ const Item = ({ title, description, imageUri, onPress, isPressable = true }: Ite
       ]}
     >
       <View style={styles.cardContent}>
-        {/* Image Section */}
         <View style={styles.imageSection}>
           {normalizedImageUri ? (
-            <Pressable 
-              onPress={() => normalizedImageUri && setSelectedImage(normalizedImageUri)}
-              style={styles.imageContainer}
-            >
+            <View style={styles.imageContainer}>
               <OptimizedImage 
                 source={{ uri: normalizedImageUri }} 
                 width={80}
@@ -105,7 +97,7 @@ const Item = ({ title, description, imageUri, onPress, isPressable = true }: Ite
                 style={styles.image}
               />
               <View style={styles.imageBorder} />
-            </Pressable>
+            </View>
           ) : (
             <View style={styles.imagePlaceholder}>
               <LinearGradient
@@ -121,7 +113,6 @@ const Item = ({ title, description, imageUri, onPress, isPressable = true }: Ite
           )}
         </View>
 
-        {/* Text Section */}
         <View style={styles.textSection}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
           <Text style={styles.description} numberOfLines={2}>{description}</Text>
@@ -130,44 +121,18 @@ const Item = ({ title, description, imageUri, onPress, isPressable = true }: Ite
     </AnimatedView>
   );
 
-  return (
-    <>
-      {isPressable ? (
-        <Pressable 
-          onPress={onPress} 
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          accessible={true} 
-          accessibilityRole="button"
-          accessibilityLabel={`${title}. ${description}`}
-        >
-          {content}
-        </Pressable>
-      ) : (
-        content
-      )}
-
-      {/* Full Screen Image Modal */}
-      <Modal
-        visible={!!selectedImage}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedImage(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.modalCloseButton} 
-            onPress={() => setSelectedImage(null)}
-          >
-            <Ionicons name="close-outline" size={30} color={Colors.background.light} />
-          </TouchableOpacity>
-          {selectedImage && (
-            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
-          )}
-        </View>
-      </Modal>
-    </>
-  );
+  return isPressable ? (
+    <Pressable 
+      onPress={onPress} 
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessible={true} 
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${description}`}
+    >
+      {content}
+    </Pressable>
+  ) : content;
 };
 
 const styles = StyleSheet.create({
@@ -217,7 +182,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: `${Colors.primary}40`, // 0.25 opacity với hex
+    borderColor: `${Colors.primary}40`,
   },
   placeholderGradient: {
     position: 'absolute',
@@ -254,36 +219,6 @@ const styles = StyleSheet.create({
     ...textStyles.bodySmall,
     color: Colors.text.secondary,
     letterSpacing: -0.1,
-  },
-  // Modal styles for full screen image
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBackButton: {
-    position: 'absolute',
-    top: 50,
-    left: spacing.lg,
-    zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: borderRadius['2xl'],
-    padding: spacing.base,
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 50,
-    right: spacing.lg,
-    zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: borderRadius['2xl'],
-    padding: spacing.base,
-  },
-  fullScreenImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
   },
 });
 

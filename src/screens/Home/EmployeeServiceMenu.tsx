@@ -21,6 +21,7 @@ const EmployeeServiceMenu: React.FC<EmployeeServiceMenuProps> = ({ items }) => {
   return (
     <View style={styles.container}>
       <FlatList
+        alwaysBounceVertical={true}
         data={items}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

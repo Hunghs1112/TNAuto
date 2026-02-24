@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { useNavigation } from "@react-navigation/native";

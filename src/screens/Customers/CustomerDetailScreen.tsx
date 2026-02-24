@@ -156,6 +156,7 @@ const CustomerDetailScreen: React.FC = () => {
             </View>
           ) : (
             <FlatList
+              alwaysBounceVertical={true}
               data={customerOrders}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
@@ -172,7 +173,7 @@ const CustomerDetailScreen: React.FC = () => {
               refreshControl={
                 <RefreshControl refreshing={autoRefreshing || queryRefreshing} onRefresh={handleRefresh} />
               }
-              contentContainerStyle={{ gap: 12 }}
+              contentContainerStyle={{ gap: 12, flexGrow: 1 }}
               initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
               maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
               windowSize={PerformanceConfig.flatList.windowSize}

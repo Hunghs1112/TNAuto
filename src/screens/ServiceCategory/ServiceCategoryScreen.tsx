@@ -1,6 +1,6 @@
 // src/screens/ServiceCategory/ServiceCategoryScreen.tsx
-import React, { useCallback, useMemo } from "react";
-import { View, FlatList, RefreshControl } from "react-native";
+import React, { useCallback, useEffect, useMemo } from "react";
+import { View, FlatList, RefreshControl, Image } from "react-native";
 import { Screen } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import Item from "../../components/Item";
@@ -22,6 +22,17 @@ const ServiceCategoryScreen = () => {
 
   // Use isFetching to determine actual refreshing state
   const actualRefreshing = refreshing || query.isFetching;
+
+  const imageUrls = useMemo(
+    () => (query.data ?? []).map((c: any) => c.image_url).filter((u: any): u is string => typeof u === 'string' && u.length > 0),
+    [query.data],
+  );
+
+  useEffect(() => {
+    imageUrls.slice(0, 12).forEach((url) => {
+      Image.prefetch(url).catch(() => {});
+    });
+  }, [imageUrls]);
 
   // Enhanced refresh handler that refetches the query
   const handleRefresh = useCallback(async () => {
@@ -107,13 +118,14 @@ const ServiceCategoryScreen = () => {
               return (
                 <View style={styles.form}>
                   <FlatList
+                    alwaysBounceVertical={true}
                     data={categoryItems}
                     keyExtractor={keyExtractor}
                     renderItem={renderItem}
                     getItemLayout={getItemLayout}
                     ItemSeparatorComponent={renderSeparator}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[styles.listContent, { flexGrow: 1, paddingHorizontal: 16 }]}
                     refreshControl={
                       <RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />
                     }

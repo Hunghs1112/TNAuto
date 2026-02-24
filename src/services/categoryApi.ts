@@ -1,8 +1,7 @@
 // src/services/categoryApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { API_BASE_URL } from '../constants/config';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { RootState } from '../redux/types';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 export interface Category {
   id: number;
@@ -39,17 +38,9 @@ interface ApiResponse<T> {
 }
 
 export const categoryApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'categoryApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Category'],
   endpoints: (builder) => ({
     // GET /api/categories - Get all categories

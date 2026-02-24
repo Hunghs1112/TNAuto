@@ -1,6 +1,6 @@
 // src/services/authApi.ts - Authentication API for unified login flow
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { API_BASE_URL } from '../constants/config';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 interface CheckPhoneData {
   id: number;
@@ -21,15 +21,9 @@ interface CheckPhoneResponse {
 }
 
 export const authApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({ 
-    baseUrl: API_BASE_URL,
-    prepareHeaders: (headers) => {
-      headers.set('Content-Type', 'application/json');
-      headers.set('Accept', 'application/json');
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithRetry,
   endpoints: (builder) => ({
     checkPhone: builder.mutation<CheckPhoneResponse, { phone: string }>({
       query: (body) => ({ 

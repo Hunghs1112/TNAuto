@@ -1,6 +1,7 @@
 // components/TextInput/SelectInput.tsx
 import React, { useState, useMemo } from "react";
-import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet, TextInput, Image, ActivityIndicator, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet, TextInput, ActivityIndicator, Dimensions } from "react-native";
+import { OptimizedImage } from "../OptimizedImage";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
@@ -133,10 +134,12 @@ const SelectInput: React.FC<SelectInputProps> = ({
       >
         <View style={styles.categoryContent}>
           {item.image_url ? (
-            <Image 
+            <OptimizedImage 
               source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_BASE_URL}${item.image_url}` }}
+              width={64}
+              height={64}
+              borderRadius={styles.categoryImage.borderRadius}
               style={styles.categoryImage}
-              resizeMode="cover"
             />
           ) : (
             <View style={styles.categoryImagePlaceholder}>
@@ -168,10 +171,12 @@ const SelectInput: React.FC<SelectInputProps> = ({
       >
         <View style={styles.serviceContent}>
           {item.image_url ? (
-            <Image 
+            <OptimizedImage 
               source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_BASE_URL}${item.image_url}` }}
+              width={80}
+              height={80}
+              borderRadius={styles.serviceImage.borderRadius}
               style={styles.serviceImage}
-              resizeMode="cover"
             />
           ) : (
             <View style={styles.serviceImagePlaceholder}>
@@ -220,10 +225,12 @@ const SelectInput: React.FC<SelectInputProps> = ({
       >
         <View style={styles.serviceContent}>
           {item.image_url ? (
-            <Image 
+            <OptimizedImage 
               source={{ uri: item.image_url.startsWith('http') ? item.image_url : `${API_BASE_URL}${item.image_url}` }}
+              width={80}
+              height={80}
+              borderRadius={styles.serviceImage.borderRadius}
               style={styles.serviceImage}
-              resizeMode="cover"
             />
           ) : (
             <View style={styles.serviceImagePlaceholder}>
@@ -360,11 +367,12 @@ const SelectInput: React.FC<SelectInputProps> = ({
                     </View>
                   ) : (
                     <FlatList
+                      alwaysBounceVertical={true}
                       data={filteredCategories}
                       keyExtractor={(item) => `category-${item.id}`}
                       renderItem={renderCategory}
                       style={styles.list}
-                      contentContainerStyle={styles.listContent}
+                      contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
                       showsVerticalScrollIndicator={true}
                       removeClippedSubviews={false}
                       initialNumToRender={15}
@@ -399,11 +407,12 @@ const SelectInput: React.FC<SelectInputProps> = ({
                     </View>
                   ) : (
                     <FlatList
+                      alwaysBounceVertical={true}
                       data={filteredServices}
                       keyExtractor={(item) => item.id.toString()}
                       renderItem={renderService}
                       style={styles.list}
-                      contentContainerStyle={styles.listContent}
+                      contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
                       showsVerticalScrollIndicator={true}
                     />
                   )
@@ -417,11 +426,12 @@ const SelectInput: React.FC<SelectInputProps> = ({
                   </View>
                 ) : (
                   <FlatList
+                    alwaysBounceVertical={true}
                     data={filteredOptions}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={renderOption}
                     style={styles.list}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
                     showsVerticalScrollIndicator={true}
                   />
                 )

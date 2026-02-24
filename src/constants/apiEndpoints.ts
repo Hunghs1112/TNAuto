@@ -16,6 +16,12 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     path: '/health',
     description: 'Health check (no body)',
   },
+  // Admin UI visibility
+  getUiVisibility: {
+    method: 'GET',
+    path: '/admin/ui-visibility',
+    description: 'Get global UI visibility flags (e.g. hide/show sections)',
+  },
   // Customer
   registerCustomer: {
     method: 'POST',
@@ -29,6 +35,7 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Customer login by phone (required body: phone)',
     body: ['phone'],
   },
+  // Customer profile & documents
   updateProfile: {
     method: 'PUT',
     path: '/customers/profile',
@@ -42,6 +49,25 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Delete customer account (required param: phone; required body: confirm)',
     params: ['phone'],
     body: ['confirm'],
+  },
+  getCustomerDriverLicense: {
+    method: 'GET',
+    path: '/customers/:id/driver-license',
+    description: 'Get customer driver license by customer ID (required param: id; no body)',
+    params: ['id'],
+  },
+  upsertCustomerDriverLicense: {
+    method: 'PUT',
+    path: '/customers/:id/driver-license',
+    description: 'Create or update customer driver license (required param: id; body: license_number, optional: license_class, issued_date, expiry_date, issued_by, image_url)',
+    params: ['id'],
+    body: ['license_number', 'license_class', 'issued_date', 'expiry_date', 'issued_by', 'image_url'],
+  },
+  deleteCustomerDriverLicense: {
+    method: 'DELETE',
+    path: '/customers/:id/driver-license',
+    description: 'Delete customer driver license (required param: id; no body)',
+    params: ['id'],
   },
   getServices: {
     method: 'GET',

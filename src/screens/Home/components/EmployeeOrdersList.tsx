@@ -104,6 +104,8 @@ const EmployeeOrdersList: React.FC<EmployeeOrdersListProps> = ({
       {/* Filter Buttons */}
       <View style={styles.statusFilterContainer}>
         <FlatList
+          alwaysBounceVertical={true}
+          contentContainerStyle={[styles.statusFilterContent, { flexGrow: 1 }]}
           data={STATUS_OPTIONS}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -144,6 +146,7 @@ const EmployeeOrdersList: React.FC<EmployeeOrdersListProps> = ({
         </View>
       ) : (
         <FlatList
+          alwaysBounceVertical={true}
           data={filteredOrders}
           keyExtractor={keyExtractor}
           renderItem={renderOrderItem}
@@ -151,6 +154,7 @@ const EmployeeOrdersList: React.FC<EmployeeOrdersListProps> = ({
           scrollEnabled={false}
           nestedScrollEnabled={false}
           style={styles.servicesContainer}
+          contentContainerStyle={{ flexGrow: 1 }}
           initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
           maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
           windowSize={PerformanceConfig.flatList.windowSize}

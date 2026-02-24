@@ -1,7 +1,7 @@
 // src/services/serviceCategoryApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 export interface ServiceCategory {
   id: number;
@@ -47,8 +47,9 @@ interface ApiResponse<T> {
 }
 
 export const serviceCategoryApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'serviceCategoryApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['ServiceCategory'] as const,
   endpoints: (builder) => ({
     // GET /api/service-categories - Lấy danh sách tất cả danh mục dịch vụ

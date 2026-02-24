@@ -15,7 +15,6 @@ import { useCompleteServiceOrderMutation } from '../../services/serviceOrderApi'
 import { ServiceOrderImage } from '../../types/api.types';
 import { styles } from './styles';
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
-import { useFocusEffect } from '@react-navigation/native';
 
 const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
@@ -23,14 +22,6 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   const { data: orderData, isLoading, error, refetch, isFetching } = useGetOrderDetailsQuery(id);
   const [completeServiceOrder] = useCompleteServiceOrderMutation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
-
-  // When screen comes into focus, only update image timestamp to avoid extra refetch
-  useFocusEffect(
-    useCallback(() => {
-      setImageTimestamp(Date.now());
-    }, [])
-  );
 
   // Handle pull-to-refresh
   const handleRefresh = useCallback(async () => {
@@ -38,8 +29,6 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     try {
       // Refetch order data
       await refetch();
-      // Update image timestamp to force reload
-      setImageTimestamp(Date.now());
     } catch (error) {
       console.error('Error refreshing order:', error);
     } finally {
@@ -47,11 +36,10 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     }
   }, [refetch]);
 
-  // Add cache busting to image URLs - MUST be called before any early returns
+  // MUST be called before any early returns
   const getImageUrl = useCallback((url: string) => {
-    if (!url) return url;
-    return `${url}${url.includes('?') ? '&' : '?'}_t=${imageTimestamp}`;
-  }, [imageTimestamp]);
+    return url;
+  }, []);
 
   // Early returns MUST come after all hooks
   if (isLoading) {
@@ -248,12 +236,13 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
                 <Text style={styles.imageLabel}>Ảnh khi nhận xe:</Text>
                 {(orderData.images || []).length > 0 ? (
                   <FlatList<ServiceOrderImage>
+                    alwaysBounceVertical={true}
                     data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'received')}
                     keyExtractor={(item, index) => `receive-${index}`}
                     renderItem={renderImage}
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.imageList}
+                    contentContainerStyle={[styles.imageList, { flexGrow: 1 }]}
                   />
                 ) : (
                   <Text style={styles.noImageText}>Chưa có ảnh</Text>
@@ -273,12 +262,13 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
                 <Text style={styles.imageLabel}>Ảnh khi bàn giao xe:</Text>
                 {(orderData.images || []).length > 0 ? (
                   <FlatList<ServiceOrderImage>
+                    alwaysBounceVertical={true}
                     data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'completed')}
                     keyExtractor={(item, index) => `delivery-${index}`}
                     renderItem={renderImage}
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.imageList}
+                    contentContainerStyle={[styles.imageList, { flexGrow: 1 }]}
                   />
                 ) : (
                   <Text style={styles.noImageText}>Chưa có ảnh</Text>
@@ -352,7 +342,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
             <Ionicons name="close-outline" size={30} color={Colors.background.light} />
           </TouchableOpacity>
           {selectedImage && (
-            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" key={imageTimestamp} />
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
           )}
         </View>
       </Modal>

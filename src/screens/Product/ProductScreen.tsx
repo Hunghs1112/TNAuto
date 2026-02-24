@@ -1,12 +1,12 @@
 // src/screens/Product/ProductScreen.tsx (Optimized with new loading pattern)
-import React, { useMemo, useCallback, useState } from "react";
-import { View, FlatList, RefreshControl } from "react-native";
+import React, { useMemo, useCallback, useEffect } from "react";
+import { View, FlatList, RefreshControl, Image } from "react-native";
 import Screen from "../../components/layout/Screen/Screen";
 import { Colors } from "../../constants/colors";
 import Item from "../../components/Item";
 import { QueryWrapper, ScreenLoader } from "../../components/Loading";
 import { AppStackParamList } from "../../navigation/AppNavigator";
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Product, useGetProductsQuery, productApi } from "../../services/productApi";
 import { useGetCategoryByIdQuery, categoryApi } from "../../services/categoryApi";
@@ -24,7 +24,6 @@ const ProductScreen = () => {
   const route = useRoute<ProductScreenRouteProp>();
   const dispatch = useAppDispatch();
   const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Product', 'Category'] });
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   
   // Get category filter from route params
   const categoryId = route.params?.categoryId;
@@ -44,13 +43,6 @@ const ProductScreen = () => {
       : { refetch: allProductsQuery.refetch, isFetching: allProductsQuery.isFetching },
   ]);
 
-  // Avoid refetch/invalidate on every focus to prevent too many requests.
-  // Freshness is handled globally by API_CONFIG.refetchOnMountOrArgChange (30s).
-  useFocusEffect(
-    useCallback(() => {
-      setImageTimestamp(Date.now());
-    }, [])
-  );
 
   // Determine which query to use and get products
   const activeQuery = categoryId ? categoryQuery : allProductsQuery;
@@ -73,6 +65,21 @@ const ProductScreen = () => {
     // When viewing all products, use all products query
     return allProductsQuery.data || [];
   }, [categoryId, categoryQuery.data, allProductsQuery.data]);
+
+  // Prefetch images
+  React.useEffect(() => {
+    if (filteredProducts.length > 0) {
+      filteredProducts.slice(0, 10).forEach((product: any) => {
+        const rawImage = product.primary_image;
+        let uri: string | undefined;
+        if (typeof rawImage === 'string') uri = rawImage;
+        else if (rawImage?.image_url) uri = rawImage.image_url;
+        else if (rawImage?.uri) uri = rawImage.uri;
+        
+        if (uri) Image.prefetch(uri).catch(() => {});
+      });
+    }
+  }, [filteredProducts]);
 
   // Determine the header title
   const headerTitle = categoryName || categoryQuery.data?.name || "Sản phẩm";
@@ -142,7 +149,6 @@ const ProductScreen = () => {
           >
             {() => {
               const productItems = filteredProducts.map((product: Product) => {
-                // Add cache busting timestamp to image URL
                 const rawImage = (product as any).primary_image;
 
                 let imageUri: string | undefined;
@@ -162,9 +168,6 @@ const ProductScreen = () => {
                   imageUri = undefined as any;
                 }
 
-                if (imageUri) {
-                  imageUri = `${imageUri}${imageUri.includes('?') ? '&' : '?'}_t=${imageTimestamp}`;
-                }
 
                 return {
                   id: product.id,
@@ -180,6 +183,7 @@ const ProductScreen = () => {
               return (
                 <View style={styles.form}>
                   <FlatList
+                    alwaysBounceVertical={true}
                     data={productItems}
                     keyExtractor={keyExtractor}
                     renderItem={renderItem}
@@ -187,7 +191,7 @@ const ProductScreen = () => {
                     ItemSeparatorComponent={renderSeparator}
                     ListEmptyComponent={renderListEmpty}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[styles.listContent, { flexGrow: 1, paddingHorizontal: 16 }]}
                     refreshControl={
                       <RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />
                     }

@@ -1,7 +1,7 @@
 // src/services/notificationApi.ts (Updated: Use params object for getNotifications to let RTK serialize query string)
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 interface BackendNotification {
   id: string;
@@ -69,8 +69,9 @@ interface MarkAllReadParams {
 }
 
 export const notificationApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'notificationApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Notification'] as const,
   endpoints: (builder) => ({
     getNotifications: builder.query<Notification[], GetNotificationsParams>({

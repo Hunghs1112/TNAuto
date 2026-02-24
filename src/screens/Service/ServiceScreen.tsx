@@ -1,6 +1,6 @@
 // src/screens/Service/ServiceScreen.tsx
-import React, { useMemo, useCallback, useState, useRef } from "react";
-import { useNavigation, useRoute, RouteProp, useFocusEffect } from "@react-navigation/native";
+import React, { useEffect, useMemo, useCallback } from "react";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import GenericListScreen from "../../components/GenericListScreen";
@@ -21,8 +21,6 @@ const ServiceScreen = () => {
   const categoryName = route.params?.categoryName;
 
   
-  // Image cache busting timestamp - use state to trigger re-render
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   
   // Nếu có categoryId, lấy services từ category API
   const categoryQuery = useGetServiceCategoryByIdQuery(categoryId!, {
@@ -40,13 +38,6 @@ const ServiceScreen = () => {
       : { refetch: allServicesQuery.refetch, isFetching: allServicesQuery.isFetching },
   ]);
 
-  // Avoid refetch/invalidate on every focus to prevent too many requests.
-  // Freshness is handled globally by API_CONFIG.refetchOnMountOrArgChange (30s).
-  useFocusEffect(
-    useCallback(() => {
-      setImageTimestamp(Date.now());
-    }, [])
-  );
   
   // Sử dụng data từ category nếu có, nếu không thì từ all services
   const isLoading = categoryId ? categoryQuery.isLoading : allServicesQuery.isLoading;
@@ -68,7 +59,6 @@ const ServiceScreen = () => {
   // Handle pull-to-refresh: single grouped refetch via hook
   const handleRefresh = useCallback(async () => {
     await onRefresh();
-    setImageTimestamp(Date.now());
   }, [onRefresh]);
 
   return (
@@ -97,9 +87,8 @@ const ServiceScreen = () => {
             descriptionParts.push(`Thời gian bảo hành: ${warrantyMonths} tháng`);
           }
           
-          // Add cache busting timestamp to image URL
-          const imageUri = service.image_url 
-            ? `${service.image_url}${service.image_url.includes('?') ? '&' : '?'}_t=${imageTimestamp}`
+          const imageUri = typeof service.image_url === 'string' && service.image_url.length > 0
+            ? service.image_url
             : undefined;
           
           return {
@@ -112,7 +101,32 @@ const ServiceScreen = () => {
             },
           };
         });
-      }, [imageTimestamp, navigation])}
+        return data.data.map((service: any) => {
+          const descriptionParts = [
+            service.description,
+            `Thời gian ước tính: ${formatSecondsToDaysHours(service.estimated_time)}`,
+          ];
+
+          if (service.warranty_period) {
+            const warrantyMonths = secondsToMonths(service.warranty_period);
+            descriptionParts.push(`Thời gian bảo hành: ${warrantyMonths} tháng`);
+          }
+
+          const imageUri = typeof service.image_url === "string" && service.image_url.length > 0
+            ? service.image_url
+            : undefined;
+
+          return {
+            id: service.id,
+            title: service.name,
+            description: descriptionParts.join(" - "),
+            imageUri: imageUri,
+            onPress: () => {
+              navigation.navigate("ServiceDetail", { serviceId: Number(service.id) });
+            },
+          };
+        });
+      }, [navigation])}
     />
   );
 };

@@ -84,7 +84,7 @@ export const styles = StyleSheet.create({
     width: "100%",
   },
   servicesContainer: {
-    gap: spacing.lg,
+    gap: 8,
     width: "100%",
   },
   loadingContainer: {

@@ -1,7 +1,7 @@
 // src/services/productReviewApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 import { ProductReview, ReviewStats, CreateReviewRequest, ReviewListResponse } from '../types/api.types';
 
 interface ApiResponse<T> {
@@ -20,8 +20,9 @@ interface GetReviewsParams {
 }
 
 export const productReviewApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'productReviewApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['ProductReview'] as const,
   endpoints: (builder) => ({
     // GET /api/product-reviews - Get reviews with filters

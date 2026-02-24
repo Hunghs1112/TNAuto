@@ -14,6 +14,8 @@ export default function HomeScreen() {
     userId,
     userPhone,
     services,
+    homePreviewServices,
+    homePreviewProducts,
 
     displayedOrders,
     sortedOrders,
@@ -42,6 +44,8 @@ export default function HomeScreen() {
       userId={userId as any}
       userPhone={userPhone as any}
       services={services as any}
+      homePreviewServices={homePreviewServices as any}
+      homePreviewProducts={homePreviewProducts as any}
       displayedOrders={displayedOrders as any}
       sortedOrders={sortedOrders as any}
       ordersLoading={ordersLoading}

@@ -1,6 +1,7 @@
 // src/screens/Notification/NotificationScreen.tsx
 import React, { useEffect, useCallback, useMemo } from "react";
 import { View, FlatList, ActivityIndicator, Text, RefreshControl, TouchableOpacity, Alert } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { RootState } from "../../redux/types";
@@ -218,6 +219,9 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 76;
+
   const renderItem = useCallback(({ item }: { item: any }) => {
     const rawTitle = item?.title ?? null;
     const rawBody = item?.body ?? null;
@@ -294,14 +298,23 @@ const NotificationScreen: React.FC = () => {
       showBackButton
       safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"
+      useScrollView={false}
+      contentStyle={{ paddingBottom: 0 }}
     >
       <FlatList
+        alwaysBounceVertical={true}
         data={notifications}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         getItemLayout={getItemLayout}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[
+          styles.list, 
+          { 
+            paddingBottom: TAB_BAR_HEIGHT + bottomInset,
+            paddingHorizontal: 16
+          }
+        ]}
         ItemSeparatorComponent={renderSeparator}
         refreshControl={<RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />}
         initialNumToRender={PerformanceConfig.flatList.initialNumToRender}

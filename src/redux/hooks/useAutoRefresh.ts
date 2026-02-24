@@ -1,6 +1,6 @@
-// src/hooks/useAutoRefresh.ts (Optimized hook for auto-refresh and pull-to-refresh)
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { useIsFocused } from '@react-navigation/native';
 import { AppDispatch } from '../stores';
 
 // Global tracking to prevent spamming across different screens
@@ -16,6 +16,7 @@ import { serviceApi } from '../../services/serviceApi';
 import { notificationApi } from '../../services/notificationApi';
 import { employeeApi } from '../../services/employeeApi';
 import { warrantyApi } from '../../services/warrantyApi';
+import { vehicleApi } from '../../services/vehicleApi';
 
 type TagTypes = 
   | 'Customer' 
@@ -26,7 +27,8 @@ type TagTypes =
   | 'Service' 
   | 'Notification' 
   | 'Employee'
-  | 'Warranty';
+  | 'Warranty'
+  | 'Vehicle';
 
 interface UseAutoRefreshOptions {
   /**
@@ -35,9 +37,11 @@ interface UseAutoRefreshOptions {
   tags?: TagTypes[];
   
   /**
-   * Disable auto-refresh on screen focus (default: true)
-   * Set to false to enable auto-refresh on focus
+   * Automatically refresh when screen comes into focus
+   * Default: true
    */
+  autoRefreshOnFocus?: boolean;
+
   /**
    * Cooldown time in milliseconds (default: 30000ms)
    */
@@ -46,107 +50,66 @@ interface UseAutoRefreshOptions {
 
 /**
  * Optimized auto-refresh hook for manual refresh via pull-to-refresh
- * 
- * Usage:
- * ```tsx
- * // Refresh all data
- * const { refreshing, onRefresh } = useAutoRefresh();
- * 
- * // Refresh specific data only
- * const { refreshing, onRefresh } = useAutoRefresh({ 
- *   tags: ['Product', 'Category'] 
- * });
- * ```
+ * and automatic refresh on navigation focus.
  */
 export const useAutoRefresh = (options: UseAutoRefreshOptions = {}) => {
   const {
     tags,
-    disableAutoRefresh = true,
+    autoRefreshOnFocus = true,
     cooldownMs = GLOBAL_COOLDOWN,
-  } = options as UseAutoRefreshOptions & { cooldownMs?: number };
+  } = options;
+  
   const dispatch = useDispatch<AppDispatch>();
+  const isFocused = useIsFocused();
   const [refreshing, setRefreshing] = useState(false);
 
-  const refreshData = useCallback(async () => {
-    if (refreshing) return; // Prevent multiple simultaneous refreshes
-
+  const refreshData = useCallback(async (force = false) => {
     const now = Date.now();
-    if (now - lastGlobalRefreshTime < cooldownMs) {
-      setRefreshing(true);
-      setTimeout(() => {
-        setRefreshing(false);
-      }, 350);
+    // Only apply cooldown if not a forced manual refresh
+    if (!force && now - lastGlobalRefreshTime < cooldownMs) {
       return;
     }
+    
     lastGlobalRefreshTime = now;
-
     setRefreshing(true);
 
     try {
-      // If specific tags provided, only invalidate those
-      if (tags && tags.length > 0) {
-        tags.forEach(tag => {
-          switch (tag) {
-            case 'Customer':
-              dispatch(customerApi.util.invalidateTags(['Customer']));
-              break;
-            case 'Offer':
-              dispatch(offerApi.util.invalidateTags(['Offer']));
-              break;
-            case 'Product':
-              dispatch(productApi.util.invalidateTags(['Product']));
-              break;
-            case 'Category':
-              dispatch(categoryApi.util.invalidateTags(['Category']));
-              break;
-            case 'ServiceOrder':
-              dispatch(serviceOrderApi.util.invalidateTags(['ServiceOrder']));
-              break;
-            case 'Service':
-              dispatch(serviceApi.util.invalidateTags(['Service']));
-              break;
-            case 'Notification':
-              dispatch(notificationApi.util.invalidateTags(['Notification']));
-              break;
-            case 'Employee':
-              dispatch(employeeApi.util.invalidateTags(['Employee']));
-              break;
-            case 'Warranty':
-              dispatch(warrantyApi.util.invalidateTags(['Warranty']));
-              break;
-          }
-        });
-      } else {
-        // Invalidate all tags
-        dispatch(customerApi.util.invalidateTags(['Customer']));
-        dispatch(offerApi.util.invalidateTags(['Offer']));
-        dispatch(productApi.util.invalidateTags(['Product']));
-        dispatch(categoryApi.util.invalidateTags(['Category']));
-        dispatch(serviceOrderApi.util.invalidateTags(['ServiceOrder']));
-        dispatch(serviceApi.util.invalidateTags(['Service']));
-        dispatch(notificationApi.util.invalidateTags(['Notification']));
-        dispatch(employeeApi.util.invalidateTags(['Employee']));
-        dispatch(warrantyApi.util.invalidateTags(['Warranty']));
-      }
+      const apiSlices = [
+        { tag: 'Customer', api: customerApi },
+        { tag: 'Offer', api: offerApi },
+        { tag: 'Product', api: productApi },
+        { tag: 'Category', api: categoryApi },
+        { tag: 'ServiceOrder', api: serviceOrderApi },
+        { tag: 'Service', api: serviceApi },
+        { tag: 'Notification', api: notificationApi },
+        { tag: 'Employee', api: employeeApi },
+        { tag: 'Warranty', api: warrantyApi },
+        { tag: 'Vehicle', api: vehicleApi },
+      ];
+
+      apiSlices.forEach(({ tag, api }) => {
+        if (!tags || tags.includes(tag as TagTypes)) {
+          dispatch(api.util.invalidateTags([tag as any]));
+        }
+      });
       
-      // Set refreshing = false after invalidating tags
-      // The actual refreshing state will be managed by queries' isFetching in screens
-      // This allows the refresh indicator to show while queries are refetching
-      setTimeout(() => {
-        setRefreshing(false);
-      }, 100);
+      // Small delay to let RTK Query start its fetches
+      setTimeout(() => setRefreshing(false), 500);
     } catch (error) {
       console.error('Refresh error:', error);
       setRefreshing(false);
     }
-  }, [dispatch, tags, refreshing]);
+  }, [dispatch, tags, cooldownMs]);
 
-  // Note: Removed useFocusEffect to prevent auto-refresh on screen focus
-  // Data will be cached and only refreshed manually via pull-to-refresh
-  // or automatically based on RTK Query's refetchOnMountOrArgChange setting
+  // Auto-refresh when screen is focused
+  useEffect(() => {
+    if (isFocused && autoRefreshOnFocus) {
+      refreshData(false);
+    }
+  }, [isFocused, autoRefreshOnFocus, refreshData]);
 
   return { 
     refreshing, 
-    onRefresh: refreshData 
+    onRefresh: () => refreshData(true) 
   };
 };

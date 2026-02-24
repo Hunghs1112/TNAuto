@@ -1,5 +1,5 @@
 // src/screens/Vehicle/VehicleListScreen.tsx
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { RootView } from '../../components/layout';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
@@ -30,6 +30,20 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
   const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Customer'] });
   const { data: vehiclesData, isLoading, refetch } = useGetCustomerVehiclesQuery({ phone: userPhone });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const imageUrls = useMemo(
+    () => (vehiclesData?.data ?? []).map((v) => v.image_url).filter((u): u is string => !!u),
+    [vehiclesData?.data],
+  );
+
+  useEffect(() => {
+    // Warm up image cache for faster first paint when scrolling
+    imageUrls.slice(0, 12).forEach((url) => {
+      Image.prefetch(url);
+    });
+  }, [imageUrls]);
+
+  const keyExtractor = useCallback((item: Vehicle) => item.id.toString(), []);
 
   const handleVehiclePress = (vehicle: Vehicle) => {
     navigation.navigate('VehicleDetail', {
@@ -124,16 +138,22 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
           </View>
         ) : (
           <FlatList
+            alwaysBounceVertical={true}
             data={vehiclesData.data}
             renderItem={renderVehicleCard}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={keyExtractor}
             numColumns={2}
             columnWrapperStyle={styles.row}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
+            removeClippedSubviews
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            updateCellsBatchingPeriod={50}
+            windowSize={7}
           />
         )}
       </View>

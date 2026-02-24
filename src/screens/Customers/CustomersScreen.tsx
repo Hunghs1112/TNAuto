@@ -164,11 +164,12 @@ const CustomersScreen: React.FC = () => {
       statusBarStyle="light-content"
     >
       <FlatList
+        alwaysBounceVertical={true}
         data={customersMap}
         keyExtractor={keyExtractor}
         renderItem={renderCustomerItem}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { flexGrow: 1 }]}
         refreshControl={
           <RefreshControl refreshing={autoRefreshing || queryRefreshing} onRefresh={handleRefresh} />
         }

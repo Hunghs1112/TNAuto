@@ -1,5 +1,6 @@
 // src/screens/Warranty/WarrantyScreen.tsx
 import React, { useEffect } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setWarranties } from '../../redux/slices/warrantySlice';
 import {
   View,
@@ -71,6 +72,9 @@ const WarrantyScreen: React.FC = () => {
       dispatch(setWarranties(warrantiesData));
     }
   }, [warrantiesData, dispatch]);
+
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 76;
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -244,6 +248,8 @@ const WarrantyScreen: React.FC = () => {
       showBackButton
       safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"
+      useScrollView={false}
+      contentStyle={{ paddingBottom: 0 }}
     >
 
       <View style={styles.content}>
@@ -253,7 +259,15 @@ const WarrantyScreen: React.FC = () => {
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderWarrantyItem}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContainer}
+            contentContainerStyle={[
+              styles.listContainer,
+              {
+                flexGrow: 1,
+                paddingBottom: TAB_BAR_HEIGHT + bottomInset,
+                paddingHorizontal: 16,
+              },
+            ]}
+            alwaysBounceVertical={true}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }

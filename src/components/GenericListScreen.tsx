@@ -143,13 +143,14 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
           <View style={sharedStyles.body}>
             <View style={sharedStyles.form}>
               <FlatList
+                alwaysBounceVertical={true}
                 data={items}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
                 getItemLayout={getItemLayout}
                 ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={sharedStyles.listContent}
+                contentContainerStyle={[sharedStyles.listContent, { flexGrow: 1 }]}
                 refreshControl={
                   enableRefresh ? (
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

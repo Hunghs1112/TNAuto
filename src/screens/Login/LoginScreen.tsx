@@ -139,6 +139,7 @@ export default function LoginScreen() {
   return (
     <Screen
       statusBarStyle="light-content"
+      showBackButton
     >
       <FormContainer
         keyboardAvoiding

@@ -1,7 +1,7 @@
 // src/services/warrantyApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 interface Warranty {
   id: number;
@@ -55,8 +55,9 @@ interface ApiResponse<T> {
 }
 
 export const warrantyApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'warrantyApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Warranty'] as const,
   endpoints: (builder) => ({
     // 1. GET /api/warranties - Lấy danh sách warranty

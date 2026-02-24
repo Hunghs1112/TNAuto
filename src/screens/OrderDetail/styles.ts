@@ -5,6 +5,7 @@ import { Typography } from '../../constants/typo';
 
 export const styles = StyleSheet.create({
   container: {
+   
     flex: 1,
     backgroundColor: Colors.background.light, // White for bottom safe area
   },
@@ -29,8 +30,10 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 4,
+    paddingHorizontal: 16,
   },
   billCard: {
+  
     backgroundColor: Colors.background.light,
     borderRadius: 16,
     padding: 20,

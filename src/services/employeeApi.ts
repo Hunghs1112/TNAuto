@@ -1,7 +1,7 @@
 // src/services/employeeApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 import {
   Employee,
   ServiceOrder,
@@ -11,8 +11,9 @@ import {
 } from '../types/api.types';
 
 export const employeeApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'employeeApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Employee', 'ServiceOrder'] as const,
   endpoints: (builder) => ({
     loginEmployee: builder.mutation<LoginEmployeeResponse, { phone: string; password: string }>({

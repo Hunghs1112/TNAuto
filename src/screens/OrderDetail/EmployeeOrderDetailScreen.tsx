@@ -40,36 +40,12 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const currentEmployee = useAppSelector((state: RootState) => state.employee.currentEmployee);
   const [uploading, setUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
-
-  // When screen comes into focus, only update image timestamp to avoid extra refetch
-  useFocusEffect(
-    useCallback(() => {
-      setImageTimestamp(Date.now());
-    }, [])
-  );
-
-  // Handle pull-to-refresh
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      // Refetch order data
-      await refetch();
-      // Update image timestamp to force reload
-      setImageTimestamp(Date.now());
-    } catch (error) {
-      console.error('Error refreshing order:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [refetch]);
 
   // == Helpers ==
-  // Add cache busting to image URLs. MUST be declared before any early returns to keep hook order stable.
+  // MUST be declared before any early returns to keep hook order stable.
   const getImageUrl = useCallback((url: string) => {
-    if (!url) return url;
-    return `${url}${url.includes('?') ? '&' : '?'}_t=${imageTimestamp}`;
-  }, [imageTimestamp]);
+    return url;
+  }, []);
 
   if (isLoading) {
     return (
@@ -272,7 +248,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
     }
   };
 
-  // Add cache busting to image URLs
+  // Render data row
   const renderRow = (label: string, value: string | undefined | null | number, style?: any) => {
     if (value === null || value === undefined) return null;
     return (
@@ -360,12 +336,13 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
                 </View>
                 {(orderData.images || []).length > 0 ? (
                   <FlatList<ServiceOrderImage>
+                    alwaysBounceVertical={true}
                     data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'received')}
                     keyExtractor={(item, index) => `receive-${index}`}
                     renderItem={renderImage}
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.imageList}
+                    contentContainerStyle={[styles.imageList, { flexGrow: 1 }]}
                   />
                 ) : (
                   <Text style={styles.noImageText}>Chưa có ảnh</Text>
@@ -391,12 +368,13 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
                 </View>
                 {(orderData.images || []).length > 0 ? (
                   <FlatList<ServiceOrderImage>
+                    alwaysBounceVertical={true}
                     data={(orderData.images || []).filter((img: ServiceOrderImage) => img.status_at_time === 'completed')}
                     keyExtractor={(item, index) => `delivery-${index}`}
                     renderItem={renderImage}
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.imageList}
+                    contentContainerStyle={[styles.imageList, { flexGrow: 1 }]}
                   />
                 ) : (
                   <Text style={styles.noImageText}>Chưa có ảnh</Text>

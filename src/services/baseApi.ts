@@ -12,7 +12,7 @@ export const baseQueryWithRetry = retry(
 
     baseUrl: API_BASE_URL,
     timeout: 15000, // 15 seconds timeout
-    prepareHeaders: (headers, { getState }) => {
+    prepareHeaders: (headers) => {
       // Set default headers for all requests
       headers.set('Content-Type', 'application/json');
       headers.set('Accept', 'application/json');
@@ -41,16 +41,16 @@ export const baseQueryWithRetry = retry(
  * - refetchOnReconnect: Enabled to sync after network reconnection
  */
 export const API_CONFIG = {
-  // Cache unused data for 5 minutes before garbage collection
-  keepUnusedDataFor: 300, // 5 minutes
-  
-  // Only refetch on mount if data is older than 2 minutes (120 seconds)
-  // This helps reduce unnecessary requests while allowing some freshness
-  refetchOnMountOrArgChange: 120, 
-  
-  // Disable refetch on window focus (manual refresh via pull-to-refresh instead)
-  refetchOnFocus: false,
-  
+  // Cache unused data for 5 seconds before garbage collection
+  keepUnusedDataFor: 5,
+
+  // Refetch when mounting if cached data is older than 5 seconds.
+  refetchOnMountOrArgChange: 5,
+
+  // Refetch when app regains focus (e.g., user backgrounded the app).
+  // This addresses the "close app then reopen to see new data" issue.
+  refetchOnFocus: true,
+
   // Enable refetch on network reconnection
   refetchOnReconnect: true,
 };

@@ -1,7 +1,7 @@
 // src/services/customerApi.ts (Updated: Removed email from registerCustomer mutation)
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 interface Customer {
   id: number;
@@ -10,6 +10,25 @@ interface Customer {
   email?: string;
   license_plate?: string;
   avatar_url?: string;
+}
+
+// Customer driver license
+export interface DriverLicense {
+  id: number;
+  customer_id: number;
+  // Backend fields
+  license_no?: string | null;
+  registered_at?: string | null;
+  expires_at?: string | null;
+  // Normalized fields for app usage
+  license_number?: string | null;
+  issued_date?: string | null;
+  expiry_date?: string | null;
+  license_class?: string | null;
+  issued_by?: string | null;
+  image_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface LoginCustomerResponse {
@@ -128,9 +147,18 @@ interface DeleteAccountResponse {
   };
 }
 
+// Admin UI visibility
+export interface UiVisibility {
+  id: number;
+  is_hidden: number; // 0: show, 1: hide
+  created_at: string;
+  updated_at: string;
+}
+
 export const customerApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'customerApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['Customer', 'Service', 'ServiceOrder'] as const,
   endpoints: (builder) => ({
     health: builder.query<{ message: string }, void>({
@@ -220,6 +248,100 @@ export const customerApi = createApi({
         return response;
       },
     }),
+    getUiVisibility: builder.query<UiVisibility | null, void>({
+      query: () => ENDPOINTS.getUiVisibility.path,
+      transformResponse: (response: any): UiVisibility | null => {
+        if (!response || typeof response !== 'object') return null;
+        if (response.success === false) return null;
+        return response.data ?? null;
+      },
+    }),
+    getCustomerDriverLicense: builder.query<DriverLicense | null, string>({
+      query: (customerId) => ({
+        url: ENDPOINTS.getCustomerDriverLicense.path.replace(':id', customerId),
+        method: ENDPOINTS.getCustomerDriverLicense.method,
+      }),
+      providesTags: ['Customer'],
+      /**
+       * Chuẩn hóa đúng theo spec backend bạn gửi:
+       * 200: { success: true, data: { id, customer_id, license_no, registered_at, expires_at, ... } }
+       * 404: { success: false, error: "Không tìm thấy giấy phép lái xe" }
+       */
+      transformResponse: (response: any): DriverLicense | null => {
+        if (!response || typeof response !== 'object') return null;
+
+        // Không có GPLX -> form trống
+        if (response.success === false) {
+          return null;
+        }
+
+        const raw = response.data;
+        if (!raw) return null;
+
+        const normalized: DriverLicense = {
+          id: raw.id,
+          customer_id: raw.customer_id,
+          // Backend fields
+          license_no: raw.license_no ?? null,
+          registered_at: raw.registered_at ?? null,
+          expires_at: raw.expires_at ?? null,
+          // Normalized cho UI
+          license_number: raw.license_no ?? null,
+          issued_date: raw.registered_at ?? null,
+          expiry_date: raw.expires_at ?? null,
+          license_class: raw.license_class ?? null,
+          issued_by: raw.issued_by ?? null,
+          image_url: raw.image_url ?? null,
+          created_at: raw.created_at,
+          updated_at: raw.updated_at,
+        };
+
+        return normalized;
+      },
+    }),
+    upsertCustomerDriverLicense: builder.mutation<
+      { success: boolean; message?: string; driver_license_id?: number },
+      { customerId: string; license_no: string; registered_at?: string | null; expires_at?: string | null }
+    >({
+      query: ({ customerId, ...body }) => ({
+        url: ENDPOINTS.upsertCustomerDriverLicense.path.replace(':id', customerId),
+        method: ENDPOINTS.upsertCustomerDriverLicense.method,
+        body,
+      }),
+      invalidatesTags: ['Customer'],
+      // Backend spec:
+      // - Update: { success: true, message: "...", driver_license_id: 1 }
+      // - Create: { success: true, message: "...", driver_license_id: 2 }
+      transformResponse: (response: any) => {
+        if (!response.success) {
+          throw new Error(response.error || response.message || 'Failed to update driver license');
+        }
+        return {
+          success: true,
+          message: response.message,
+          driver_license_id: response.driver_license_id,
+        };
+      },
+    }),
+    deleteCustomerDriverLicense: builder.mutation<
+      { success: boolean; message?: string },
+      { customerId: string }
+    >({
+      query: ({ customerId }) => ({
+        url: ENDPOINTS.deleteCustomerDriverLicense.path.replace(':id', customerId),
+        method: ENDPOINTS.deleteCustomerDriverLicense.method,
+      }),
+      invalidatesTags: ['Customer'],
+      transformResponse: (response: any) => {
+        if (!response.success) {
+          throw new Error(response.error || response.message || 'Failed to delete driver license');
+        }
+        return {
+          success: true,
+          message: response.message,
+        };
+      },
+    }),
   }),
 });
 
@@ -233,4 +355,8 @@ export const {
   useCreateOrderMutation,
   useUpdateProfileMutation,
   useDeleteAccountMutation,
+  useGetCustomerDriverLicenseQuery,
+  useUpsertCustomerDriverLicenseMutation,
+  useDeleteCustomerDriverLicenseMutation,
+  useGetUiVisibilityQuery,
 } = customerApi;

@@ -49,7 +49,10 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     if (!isLoggedIn) {
-      navigation.replace("Login");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Home" }],
+      });
     }
   }, [isLoggedIn, navigation]);
 

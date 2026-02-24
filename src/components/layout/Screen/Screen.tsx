@@ -4,7 +4,7 @@
  */
 
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, StatusBar, ScrollView } from 'react-native';
+import { View, StyleSheet, StatusBar, ScrollView, RefreshControl } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors } from '../../../constants/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +22,10 @@ export interface ScreenProps {
    * content already contains a VirtualizedList (FlatList, SectionList, ...)
    */
   useScrollView?: boolean; // default true
+  /**
+   * Enable global pull-to-refresh for screens using the internal ScrollView
+   */
+  contentStyle?: any;
 }
 
 const Screen = ({
@@ -32,10 +36,24 @@ const Screen = ({
   backgroundColor = Colors.background.light,
   statusBarStyle = 'light-content',
   useScrollView = true,
+  enablePullToRefresh = false,
+  refreshing = false,
+  onRefresh,
+  contentStyle,
 }: ScreenProps) => {
   const insets = useSafeAreaInsets();
 
   const TAB_BAR_HEIGHT = 76;
+
+  const scrollRefreshControl =
+    enablePullToRefresh && onRefresh
+      ? (
+          <RefreshControl
+            refreshing={!!refreshing}
+            onRefresh={onRefresh}
+          />
+        )
+      : undefined;
 
   return (
     <View style={[styles.container, { backgroundColor }]}> 
@@ -71,13 +89,16 @@ const Screen = ({
           contentContainerStyle={[
             styles.contentContainer,
             { paddingBottom: TAB_BAR_HEIGHT + insets.bottom },
+            contentStyle,
           ]}
           showsVerticalScrollIndicator={false}
+          alwaysBounceVertical={true}
+          refreshControl={scrollRefreshControl}
         >
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}>
+        <View style={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }, contentStyle]}>
           {children}
         </View>
       )}

@@ -208,12 +208,14 @@ const MyServiceScreen: React.FC = () => {
           <View style={styles.form}>
             <SectionHeader title={sectionTitle} />
             <FlatList
+              alwaysBounceVertical={true}
               data={filteredOrders}
               keyExtractor={keyExtractor}
               renderItem={renderOrderItem}
               ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
               showsVerticalScrollIndicator={false}
               style={styles.servicesContainer}
+              contentContainerStyle={{ flexGrow: 1 }}
               refreshControl={<RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />}
               initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
               maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}

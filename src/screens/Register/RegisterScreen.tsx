@@ -12,9 +12,7 @@ import { useRegisterCustomerMutation } from "../../services";
 import {
   validateName,
   validatePhone,
-  validateLicensePlate,
   cleanPhone,
-  formatLicensePlate,
 } from "../../utils/validation";
 
 export type AuthStackParamList = {
@@ -28,7 +26,6 @@ export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [licensePlate, setLicensePlate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [registerCustomer] = useRegisterCustomerMutation();
@@ -56,18 +53,12 @@ export default function RegisterScreen() {
     }
 
     // Validate license plate (optional but must be valid format if provided)
-    const plateValidation = validateLicensePlate(licensePlate);
-    if (!plateValidation.isValid) {
-      Alert.alert("Lỗi xác thực", plateValidation.error || "Biển số xe không hợp lệ");
-      return;
-    }
 
     setIsLoading(true);
     try {
       // Clean and format data before sending
       const cleanedPhone = hasPhone ? cleanPhone(phone) : undefined;
-      const formattedPlate = licensePlate.trim() ? formatLicensePlate(licensePlate) : undefined;
-      
+          
       const requestBody: { name: string; phone?: string; license_plate?: string; avatar_url?: string } = {
         name: hasName ? trimmedName : "Khách hàng",
       };
@@ -76,10 +67,6 @@ export default function RegisterScreen() {
         requestBody.phone = cleanedPhone;
       }
 
-      // Only include license_plate if provided
-      if (formattedPlate) {
-        requestBody.license_plate = formattedPlate;
-      }
 
       const result = await registerCustomer(requestBody).unwrap();
       
@@ -186,13 +173,6 @@ export default function RegisterScreen() {
             placeholderTextColor={Colors.text.placeholder}
             keyboardType="phone-pad"
           />
-          <TextInputComponent
-            value={licensePlate}
-            onChangeText={(text) => setLicensePlate(text.toUpperCase())}
-            placeholder="Biển số xe (VD: 29A-12345)"
-            placeholderTextColor={Colors.text.placeholder}
-          />
-          <Text style={styles.helperText}>Bạn có thể bỏ qua và cập nhật sau.</Text>
         </View>
 
         <View style={styles.actions}>

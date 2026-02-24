@@ -1,7 +1,6 @@
 // src/services/imageApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
-import { API_BASE_URL } from '../constants/config';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 interface ServiceOrderImage {
   id: string;
@@ -48,8 +47,9 @@ interface DeleteImageResponse {
 }
 
 export const imageApi = createApi({
+  ...API_CONFIG,
   reducerPath: 'imageApi' as const,
-  baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ['ServiceOrderImage', 'UploadedImage'] as const,
   endpoints: (builder) => ({
     // Upload single image file

@@ -1,13 +1,15 @@
-// src/components/OptimizedImage/OptimizedImage.tsx
 import React, { useState, useCallback, useMemo } from 'react';
 import { Image, ImageProps, View, StyleSheet, Animated } from 'react-native';
 import { SkeletonLoader } from '../SkeletonLoader';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { Colors } from '../../constants/colors';
 
 interface OptimizedImageProps extends ImageProps {
   width?: number;
   height?: number;
   borderRadius?: number;
   showPlaceholder?: boolean;
+  fallbackIcon?: string;
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
@@ -15,6 +17,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
   height = 48,
   borderRadius = 24,
   showPlaceholder = true,
+  fallbackIcon = 'image-outline',
   style,
   ...props
 }) => {
@@ -23,7 +26,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   const containerStyle = useMemo(() => [
-    { width, height, borderRadius, overflow: 'hidden' }, 
+    { width, height, borderRadius, overflow: 'hidden', backgroundColor: Colors.neutral[100] }, 
     style
   ], [width, height, borderRadius, style]);
   
@@ -47,10 +50,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
     }).start();
   }, [fadeAnim]);
 
-  const handleError = useCallback((error: any) => {
+  const handleError = useCallback(() => {
     setLoading(false);
     setError(true);
-    // Still show the image even if there's an error, let React Native handle it
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 200,
@@ -65,17 +67,32 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = React.memo(({
           <SkeletonLoader width={width} height={height} borderRadius={borderRadius} />
         </View>
       )}
-      <Animated.View style={[{ opacity: fadeAnim }, StyleSheet.absoluteFill]}>
-        <Image
-          {...props}
-          style={imageStyle}
-          onLoadStart={handleLoadStart}
-          onLoadEnd={handleLoadEnd}
-          onError={handleError}
-          resizeMode="cover"
-        />
-      </Animated.View>
+      
+      {error ? (
+        <View style={[StyleSheet.absoluteFill, styles.centerContent]}>
+          <Ionicons name={fallbackIcon as any} size={Math.min(width, height) * 0.5} color={Colors.text.secondary} />
+        </View>
+      ) : (
+        <Animated.View style={[{ opacity: fadeAnim }, StyleSheet.absoluteFill]}>
+          <Image
+            {...props}
+            style={imageStyle}
+            onLoadStart={handleLoadStart}
+            onLoadEnd={handleLoadEnd}
+            onError={handleError}
+            resizeMode="cover"
+            fadeDuration={0}
+          />
+        </Animated.View>
+      )}
     </View>
   );
 });
 
+const styles = StyleSheet.create({
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.neutral[100],
+  }
+});

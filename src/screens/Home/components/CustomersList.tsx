@@ -134,12 +134,13 @@ const CustomersList: React.FC<CustomersListProps> = ({ orders, services, onCusto
 
   return (
     <FlatList
+      alwaysBounceVertical={true}
       data={customersMap}
       keyExtractor={keyExtractor}
       renderItem={renderCustomerItem}
       showsVerticalScrollIndicator={false}
       style={styles.customersContainer}
-      contentContainerStyle={styles.customersContent}
+      contentContainerStyle={[styles.customersContent, { flexGrow: 1 }]}
       initialNumToRender={PerformanceConfig.flatList.initialNumToRender}
       maxToRenderPerBatch={PerformanceConfig.flatList.maxToRenderPerBatch}
       windowSize={PerformanceConfig.flatList.windowSize}

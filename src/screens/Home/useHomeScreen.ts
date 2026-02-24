@@ -22,6 +22,8 @@ import { useGetNotificationsQuery, useGetUnreadCountQuery } from "../../services
 import { useOrdersData } from "./hooks/useOrdersData"
 import { AppStackParamList } from "../../navigation/AppNavigator"
 import { useRefreshQueries } from "../../hooks/useRefreshQueries"
+import { useGetProductsQuery } from "../../services/productApi"
+import { useGetServicesQuery } from "../../services/customerApi"
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>
 
@@ -45,6 +47,18 @@ export const useHomeScreen = () => {
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn)
 
   const employeeId = currentEmployee?.id || (userType === "employee" ? userId : undefined)
+
+  const productsQuery = useGetProductsQuery(undefined)
+  const servicesQuery = useGetServicesQuery(undefined)
+
+  const homePreviewProducts = useMemo(() => {
+    return (productsQuery.data || []).slice(0, 4)
+  }, [productsQuery.data])
+
+  const homePreviewServices = useMemo(() => {
+    const list = servicesQuery.data?.data || []
+    return list.slice(0, 4)
+  }, [servicesQuery.data])
 
   const {
     sortedOrders,
@@ -86,6 +100,8 @@ export const useHomeScreen = () => {
     { refetch: refetchAssignedOrders, isFetching: isFetchingAssignedOrders },
     { refetch: refetchNotifications, isFetching: isFetchingNotifications },
     { refetch: refetchUnreadCount, isFetching: isFetchingUnreadCount },
+    { refetch: servicesQuery.refetch, isFetching: servicesQuery.isFetching },
+    { refetch: productsQuery.refetch, isFetching: productsQuery.isFetching },
   ])
 
   const actualRefreshing = autoRefreshing || queryRefreshing
@@ -164,6 +180,9 @@ export const useHomeScreen = () => {
     unreadCount,
     userPhone,
     services,
+
+    homePreviewServices,
+    homePreviewProducts,
 
     displayedOrders,
     sortedOrders,
