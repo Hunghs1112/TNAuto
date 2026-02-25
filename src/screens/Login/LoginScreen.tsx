@@ -20,11 +20,36 @@ type NavigationProp = NativeStackNavigationProp<any>;
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
+  const phoneRef = React.useRef<TextInput>(null as unknown as TextInput);
+  const passwordRef = React.useRef<TextInput>(null as unknown as TextInput);
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginCustomer] = useLoginCustomerMutation();
   const [checkPhone] = useCheckPhoneMutation();
+
+  useEffect(() => {
+    const onShow = (e: any) => setBottomInset(e?.endCoordinates?.height || 0);
+    const onHide = () => setBottomInset(0);
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
+
+  const scrollToInput = (ref: React.RefObject<TextInput>) => {
+    try {
+      const node = ref.current ? findNodeHandle(ref.current) : null;
+      const scrollView: any = scrollRef.current as any;
+      if (node && scrollView && typeof scrollView.scrollResponderScrollNativeHandleToKeyboard === 'function') {
+        scrollView.scrollResponderScrollNativeHandleToKeyboard(node, 100, true);
+      }
+    } catch {}
+  };
 
   const handleLogin = async () => {
     if (!phone.trim()) {

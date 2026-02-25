@@ -24,9 +24,40 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const nameRef = React.useRef<TextInput>(null as unknown as TextInput);
+  const phoneRef = React.useRef<TextInput>(null as unknown as TextInput);
+  const plateRef = React.useRef<TextInput>(null as unknown as TextInput);
+  const scrollRef = React.useRef<ScrollView>(null);
+  const [bottomInset, setBottomInset] = React.useState(0);
+
+  React.useEffect(() => {
+    const onShow = (e: any) => setBottomInset(e?.endCoordinates?.height || 0);
+    const onHide = () => setBottomInset(0);
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
+
+  const scrollToInput = (ref: React.RefObject<TextInput>) => {
+    try {
+      const node = ref.current ? findNodeHandle(ref.current) : null;
+      const scrollView: any = scrollRef.current as any;
+      if (node && scrollView && typeof scrollView.scrollResponderScrollNativeHandleToKeyboard === 'function') {
+        scrollView.scrollResponderScrollNativeHandleToKeyboard(node, 140, true);
+      }
+    } catch {}
+  };
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [phoneError, setPhoneError] = useState<string | undefined>(undefined);
+  const [plateError, setPlateError] = useState<string | undefined>(undefined);
 
   const [registerCustomer] = useRegisterCustomerMutation();
 

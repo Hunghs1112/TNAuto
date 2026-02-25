@@ -24,6 +24,10 @@ export const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     backgroundColor: Colors.background.light || "#FFFFFF",
   },
+  formGroup: {
+    width: "100%",
+    gap: 12,
+  },
   textSection: {
     marginBottom: 20,
   },
@@ -62,11 +66,19 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
   },
   helperText: {
-    fontSize: Typography.size.xs,
+    fontSize: Typography.size.sm,
     fontFamily: Typography.fontFamily.regular,
     color: Colors.text.secondary,
     marginTop: -8,
     marginLeft: 4,
+  },
+  errorText: {
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.status.error,
+    marginTop: -6,
+    marginLeft: 4,
+    marginBottom: 6,
   },
   
   customerLink: {

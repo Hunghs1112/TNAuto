@@ -13,6 +13,7 @@ type ConfirmButtonProps = {
   loading?: boolean
   height?: number
   borderRadius?: number
+  style?: any
 }
 
 const ConfirmButton = ({
@@ -25,6 +26,7 @@ const ConfirmButton = ({
   loading = false,
   height = 44,
   borderRadius = 15,
+  style,
 }: ConfirmButtonProps) => {
   const { colors, isDisabled, scaleValue, handlePress, handlePressIn, handlePressOut } =
     useConfirmButton({ onPress, disabled, loading, gradientColors })

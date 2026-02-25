@@ -10,6 +10,10 @@ export const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
   },
+  formGroup: {
+    width: "100%",
+    gap: 12,
+  },
  
   welcomeText: {
     ...textStyles.h2,

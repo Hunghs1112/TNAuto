@@ -9,7 +9,6 @@ import UserNotifications
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
   var window: UIWindow?
-
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
 
@@ -43,17 +42,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
-
+    
     reactNativeDelegate = delegate
     reactNativeFactory = factory
-
+    
     window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "TNAuto",
-      in: window,
-      launchOptions: launchOptions
-    )
+    factory.startReactNative(withModuleName: "TNAuto", in: window, launchOptions: launchOptions)
 
     return true
   }

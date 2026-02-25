@@ -43,6 +43,8 @@ interface InputFieldWithLabelProps {
   icon: string;
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "number-pad";
   editable?: boolean;
+  inputRef?: React.RefObject<any>;
+  onFocus?: () => void;
 }
 
 const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
@@ -53,6 +55,8 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
   icon,
   keyboardType,
   editable = true,
+  inputRef,
+  onFocus,
 }) => (
   <View style={styles.inputFieldContainer}>
     <View style={styles.labelRow}>
@@ -71,6 +75,8 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
         textColor={Colors.text.primary}
         borderColor={Colors.neutral[300]}
         editable={editable}
+        inputRef={inputRef}
+        onFocus={onFocus}
       />
     </View>
   </View>
@@ -312,6 +318,7 @@ const BookingScreen: React.FC = () => {
               placeholder="Nhập biển số xe"
               label="Biển số xe"
               icon="car-outline"
+              inputRef={plateRef}
             />
             <InputFieldWithLabel
               value={vehicleType}
@@ -319,6 +326,7 @@ const BookingScreen: React.FC = () => {
               placeholder="Nhập loại xe (ví dụ: Honda Wave, Yamaha Sirius)"
               label="Loại xe"
               icon="car-sport-outline"
+              inputRef={vehicleTypeRef}
             />
           </>
         )}

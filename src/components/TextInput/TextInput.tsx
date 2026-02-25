@@ -21,6 +21,13 @@ interface TextInputComponentProps {
   editable?: boolean;
   style?: any;
   iconRight?: React.ReactNode;
+  onFocus?: () => void;
+  inputRef?: React.RefObject<any>;
+  maxLength?: number;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  returnKeyType?: "done" | "next" | "go" | "send" | "search" | "default";
+  onSubmitEditing?: () => void;
+  blurOnSubmit?: boolean;
 }
 
 const TextInputComponent: React.FC<TextInputComponentProps> = ({
@@ -37,6 +44,13 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
   editable = true,
   style,
   iconRight,
+  onFocus,
+  inputRef,
+  maxLength,
+  autoCapitalize,
+  returnKeyType = "default",
+  onSubmitEditing,
+  blurOnSubmit,
 }) => {
   const handleChangeText = useCallback((text: string) => {
     onChangeText(text);
@@ -54,6 +68,7 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
   return (
     <View style={[styles.container, style]}>
       <TextInput
+        ref={inputRef}
         value={value}
         onChangeText={handleChangeText}
         placeholder={placeholder}
@@ -67,7 +82,7 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
         underlineColorAndroid="transparent"
       />
       {iconRight && (
-        <View style={styles.iconRightContainer}>
+        <View style={styles.iconRightContainer} pointerEvents="none">
           {iconRight}
         </View>
       )}
