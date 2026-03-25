@@ -11,7 +11,10 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-firebase/app": "^23.8.8",
+    "@react-native-firebase/messaging": "^23.8.8",
     "@react-native-vector-icons/evil-icons": "^12.3.0",
     "@react-native-vector-icons/ionicons": "^12.3.0",
     "@react-native/new-app-screen": "0.81.0",
@@ -19,6 +22,7 @@
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/native-stack": "^7.3.25",
     "@reduxjs/toolkit": "^2.9.0",
+    "notifee": "^0.0.1",
     "react": "19.1.0",
     "react-native": "0.81.0",
     "react-native-async-storage": "^0.0.1",
