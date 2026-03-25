@@ -55,10 +55,12 @@ export interface Service {
 export interface ServiceOrder {
   id: number | string;
   customer_id: number;
-  employee_id?: number | null;
+  employee_id?: number | string | null;
   service_id: number;
   license_plate: string;
   vehicle_type?: string | null;
+  vehicle_model?: string | null;
+  vehicle_image_url?: string | null;
   receiver_name?: string;
   receiver_phone?: string;
   address?: string | null;
@@ -71,14 +73,17 @@ export interface ServiceOrder {
   // Populated fields
   customer_name?: string;
   customer_phone?: string;
+  customer_avatar_url?: string | null;
   customer_license_plate?: string;
   service_name?: string;
   service_description?: string;
   estimated_time?: number;
+  service_image_url?: string | null;
   employee_name?: string | null;
   images?: ServiceOrderImage[];
   warranty?: Warranty;
   image_count?: number;
+  claimable?: boolean;
 }
 
 export interface ServiceOrderImage {
@@ -269,9 +274,12 @@ export type UserType = 'customer' | 'employee' | 'dealer';
 export type OrderStatus = 
   | 'pending' 
   | 'confirmed' 
+  | 'received'
   | 'in_progress' 
+  | 'ready_for_pickup'
   | 'completed' 
-  | 'cancelled';
+  | 'cancelled'
+  | 'canceled';
 
 export interface QueryParams {
   [key: string]: string | number | boolean | undefined;

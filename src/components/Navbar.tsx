@@ -167,13 +167,26 @@ const Navbar = (props: BottomTabBarProps) => {
   );
 
   const tabs = useMemo(() => {
-    const common = [
-      { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "Booking", requiresAuth: true },
-      { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
-      { key: "home", label: "Trang chủ", icon: "home", routeName: "Home", isCenter: true },
-      { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceCategory" },
-      { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
-    ];
+    const isDealer = userType === "dealer";
+
+    // Dealer chỉ được phép đặt sản phẩm => bỏ các tab liên quan đến dịch vụ/đặt lịch.
+    // Các tab "đang bận" (Booking/ServiceCategory) sẽ được thay thế bằng các màn hình sản phẩm/ưu đãi.
+    const common = isDealer
+      ? [
+          { key: "offer", label: "Ưu đãi", icon: "pricetag-outline", routeName: "Offer" },
+          { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
+          { key: "home", label: "Trang chủ", icon: "home", routeName: "Home", isCenter: true },
+          { key: "service", label: "Danh mục", icon: "grid-outline", routeName: "Category" },
+          { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
+        ]
+      : [
+          { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "Booking", requiresAuth: true },
+          { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
+          { key: "home", label: "Trang chủ", icon: "home", routeName: "Home", isCenter: true },
+          { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceCategory" },
+          { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
+        ];
+
     return common;
   }, [userType]);
 

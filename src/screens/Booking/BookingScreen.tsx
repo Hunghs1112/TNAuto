@@ -1,5 +1,5 @@
 // src/screens/Booking/BookingScreen.tsx
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { View, Text, Alert, ActivityIndicator, RefreshControl } from "react-native";
 import { Screen, FormContainer } from "../../components/layout";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
@@ -87,10 +87,15 @@ const BookingScreen: React.FC = () => {
   const route = useRoute<BookingScreenRouteProp>();
   const dispatch = useAppDispatch();
   const { refreshing, onRefresh } = useAutoRefresh();
-  const { isLoggedIn, userName, userPhone, userLicensePlate, userId } = useAppSelector((state: RootState) => state.auth);
+  const { isLoggedIn, userName, userPhone, userLicensePlate, userId, userType } = useAppSelector((state: RootState) => state.auth);
   const { services, isFetching: servicesLoading } = useAppSelector((state: RootState) => state.services);
-  const { data: servicesData, isLoading: servicesIsLoading, error: servicesError, refetch: refetchServices } = useGetServicesQuery();
-  const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery({ phone: userPhone }, { skip: !userPhone });
+  const { data: servicesData, isLoading: servicesIsLoading, error: servicesError, refetch: refetchServices } = useGetServicesQuery(undefined, {
+    skip: userType === "dealer",
+  });
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery(
+    { phone: userPhone },
+    { skip: !userPhone || userType === "dealer" },
+  );
   const [createOrder] = useCreateOrderMutation();
 
   // Get serviceId from route params
@@ -103,6 +108,8 @@ const BookingScreen: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState(getCurrentDate()); // Ngày hiện tại
   const [note, setNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const plateRef = useRef<any>(null);
+  const vehicleTypeRef = useRef<any>(null);
   
   // Kiểm tra xem khách hàng có xe hay không
   const hasVehicles = vehiclesData?.success && vehiclesData.data && vehiclesData.data.length > 0;
@@ -114,6 +121,13 @@ const BookingScreen: React.FC = () => {
       navigation.replace('Login');
     }
   }, [isLoggedIn, navigation]);
+
+  useEffect(() => {
+    if (userType === "dealer") {
+      // Dealer không được phép đặt lịch dịch vụ.
+      navigation.replace("Category" as never);
+    }
+  }, [userType, navigation]);
 
   useEffect(() => {
     if (servicesData?.success && servicesData.data) {
@@ -199,6 +213,10 @@ const BookingScreen: React.FC = () => {
   }, [licensePlate, vehicleType, selectedService, deliveryDate, note, userName, userPhone, createOrder, navigation, userLicensePlate]);
 
   // Don't render if not logged in (will redirect)
+  if (userType === "dealer") {
+    return null;
+  }
+
   if (!isLoggedIn) {
     return null;
   }

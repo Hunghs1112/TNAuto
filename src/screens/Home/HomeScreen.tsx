@@ -21,11 +21,16 @@ export default function HomeScreen() {
     sortedOrders,
     ordersLoading,
 
+    sortedAvailableOrders,
+    availableLoading,
+    claimingOrderId,
+
     sortedAssignedOrders,
     assignedLoading,
 
     handleNotificationPress,
     handleOrderPress,
+    handleClaimOrder,
     handleViewMore,
     handleLoginPress,
 
@@ -49,10 +54,14 @@ export default function HomeScreen() {
       displayedOrders={displayedOrders as any}
       sortedOrders={sortedOrders as any}
       ordersLoading={ordersLoading}
+      sortedAvailableOrders={sortedAvailableOrders as any}
+      availableLoading={availableLoading}
+      claimingOrderId={claimingOrderId}
       sortedAssignedOrders={sortedAssignedOrders as any}
       assignedLoading={assignedLoading}
       onNotificationPress={handleNotificationPress}
       onOrderPress={handleOrderPress}
+      onClaimOrder={handleClaimOrder}
       onViewMore={handleViewMore}
       onLoginPress={handleLoginPress}
     />

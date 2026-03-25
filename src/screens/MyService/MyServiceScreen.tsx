@@ -25,6 +25,7 @@ const MyServiceScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['ServiceOrder'] });
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
+  const userType = useAppSelector((state: RootState) => state.auth.userType);
   const userPhone = useAppSelector((state: RootState) => state.auth.userPhone || '');
   const services = useAppSelector((state: RootState) => state.services.services);
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -36,13 +37,20 @@ const MyServiceScreen: React.FC = () => {
     }
   }, [isLoggedIn, navigation]);
 
+  useEffect(() => {
+    if (userType === 'dealer') {
+      // Dealer không được phép xem/điều hướng chức năng dịch vụ.
+      navigation.replace('Category' as never);
+    }
+  }, [userType, navigation]);
+
   // Don't render if not logged in (will redirect)
   if (!isLoggedIn) {
     return null;
   }
 
   const { data: ordersResponse, isLoading, error, refetch, isFetching } = useGetCustomerOrdersQuery(userPhone, {
-    skip: !userPhone,
+    skip: !userPhone || userType === 'dealer',
   });
 
   // Use isFetching to determine actual refreshing state
@@ -61,6 +69,10 @@ const MyServiceScreen: React.FC = () => {
   }, [baseOnRefresh, refetch]);
 
   const orders = ordersResponse?.data || [];
+
+  if (userType === 'dealer') {
+    return null;
+  }
 
   // Memoized sorted orders
   const sortedOrders = useMemo(() => 

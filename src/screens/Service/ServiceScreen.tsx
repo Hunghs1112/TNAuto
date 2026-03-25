@@ -9,6 +9,7 @@ import { useGetServiceCategoryByIdQuery } from "../../services/serviceCategoryAp
 import { useRefreshQueries } from "../../hooks/useRefreshQueries";
 import { formatSecondsToDaysHours, secondsToMonths } from "../../utils/dateHelpers";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type ServiceScreenRouteProp = RouteProp<AppStackParamList, 'Service'>;
@@ -19,17 +20,19 @@ const ServiceScreen = () => {
   const dispatch = useAppDispatch();
   const categoryId = route.params?.categoryId;
   const categoryName = route.params?.categoryName;
+  const userType = useAppSelector((s) => s.auth.userType);
+  const isDealer = userType === "dealer";
 
   
   
   // Nếu có categoryId, lấy services từ category API
   const categoryQuery = useGetServiceCategoryByIdQuery(categoryId!, {
-    skip: !categoryId,
+    skip: !categoryId || isDealer,
   });
   
   // Nếu không có categoryId, lấy tất cả services
   const allServicesQuery = useGetServicesQuery(undefined, {
-    skip: !!categoryId,
+    skip: !!categoryId || isDealer,
   });
 
   const { refreshing, onRefresh } = useRefreshQueries([
@@ -61,6 +64,51 @@ const ServiceScreen = () => {
     await onRefresh();
   }, [onRefresh]);
 
+  useEffect(() => {
+    if (isDealer) {
+      // Dealer không được phép xem/điều hướng dịch vụ.
+      navigation.replace("Category" as never);
+    }
+  }, [isDealer, navigation]);
+
+  const mapDataToItems = useCallback(
+    (data: any) => {
+      if (!data?.success || !data?.data) {
+        return [];
+      }
+
+      return data.data.map((service: any) => {
+        const descriptionParts = [
+          service.description,
+          `Thời gian ước tính: ${formatSecondsToDaysHours(service.estimated_time)}`,
+        ];
+
+        if (service.warranty_period) {
+          const warrantyMonths = secondsToMonths(service.warranty_period);
+          descriptionParts.push(`Thời gian bảo hành: ${warrantyMonths} tháng`);
+        }
+
+        const imageUri =
+          typeof service.image_url === "string" && service.image_url.length > 0 ? service.image_url : undefined;
+
+        return {
+          id: service.id,
+          title: service.name,
+          description: descriptionParts.join(" - "),
+          imageUri,
+          onPress: () => {
+            navigation.navigate("ServiceDetail", { serviceId: Number(service.id) });
+          },
+        };
+      });
+    },
+    [navigation],
+  );
+
+  if (isDealer) {
+    return null;
+  }
+
   return (
     <GenericListScreen
       title={categoryName || "Dịch vụ"}
@@ -71,62 +119,7 @@ const ServiceScreen = () => {
       emptyMessage="Chưa có dịch vụ nào"
       refreshing={refreshing}
       onRefresh={handleRefresh}
-      mapDataToItems={useCallback((data: any) => {
-        if (!data?.success || !data?.data) {
-          return [];
-        }
-        
-        return data.data.map((service: any) => {
-          const descriptionParts = [
-            service.description,
-            `Thời gian ước tính: ${formatSecondsToDaysHours(service.estimated_time)}`,
-          ];
-          
-          if (service.warranty_period) {
-            const warrantyMonths = secondsToMonths(service.warranty_period);
-            descriptionParts.push(`Thời gian bảo hành: ${warrantyMonths} tháng`);
-          }
-          
-          const imageUri = typeof service.image_url === 'string' && service.image_url.length > 0
-            ? service.image_url
-            : undefined;
-          
-          return {
-            id: service.id,
-            title: service.name,
-            description: descriptionParts.join(' - '),
-            imageUri: imageUri,
-            onPress: () => {
-              navigation.navigate('ServiceDetail', { serviceId: Number(service.id) });
-            },
-          };
-        });
-        return data.data.map((service: any) => {
-          const descriptionParts = [
-            service.description,
-            `Thời gian ước tính: ${formatSecondsToDaysHours(service.estimated_time)}`,
-          ];
-
-          if (service.warranty_period) {
-            const warrantyMonths = secondsToMonths(service.warranty_period);
-            descriptionParts.push(`Thời gian bảo hành: ${warrantyMonths} tháng`);
-          }
-
-          const imageUri = typeof service.image_url === "string" && service.image_url.length > 0
-            ? service.image_url
-            : undefined;
-
-          return {
-            id: service.id,
-            title: service.name,
-            description: descriptionParts.join(" - "),
-            imageUri: imageUri,
-            onPress: () => {
-              navigation.navigate("ServiceDetail", { serviceId: Number(service.id) });
-            },
-          };
-        });
-      }, [navigation])}
+      mapDataToItems={mapDataToItems}
     />
   );
 };

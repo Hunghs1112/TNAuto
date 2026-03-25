@@ -90,7 +90,7 @@ export const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: Colors.text.white,
+    color: Colors.text.inverted,
     fontWeight: 'bold',
     fontFamily: Typography.fontFamily.bold,
   },
@@ -104,6 +104,19 @@ export const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontFamily: Typography.fontFamily.medium,
     marginBottom: 4,
+  },
+  noteSection: {
+    backgroundColor: Colors.neutral[50],
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.neutral[200],
+  },
+  noteText: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    fontFamily: Typography.fontFamily.regular,
+    lineHeight: 18,
   },
   imageList: {
     paddingVertical: 4,
@@ -232,7 +245,7 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   confirmButton: {
-    backgroundColor: Colors.confirmbutton,
+    backgroundColor: Colors.primary,
     borderRadius: 15,
     paddingVertical: 12,
     paddingHorizontal: 24,
@@ -244,7 +257,7 @@ export const styles = StyleSheet.create({
     elevation: 3,
   },
   confirmButtonText: {
-    color: Colors.text.white,
+    color: Colors.text.inverted,
     fontSize: 16,
     fontWeight: '600',
     fontFamily: Typography.fontFamily.bold,

@@ -11,6 +11,8 @@ import { customerApi } from '../../services/customerApi';
 import { offerApi } from '../../services/offerApi';
 import { productApi } from '../../services/productApi';
 import { categoryApi } from '../../services/categoryApi';
+import { dealerProductApi } from '../../services/dealerProductApi';
+import { dealerCategoryApi } from '../../services/dealerCategoryApi';
 import { serviceOrderApi } from '../../services/serviceOrderApi';
 import { serviceApi } from '../../services/serviceApi';
 import { notificationApi } from '../../services/notificationApi';
@@ -79,6 +81,8 @@ export const useAutoRefresh = (options: UseAutoRefreshOptions = {}) => {
         { tag: 'Offer', api: offerApi },
         { tag: 'Product', api: productApi },
         { tag: 'Category', api: categoryApi },
+        { tag: 'Product', api: dealerProductApi },
+        { tag: 'Category', api: dealerCategoryApi },
         { tag: 'ServiceOrder', api: serviceOrderApi },
         { tag: 'Service', api: serviceApi },
         { tag: 'Notification', api: notificationApi },

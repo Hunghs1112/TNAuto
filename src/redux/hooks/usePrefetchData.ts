@@ -5,6 +5,7 @@ import { useAppDispatch } from './useAppDispatch';
 import { RootState } from '../types';
 import { useGetServicesQuery } from '../../services/customerApi';
 import { useGetCategoriesQuery } from '../../services/categoryApi';
+import { useGetDealerCategoriesQuery } from '../../services/dealerCategoryApi';
 import { useGetOffersQuery } from '../../services/offerApi';
 import { setServices } from '../slices/servicesSlice';
 import { setCategories } from '../slices/categorySlice';
@@ -25,15 +26,20 @@ import { setOffers } from '../slices/offersSlice';
 export const usePrefetchData = () => {
   const dispatch = useAppDispatch();
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
+  const userType = useAppSelector((state: RootState) => state.auth.userType);
+  const isDealer = userType === 'dealer';
 
   // Prefetch services (critical for booking and home screens)
   const { data: servicesData, isSuccess: servicesSuccess } = useGetServicesQuery(undefined, {
-    skip: !isLoggedIn, // Only fetch if user is logged in
+    skip: !isLoggedIn || isDealer, // Dealer khong dung luong service
   });
 
   // Prefetch categories (critical for product browsing)
   const { data: categoriesData, isSuccess: categoriesSuccess } = useGetCategoriesQuery(undefined, {
-    skip: !isLoggedIn, // Only fetch if user is logged in
+    skip: !isLoggedIn || isDealer,
+  });
+  const { data: dealerCategoriesData, isSuccess: dealerCategoriesSuccess } = useGetDealerCategoriesQuery(undefined, {
+    skip: !isLoggedIn || !isDealer,
   });
 
   // Prefetch offers (critical for home screen badge)
@@ -60,6 +66,13 @@ export const usePrefetchData = () => {
     }
   }, [categoriesSuccess, categoriesData, dispatch]);
 
+  useEffect(() => {
+    if (dealerCategoriesSuccess && dealerCategoriesData) {
+      dispatch(setCategories(dealerCategoriesData as any));
+      console.log('usePrefetchData: Dealer categories prefetched and synced:', dealerCategoriesData.length);
+    }
+  }, [dealerCategoriesSuccess, dealerCategoriesData, dispatch]);
+
   // Sync offers to redux slice when loaded
   useEffect(() => {
     if (offersSuccess && offersData?.data) {
@@ -73,7 +86,7 @@ export const usePrefetchData = () => {
 
   return {
     servicesLoaded: servicesSuccess,
-    categoriesLoaded: categoriesSuccess,
+    categoriesLoaded: categoriesSuccess || dealerCategoriesSuccess,
     offersLoaded: offersSuccess,
   };
 };

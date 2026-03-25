@@ -1,57 +1,60 @@
-import React from "react"
-import { View, Text, TouchableOpacity } from "react-native"
-import { Ionicons } from "@react-native-vector-icons/ionicons"
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import LinearGradient from "react-native-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import LinearGradient from "react-native-linear-gradient"
-
-import Screen from "../../components/layout/Screen/Screen"
-
-import { Colors } from "../../constants/colors"
-import { styles } from "./styles"
-
-import UserHeader from "./UserHeader"
-import VehicleInfoCard from "./VehicleInfoCard"
-import ServiceMenu from "./ServiceMenu"
-import SectionHeader from "./SectionHeader"
-import QuickBookingForm from "./QuickBookingForm"
-import OrdersList from "./components/OrdersList"
-import EmployeeOrdersList from "./components/EmployeeOrdersList"
-import WarrantyInfo from "./components/WarrantyInfo"
-import ViewMoreButton from "./ViewMoreButton"
-
-import Item from "../../components/Item"
-import { useNavigation } from "@react-navigation/native"
-import { NativeStackNavigationProp } from "@react-navigation/native-stack"
-import { AppStackParamList } from "../../navigation/AppNavigator"
+import Screen from "../../components/layout/Screen/Screen";
+import Item from "../../components/Item";
+import { Colors } from "../../constants/colors";
+import { AppStackParamList } from "../../navigation/AppNavigator";
+import { getPrimaryCatalogProductImageUrl } from "../../utils/catalog";
+import { styles } from "./styles";
+import UserHeader from "./UserHeader";
+import VehicleInfoCard from "./VehicleInfoCard";
+import ServiceMenu from "./ServiceMenu";
+import SectionHeader from "./SectionHeader";
+import QuickBookingForm from "./QuickBookingForm";
+import OrdersList from "./components/OrdersList";
+import AvailableOrdersList from "./components/AvailableOrdersList";
+import EmployeeOrdersList from "./components/EmployeeOrdersList";
+import WarrantyInfo from "./components/WarrantyInfo";
+import ViewMoreButton from "./ViewMoreButton";
 
 export type HomeScreenViewProps = {
-  navbarHeight: number
-  actualRefreshing: boolean
-  onRefresh: () => void
+  navbarHeight: number;
+  actualRefreshing: boolean;
+  onRefresh: () => void;
 
-  isLoggedIn: boolean
-  userType: any
-  userName: string
-  unreadCount?: number
+  isLoggedIn: boolean;
+  userType: any;
+  userName: string;
+  unreadCount?: number;
 
-  userId: string
-  userPhone: string
-  services: any
-  homePreviewServices?: any[]
-  homePreviewProducts?: any[]
+  userId: string;
+  userPhone: string;
+  services: any;
+  homePreviewServices?: any[];
+  homePreviewProducts?: any[];
 
-  displayedOrders: any[]
-  sortedOrders: any[]
-  ordersLoading: boolean
+  displayedOrders: any[];
+  sortedOrders: any[];
+  ordersLoading: boolean;
 
-  sortedAssignedOrders: any[]
-  assignedLoading: boolean
+  sortedAvailableOrders: any[];
+  availableLoading: boolean;
+  claimingOrderId?: string | null;
 
-  onNotificationPress: () => void
-  onOrderPress: (id: string) => void
-  onViewMore: () => void
-  onLoginPress: () => void
-}
+  sortedAssignedOrders: any[];
+  assignedLoading: boolean;
+
+  onNotificationPress: () => void;
+  onOrderPress: (id: string) => void;
+  onClaimOrder: (id: string) => void;
+  onViewMore: () => void;
+  onLoginPress: () => void;
+};
 
 const HomeScreenView = ({
   isLoggedIn,
@@ -66,14 +69,18 @@ const HomeScreenView = ({
   displayedOrders,
   sortedOrders,
   ordersLoading,
+  sortedAvailableOrders,
+  availableLoading,
+  claimingOrderId,
   sortedAssignedOrders,
   assignedLoading,
   onNotificationPress,
   onOrderPress,
+  onClaimOrder,
   onViewMore,
   onLoginPress,
 }: HomeScreenViewProps) => {
-  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>()
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
   return (
     <Screen hideHeader statusBarStyle="light-content">
@@ -107,13 +114,26 @@ const HomeScreenView = ({
           {isLoggedIn && userType === "employee" ? (
             <>
               <View style={styles.section}>
-                <SectionHeader title="Dịch vụ được giao xử lý" />
+                <SectionHeader title="Việc mới tạo chưa giao ai" />
+                <AvailableOrdersList
+                  orders={sortedAvailableOrders as any}
+                  isLoading={availableLoading}
+                  services={services}
+                  onOrderPress={onOrderPress}
+                  onClaimPress={onClaimOrder}
+                  claimingOrderId={claimingOrderId}
+                  emptyMessage="Chưa có việc mới nào đang chờ nhận"
+                />
+              </View>
+
+              <View style={styles.section}>
+                <SectionHeader title="Việc đang đảm nhận" />
                 <EmployeeOrdersList
                   orders={sortedAssignedOrders as any}
                   isLoading={assignedLoading}
                   services={services}
                   onOrderPress={onOrderPress}
-                  emptyMessage="Chưa có đơn giao nào"
+                  emptyMessage="Chưa có việc nào đang đảm nhận"
                 />
               </View>
 
@@ -122,7 +142,7 @@ const HomeScreenView = ({
                 <WarrantyInfo
                   orders={sortedAssignedOrders as any}
                   onWarrantyPress={(orderId: string) => {
-                    onOrderPress(orderId)
+                    onOrderPress(orderId);
                   }}
                 />
               </View>
@@ -135,7 +155,7 @@ const HomeScreenView = ({
                 </View>
               )}
 
-              {isLoggedIn && (
+              {isLoggedIn && userType === "customer" && (
                 <View style={styles.section}>
                   <SectionHeader title="Dịch vụ đang sử dụng" />
                   <OrdersList
@@ -154,6 +174,27 @@ const HomeScreenView = ({
                 <View style={styles.section}>
                   <QuickBookingForm />
                 </View>
+              ) : isLoggedIn && userType === "dealer" ? (
+                <View style={styles.section}>
+                  <SectionHeader title="Sản phẩm nổi bật" />
+                  <View style={styles.servicesContainer}>
+                    {homePreviewProducts.map((product: any) => {
+                      return (
+                        <Item
+                          key={product.id}
+                          title={product.name}
+                          description={product.description || "Xem chi tiết sản phẩm"}
+                          imageUri={getPrimaryCatalogProductImageUrl(product)}
+                          onPress={() => navigation.navigate("ProductDetail", { productId: product.id })}
+                        />
+                      );
+                    })}
+                  </View>
+                  <ViewMoreButton
+                    onPress={() => navigation.navigate("Category" as any)}
+                    title="Xem thêm sản phẩm"
+                  />
+                </View>
               ) : !isLoggedIn ? (
                 <>
                   <View style={styles.section}>
@@ -169,9 +210,9 @@ const HomeScreenView = ({
                         />
                       ))}
                     </View>
-                    <ViewMoreButton 
-                      onPress={() => navigation.navigate("ServiceCategory" as any)} 
-                      title="Xem thêm dịch vụ" 
+                    <ViewMoreButton
+                      onPress={() => navigation.navigate("ServiceCategory" as any)}
+                      title="Xem thêm dịch vụ"
                     />
                   </View>
 
@@ -179,25 +220,20 @@ const HomeScreenView = ({
                     <SectionHeader title="Sản phẩm nổi bật" />
                     <View style={styles.servicesContainer}>
                       {homePreviewProducts.map((product: any) => {
-                        const rawImage = (product as any).primary_image;
-                        let imageUri: string | undefined;
-                        if (typeof rawImage === 'string') imageUri = rawImage;
-                        else if (rawImage?.image_url) imageUri = rawImage.image_url;
-                        
                         return (
                           <Item
                             key={product.id}
                             title={product.name}
                             description={product.description || "Xem chi tiết sản phẩm"}
-                            imageUri={imageUri}
+                            imageUri={getPrimaryCatalogProductImageUrl(product)}
                             onPress={() => navigation.navigate("ProductDetail", { productId: product.id })}
                           />
                         );
                       })}
                     </View>
-                    <ViewMoreButton 
-                      onPress={() => navigation.navigate("Category" as any)} 
-                      title="Xem thêm sản phẩm" 
+                    <ViewMoreButton
+                      onPress={() => navigation.navigate("Category" as any)}
+                      title="Xem thêm sản phẩm"
                     />
                   </View>
 
@@ -221,7 +257,7 @@ const HomeScreenView = ({
         </View>
       </View>
     </Screen>
-  )
-}
+  );
+};
 
-export default React.memo(HomeScreenView)
+export default React.memo(HomeScreenView);

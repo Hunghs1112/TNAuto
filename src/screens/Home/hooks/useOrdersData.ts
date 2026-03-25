@@ -1,16 +1,45 @@
-// src/screens/Home/hooks/useOrdersData.ts
-import React, { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { useGetCustomerOrdersQuery } from '../../../services/customerApi';
-import { useGetAssignedOrdersQuery } from '../../../services/employeeApi';
+import { useGetAssignedOrdersQuery, useGetAvailableOrdersQuery } from '../../../services/employeeApi';
+import { ApiResponse, ServiceOrder } from '../../../types/api.types';
 
 interface UseOrdersDataProps {
-  userType: 'customer' | 'employee' | null;
+  userType: 'customer' | 'employee' | 'dealer' | null;
   userPhone: string;
   currentEmployeeId?: string;
 }
 
+const extractOrdersFromResponse = (response?: ApiResponse<ServiceOrder[]> | ServiceOrder[]) => {
+  if (!response) {
+    return [];
+  }
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (response.success && Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  return [];
+};
+
+const sortOrdersByReceiveDate = (orders: ServiceOrder[]) =>
+  [...orders].sort(
+    (a, b) => new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime(),
+  );
+
+const isUnassignedAvailableOrder = (order: ServiceOrder) =>
+  order.status === 'received' &&
+  (order.employee_id === null || order.employee_id === undefined || order.employee_id === '') &&
+  order.claimable !== false;
+
 export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrdersDataProps) => {
-  // Customer orders
   const {
     data: ordersResponse,
     isLoading: ordersLoading,
@@ -21,7 +50,6 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     skip: userType !== 'customer' || !userPhone,
   });
 
-  // Employee assigned orders
   const {
     data: assignedResponse,
     isLoading: assignedLoading,
@@ -30,72 +58,52 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     isFetching: isFetchingAssignedOrders,
   } = useGetAssignedOrdersQuery(
     { employee_id: currentEmployeeId || '' },
-    { 
+    {
       skip: userType !== 'employee' || !currentEmployeeId,
     },
   );
 
-  // Log for debugging and error handling
+  const {
+    data: availableResponse,
+    isLoading: availableLoading,
+    error: availableError,
+    refetch: refetchAvailableOrders,
+    isFetching: isFetchingAvailableOrders,
+  } = useGetAvailableOrdersQuery(
+    { page: 1, limit: 20 },
+    {
+      skip: userType !== 'employee' || !currentEmployeeId,
+    },
+  );
+
   useEffect(() => {
     if (userType === 'employee') {
-      // Log errors
       if (assignedError) {
         console.error('useOrdersData: Error fetching assigned orders:', assignedError);
       }
+
+      if (availableError) {
+        console.error('useOrdersData: Error fetching available orders:', availableError);
+      }
     }
-  }, [userType, assignedError]);
-  // Memoized orders data
+  }, [userType, assignedError, availableError]);
+
   const orders = useMemo(() => ordersResponse?.data || [], [ordersResponse]);
-  
-  // Handle different response formats for assigned orders
-  const assignedOrders = useMemo(() => {
-    if (!assignedResponse) {
-      return [];
-    }
-    
-    // Check if response is ApiResponse format
-    if (assignedResponse.success && assignedResponse.data) {
-      return assignedResponse.data;
-    }
-    
-    // Check if response is array directly
-    if (Array.isArray(assignedResponse)) {
-      return assignedResponse;
-    }
-    
-    // Check if response has data property
-    if (assignedResponse.data && Array.isArray(assignedResponse.data)) {
-      return assignedResponse.data;
-    }
-    
-    console.warn('useOrdersData: Unknown assigned response format:', assignedResponse);
-    return [];
-  }, [assignedResponse]);
-
-  // Sort orders by receive_date ascending
-  const sortedOrders = useMemo(
-    () => [...orders].sort((a, b) => 
-      new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime()
-    ),
-    [orders]
+  const assignedOrders = useMemo(() => extractOrdersFromResponse(assignedResponse), [assignedResponse]);
+  const availableOrders = useMemo(
+    () => extractOrdersFromResponse(availableResponse).filter(isUnassignedAvailableOrder),
+    [availableResponse],
   );
 
-  const sortedAssignedOrders = useMemo(
-    () => [...assignedOrders].sort((a, b) => 
-      new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime()
-    ),
-    [assignedOrders]
-  );
+  const sortedOrders = useMemo(() => sortOrdersByReceiveDate(orders), [orders]);
+  const sortedAssignedOrders = useMemo(() => sortOrdersByReceiveDate(assignedOrders), [assignedOrders]);
+  const sortedAvailableOrders = useMemo(() => sortOrdersByReceiveDate(availableOrders), [availableOrders]);
 
-  // Display limited orders for customer
-  const displayedOrders = useMemo(
-    () => sortedOrders.slice(0, 2),
-    [sortedOrders]
-  );
+  const displayedOrders = useMemo(() => sortedOrders.slice(0, 2), [sortedOrders]);
 
-  // Vehicle info from first order (customer only)
   const vehicleInfo = useMemo(() => {
     const firstOrder = orders[0];
+
     return {
       licensePlate: firstOrder?.license_plate || '12A2222',
       vehicleType: firstOrder?.vehicle_type || 'Toyota Camry 2023',
@@ -103,24 +111,31 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     };
   }, [orders]);
 
-  // Refetch function for customer orders
   const refetchOrders = useCallback(async () => {
     if (userType === 'customer' && userPhone && refetchCustomerOrders) {
       return refetchCustomerOrders();
     }
+
     return Promise.resolve();
   }, [userType, userPhone, refetchCustomerOrders]);
 
-  // Refetch function for assigned orders
   const refetchAssigned = useCallback(async () => {
     if (userType === 'employee' && currentEmployeeId && refetchAssignedOrders) {
       return refetchAssignedOrders();
     }
+
     return Promise.resolve();
   }, [userType, currentEmployeeId, refetchAssignedOrders]);
 
+  const refetchAvailable = useCallback(async () => {
+    if (userType === 'employee' && currentEmployeeId && refetchAvailableOrders) {
+      return refetchAvailableOrders();
+    }
+
+    return Promise.resolve();
+  }, [userType, currentEmployeeId, refetchAvailableOrders]);
+
   return {
-    // Customer data
     orders,
     sortedOrders,
     displayedOrders,
@@ -129,13 +144,19 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     vehicleInfo,
     refetchOrders,
     isFetchingOrders: isFetchingCustomerOrders,
-    // Employee data
+
+    availableOrders,
+    sortedAvailableOrders,
+    availableLoading,
+    availableError,
+    refetchAvailableOrders: refetchAvailable,
+    isFetchingAvailableOrders,
+
     assignedOrders,
     sortedAssignedOrders,
     assignedLoading,
     assignedError,
     refetchAssignedOrders: refetchAssigned,
-    isFetchingAssignedOrders: isFetchingAssignedOrders,
+    isFetchingAssignedOrders,
   };
 };
-

@@ -1,97 +1,116 @@
 // src/screens/Product/ProductScreen.tsx (Optimized with new loading pattern)
-import React, { useMemo, useCallback, useEffect } from "react";
+import React, { useMemo, useCallback } from "react";
 import { View, FlatList, RefreshControl, Image } from "react-native";
 import Screen from "../../components/layout/Screen/Screen";
-import { Colors } from "../../constants/colors";
 import Item from "../../components/Item";
 import { QueryWrapper, ScreenLoader } from "../../components/Loading";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Product, useGetProductsQuery, productApi } from "../../services/productApi";
-import { useGetCategoryByIdQuery, categoryApi } from "../../services/categoryApi";
+import { Product, useGetProductsQuery } from "../../services/productApi";
+import { useGetCategoryByIdQuery } from "../../services/categoryApi";
+import { DealerProduct, useGetDealerProductsQuery } from "../../services/dealerProductApi";
+import { useGetDealerCategoryByIdQuery } from "../../services/dealerCategoryApi";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 import { useRefreshQueries } from "../../hooks/useRefreshQueries";
 import { ListItemSkeleton } from "../../components/SkeletonLoader";
-import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { getPrimaryCatalogProductImageUrl } from "../../utils/catalog";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
-type ProductScreenRouteProp = RouteProp<AppStackParamList, 'Product'>;
+type ProductScreenRouteProp = RouteProp<AppStackParamList, "Product">;
+type CatalogProduct = Product | DealerProduct;
 
 const ProductScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductScreenRouteProp>();
-  const dispatch = useAppDispatch();
-  const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Product', 'Category'] });
-  
-  // Get category filter from route params
+  const userType = useAppSelector((state) => state.auth.userType);
+  const isDealer = userType === "dealer";
+  const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ["Product", "Category"] });
+
   const categoryId = route.params?.categoryId;
   const categoryName = route.params?.categoryName;
 
-  // Use appropriate API based on whether we have a categoryId
-  const allProductsQuery = useGetProductsQuery(undefined, { 
-    skip: !!categoryId,
+  const allProductsQuery = useGetProductsQuery(undefined, {
+    skip: isDealer || !!categoryId,
   });
-  const categoryQuery = useGetCategoryByIdQuery(categoryId!, { 
-    skip: !categoryId,
+  const categoryQuery = useGetCategoryByIdQuery(categoryId!, {
+    skip: isDealer || !categoryId,
   });
+  const dealerProductsQuery = useGetDealerProductsQuery(undefined, {
+    skip: !isDealer || !!categoryId,
+  });
+  const dealerCategoryQuery = useGetDealerCategoryByIdQuery(categoryId!, {
+    skip: !isDealer || !categoryId,
+  });
+
+  const activeQuery = isDealer
+    ? categoryId
+      ? dealerCategoryQuery
+      : dealerProductsQuery
+    : categoryId
+      ? categoryQuery
+      : allProductsQuery;
 
   const { refreshing: queryRefreshing, onRefresh: queryOnRefresh } = useRefreshQueries([
-    categoryId
-      ? { refetch: categoryQuery.refetch, isFetching: categoryQuery.isFetching }
-      : { refetch: allProductsQuery.refetch, isFetching: allProductsQuery.isFetching },
+    { refetch: activeQuery.refetch, isFetching: activeQuery.isFetching },
   ]);
 
-
-  // Determine which query to use and get products
-  const activeQuery = categoryId ? categoryQuery : allProductsQuery;
-
-  // Use isFetching to determine actual refreshing state
   const actualRefreshing = autoRefreshing || queryRefreshing;
 
-  // Enhanced refresh handler that refetches the active query
   const handleRefresh = useCallback(async () => {
     baseOnRefresh();
     await queryOnRefresh();
   }, [baseOnRefresh, queryOnRefresh]);
-  
-  // Extract products from the appropriate source
+
   const filteredProducts = useMemo(() => {
+    if (isDealer) {
+      if (categoryId && dealerCategoryQuery.data) {
+        return dealerCategoryQuery.data.products || [];
+      }
+
+      return dealerProductsQuery.data || [];
+    }
+
     if (categoryId && categoryQuery.data) {
-      // When viewing category, get products from category query
       return categoryQuery.data.products || [];
     }
-    // When viewing all products, use all products query
-    return allProductsQuery.data || [];
-  }, [categoryId, categoryQuery.data, allProductsQuery.data]);
 
-  // Prefetch images
+    return (allProductsQuery.data || []) as CatalogProduct[];
+  }, [
+    allProductsQuery.data,
+    categoryId,
+    categoryQuery.data,
+    dealerCategoryQuery.data,
+    dealerProductsQuery.data,
+    isDealer,
+  ]);
+
   React.useEffect(() => {
     if (filteredProducts.length > 0) {
-      filteredProducts.slice(0, 10).forEach((product: any) => {
-        const rawImage = product.primary_image;
-        let uri: string | undefined;
-        if (typeof rawImage === 'string') uri = rawImage;
-        else if (rawImage?.image_url) uri = rawImage.image_url;
-        else if (rawImage?.uri) uri = rawImage.uri;
-        
-        if (uri) Image.prefetch(uri).catch(() => {});
+      filteredProducts.slice(0, 10).forEach((product) => {
+        const uri = getPrimaryCatalogProductImageUrl(product as any);
+
+        if (uri) {
+          Image.prefetch(uri).catch(() => {});
+        }
       });
     }
   }, [filteredProducts]);
 
-  // Determine the header title
-  const headerTitle = categoryName || categoryQuery.data?.name || "Sản phẩm";
+  const headerTitle =
+    categoryName ||
+    (isDealer ? dealerCategoryQuery.data?.name : categoryQuery.data?.name) ||
+    "Sản phẩm";
 
-  // Optimized FlatList callbacks
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
-      length: 110 + 12, // item minHeight + separator
+      length: 110 + 12,
       offset: (110 + 12) * index,
       index,
     }),
-    []
+    [],
   );
 
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
@@ -106,7 +125,7 @@ const ProductScreen = () => {
         onPress={item.onPress}
       />
     ),
-    []
+    [],
   );
 
   const renderSeparator = useCallback(() => <View style={{ height: 12 }} />, []);
@@ -123,6 +142,7 @@ const ProductScreen = () => {
         </View>
       );
     }
+
     return null;
   }, [activeQuery.isLoading]);
 
@@ -133,52 +153,29 @@ const ProductScreen = () => {
       statusBarStyle="light-content"
       useScrollView={false}
     >
-        <View style={styles.whiteSection}>
+      <View style={styles.whiteSection}>
         <View style={styles.body}>
           <QueryWrapper
-            query={activeQuery}
+            query={activeQuery as any}
             errorMessage={categoryId ? "Lỗi tải sản phẩm trong danh mục" : "Lỗi tải sản phẩm"}
             checkEmpty={() => filteredProducts.length === 0}
             emptyMessage={categoryId ? "Chưa có sản phẩm trong danh mục này" : "Chưa có sản phẩm nào"}
             emptyIcon="cube-outline"
             loadingComponent={
-              <View style={[styles.form, { justifyContent: 'center', alignItems: 'center', flex: 1 }]}>
+              <View style={[styles.form, { justifyContent: "center", alignItems: "center", flex: 1 }]}>
                 <ScreenLoader />
               </View>
             }
-          >
-            {() => {
-              const productItems = filteredProducts.map((product: Product) => {
-                const rawImage = (product as any).primary_image;
-
-                let imageUri: string | undefined;
-
-                if (typeof rawImage === 'string') {
-                  imageUri = rawImage;
-                } else if (rawImage && typeof rawImage === 'object') {
-                  if (typeof (rawImage as any).image_url === 'string') {
-                    imageUri = (rawImage as any).image_url;
-                  } else if (typeof (rawImage as any).uri === 'string') {
-                    imageUri = (rawImage as any).uri;
-                  }
-                }
-
-                // Ensure undefined if still not string
-                if (imageUri && typeof imageUri !== 'string') {
-                  imageUri = undefined as any;
-                }
-
-
-                return {
-                  id: product.id,
-                  title: product.name,
-                  description: product.description || (product.images?.length ? `${product.images.length} ảnh` : 'Xem chi tiết'),
-                  imageUri: imageUri,
-                  onPress: () => {
-                    navigation.navigate('ProductDetail', { productId: product.id });
-                  },
-                };
-              });
+            children={() => {
+              const productItems = filteredProducts.map((product: CatalogProduct) => ({
+                id: product.id,
+                title: product.name,
+                description: product.description || (product.images?.length ? `${product.images.length} ảnh` : "Xem chi tiết"),
+                imageUri: getPrimaryCatalogProductImageUrl(product as any),
+                onPress: () => {
+                  navigation.navigate("ProductDetail", { productId: product.id });
+                },
+              }));
 
               return (
                 <View style={styles.form}>
@@ -192,9 +189,7 @@ const ProductScreen = () => {
                     ListEmptyComponent={renderListEmpty}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.listContent, { flexGrow: 1, paddingHorizontal: 16 }]}
-                    refreshControl={
-                      <RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />
-                    }
+                    refreshControl={<RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />}
                     removeClippedSubviews={true}
                     maxToRenderPerBatch={10}
                     windowSize={21}
@@ -204,13 +199,13 @@ const ProductScreen = () => {
                 </View>
               );
             }}
-          </QueryWrapper>
+          />
         </View>
       </View>
     </Screen>
   );
 };
 
-ProductScreen.displayName = 'ProductScreen';
+ProductScreen.displayName = "ProductScreen";
 
 export default React.memo(ProductScreen);

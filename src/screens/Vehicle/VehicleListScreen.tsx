@@ -53,10 +53,6 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
   };
 
   const renderVehicleCard = ({ item }: { item: Vehicle }) => {
-    const status = item.has_active_order ? 'Đang sửa chữa' : 'Bình thường';
-    const statusColor = item.has_active_order ? Colors.accent.yellow : Colors.accent.green;
-    const statusIcon = item.has_active_order ? 'construct' : 'checkmark-circle';
-
     return (
       <TouchableOpacity 
         style={styles.card} 
@@ -80,9 +76,6 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
               <Ionicons name="car-outline" size={40} color={Colors.neutral[400]} />
             </View>
           )}
-          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-            <Ionicons name={statusIcon} size={14} color={Colors.text.white} />
-          </View>
         </TouchableOpacity>
 
         <View style={styles.infoContainer}>
@@ -94,10 +87,6 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
           <View style={styles.modelContainer}>
             <Ionicons name="car-outline" size={14} color={Colors.text.secondary} />
             <Text style={styles.model}>{item.model || 'Chưa cập nhật'}</Text>
-          </View>
-
-          <View style={styles.statusContainer}>
-            <Text style={[styles.statusText, { color: statusColor }]}>{status}</Text>
           </View>
 
           {item.active_order_count ? (
@@ -232,21 +221,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statusBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
   infoContainer: {
     padding: 12,
   },
@@ -271,14 +245,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.text.secondary,
     marginLeft: 6,
-  },
-  statusContainer: {
-    marginBottom: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: Typography.fontFamily.bold,
   },
   orderCount: {
     fontSize: 11,

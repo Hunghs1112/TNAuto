@@ -61,9 +61,7 @@ const WarrantyScreen: React.FC = () => {
     error,
     refetch,
   } = useGetWarrantiesQuery(
-    userType === 'dealer' || userType === 'customer'
-      ? { userType: userType as any, userId }
-      : undefined
+    userType === 'customer' ? { userType: userType as any, userId } : undefined
   );
 
   // Sync query data into local slice for rendering
@@ -72,6 +70,17 @@ const WarrantyScreen: React.FC = () => {
       dispatch(setWarranties(warrantiesData));
     }
   }, [warrantiesData, dispatch]);
+
+  useEffect(() => {
+    if (userType === 'dealer') {
+      // Dealer không được phép xem/điều hướng các chức năng liên quan dịch vụ/bảo hành.
+      navigation.replace('Category' as never);
+    }
+  }, [userType, navigation]);
+
+  if (userType === 'dealer') {
+    return null;
+  }
 
   const { bottom: bottomInset } = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 76;

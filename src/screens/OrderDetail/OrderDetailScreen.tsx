@@ -1,5 +1,5 @@
 // src/screens/OrderDetail/OrderDetailScreen.tsx
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/AppNavigator';
@@ -15,6 +15,7 @@ import { useCompleteServiceOrderMutation } from '../../services/serviceOrderApi'
 import { ServiceOrderImage } from '../../types/api.types';
 import { styles } from './styles';
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { useAppSelector } from '../../redux/hooks/useAppSelector';
 
 const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
@@ -22,6 +23,20 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   const { data: orderData, isLoading, error, refetch, isFetching } = useGetOrderDetailsQuery(id);
   const [completeServiceOrder] = useCompleteServiceOrderMutation();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+
+  const userType = useAppSelector((s) => s.auth.userType);
+  const isDealer = userType === 'dealer';
+
+  useEffect(() => {
+    if (isDealer) {
+      navigation.replace('Category' as never);
+    }
+  }, [isDealer, navigation]);
+
+  if (isDealer) {
+    return null;
+  }
 
   // Handle pull-to-refresh
   const handleRefresh = useCallback(async () => {

@@ -5,9 +5,21 @@ interface Notification {
   id: string;
   recipient_id: string;
   recipient_type: string;
-  message: string;
+  message?: string;
+  title?: string | null;
+  body?: string | null;
+  type?: string;
   read: boolean;
-  image_url?: string;
+  image_url?: string | null;
+  status?: string;
+  ref_type?: string | null;
+  ref_id?: string | null;
+  order_id?: string;
+  source?: string;
+  claimable?: boolean;
+  created_at?: string;
+  sent_at?: string | null;
+  metadata?: Record<string, any>;
 }
 
 interface NotificationState {

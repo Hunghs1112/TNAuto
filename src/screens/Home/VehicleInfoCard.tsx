@@ -36,14 +36,6 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
     () => (vehiclesData?.data?.length || 0) > 1,
     [vehiclesData?.data?.length]
   );
-  const status = useMemo(
-    () => (firstVehicle?.has_active_order ? "Đang sửa chữa" : "Bình thường"),
-    [firstVehicle?.has_active_order]
-  );
-  const statusIcon = useMemo(
-    () => (firstVehicle?.has_active_order ? "construct" : "checkmark-circle"),
-    [firstVehicle?.has_active_order]
-  );
 
   const handleViewAllVehicles = useCallback(() => {
     navigation.navigate("VehicleList", { userId, userPhone });
@@ -198,26 +190,6 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
           </Text>
         </View>
 
-        <View style={[styles.infoTile, styles.statusTile]}>
-          <Text style={styles.label}>Trạng thái</Text>
-          <View style={styles.statusRow}>
-            <Ionicons
-              name={statusIcon as any}
-              size={16}
-              color={firstVehicle.has_active_order ? Colors.accent.yellow : Colors.accent.green}
-            />
-            <Text
-              style={[
-                styles.statusValue,
-                { color: firstVehicle.has_active_order ? Colors.accent.yellow : Colors.accent.green },
-              ]}
-              numberOfLines={1}
-            >
-              {status}
-            </Text>
-          </View>
-        </View>
-
         {hasMultipleVehicles && (
           <TouchableOpacity style={styles.fullWidthCta} onPress={handleViewAllVehicles} activeOpacity={0.9}>
             <Text style={styles.fullWidthCtaText}>Xem tất cả xe ({vehiclesData.data.length})</Text>
@@ -337,9 +309,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "rgba(0, 0, 0, 0.03)",
   },
-  statusTile: {
-    minWidth: 140,
-  },
   label: {
     fontSize: 11,
     lineHeight: 14,
@@ -362,18 +331,6 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: "700",
-  },
-
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  statusValue: {
-    fontSize: 13,
-    lineHeight: 16,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: "800",
   },
 
   fullWidthCta: {

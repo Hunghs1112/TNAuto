@@ -61,11 +61,11 @@ export default function EmployeePasswordScreen() {
           console.error('Failed to register FCM token:', error);
         });
 
-        // Navigate to MainTabs after successful login
+        // Navigate to Home (which contains MainTabs) after successful login
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
-            routes: [{ name: "MainTabs" as never }],
+            routes: [{ name: "Home" as never }],
           })
         );
       } else {
@@ -148,4 +148,3 @@ export default function EmployeePasswordScreen() {
     </Screen>
   );
 }
-

@@ -12,16 +12,25 @@ import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 import { PerformanceConfig } from "../../config/performance";
 import { useGetServiceCategoriesQuery, ServiceCategory } from "../../services/serviceCategoryApi";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const ServiceCategoryScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['ServiceCategory'] });
-  const query = useGetServiceCategoriesQuery();
+  const userType = useAppSelector((state) => state.auth.userType);
+  const query = useGetServiceCategoriesQuery(undefined, { skip: userType === "dealer" });
 
   // Use isFetching to determine actual refreshing state
   const actualRefreshing = refreshing || query.isFetching;
+
+  useEffect(() => {
+    if (userType === "dealer") {
+      // Dealer không được phép xem/đặt dịch vụ.
+      navigation.replace("Category" as never);
+    }
+  }, [userType, navigation]);
 
   const imageUrls = useMemo(
     () => (query.data ?? []).map((c: any) => c.image_url).filter((u: any): u is string => typeof u === 'string' && u.length > 0),
@@ -46,6 +55,10 @@ const ServiceCategoryScreen = () => {
       }
     }
   }, [baseOnRefresh, query]);
+
+  if (userType === "dealer") {
+    return null;
+  }
 
   return (
     <Screen

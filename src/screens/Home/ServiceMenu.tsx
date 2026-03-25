@@ -28,6 +28,7 @@ const ServiceMenu: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useAppDispatch();
   const offerCount = useAppSelector((state) => state.offers.count);
+  const userType = useAppSelector((state) => state.auth.userType);
 
   // Fetch offers for badge if not yet fetched
   const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(undefined, {
@@ -41,12 +42,21 @@ const ServiceMenu: React.FC = () => {
     }
   }, [offersSuccess, offersData, dispatch]);
   
-  const menuItems: MenuItem[] = useMemo(() => [
-    { id: 1, title: "Ưu đãi", icon: "pricetag-outline", route: "Offer" },
-    { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "Category" },
-    { id: 3, title: "Tích điểm", icon: "star-outline" },
-    { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline", route: "Warranty" },
-  ], []);
+  const menuItems: MenuItem[] = useMemo(() => {
+    const baseItems: MenuItem[] = [
+      { id: 1, title: "Ưu đãi", icon: "pricetag-outline", route: "Offer" },
+      { id: 2, title: "Sản phẩm", icon: "cube-outline", route: "Category" },
+      { id: 3, title: "Tích điểm", icon: "star-outline" },
+      { id: 4, title: "Bảo hành", icon: "shield-checkmark-outline", route: "Warranty" },
+    ];
+
+    // Đại lý chỉ được phép đặt sản phẩm => loại bỏ các mục liên quan dịch vụ/bảo hành.
+    if (userType === "dealer") {
+      return baseItems.filter((i) => i.id !== 4);
+    }
+
+    return baseItems;
+  }, [userType]);
 
   const handlePress = useCallback((item: MenuItem) => {
     // Xử lý đặc biệt cho tính năng Tích điểm

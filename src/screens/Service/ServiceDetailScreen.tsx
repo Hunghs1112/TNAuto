@@ -21,6 +21,7 @@ import { styles } from "./styles";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ConfirmButton from "../../components/ConfirmButton";
 import { formatSecondsToDaysHours, secondsToMonths } from "../../utils/dateHelpers";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type ServiceDetailRouteProp = RouteProp<AppStackParamList, "ServiceDetail">;
 type ServiceDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, "ServiceDetail">;
@@ -32,11 +33,13 @@ const ServiceDetailScreen = () => {
   const route = useRoute<ServiceDetailRouteProp>();
   const navigation = useNavigation<ServiceDetailNavigationProp>();
   const { serviceId } = route.params;
+  const userType = useAppSelector((s) => s.auth.userType);
+  const isDealer = userType === "dealer";
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Fetch service details from API (rely on global refetch config)
-  const serviceQuery = useGetServiceByIdQuery(serviceId);
+  const serviceQuery = useGetServiceByIdQuery(serviceId, { skip: isDealer });
 
   const service = serviceQuery.data?.data;
 
@@ -53,6 +56,13 @@ const ServiceDetailScreen = () => {
     return () => clearTimeout(t);
   }, [serviceId]);
 
+  useReactEffect(() => {
+    if (isDealer) {
+      // Dealer không được phép đặt lịch dịch vụ.
+      navigation.replace("Category" as never);
+    }
+  }, [isDealer, navigation]);
+
   // Handle pull-to-refresh
   const handleRefresh = useCallback(async () => {
     if (!serviceQuery.refetch) return;
@@ -67,6 +77,10 @@ const ServiceDetailScreen = () => {
       setRefreshing(false);
     }
   }, [serviceQuery]);
+
+  if (isDealer) {
+    return null;
+  }
 
   return (
     <Screen headerTitle="Chi tiết dịch vụ" showBackButton safeAreaTopColor={Colors.primary} statusBarStyle="light-content">

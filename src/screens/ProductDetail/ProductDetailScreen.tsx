@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   Image,
-  Dimensions,
   TouchableOpacity,
   Modal,
   RefreshControl,
@@ -17,72 +16,78 @@ import { useRoute, RouteProp } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { useGetCategoriesQuery } from "../../services/categoryApi";
 import { useGetProductByIdQuery, useGetProductImagesQuery } from "../../services/productApi";
+import { useGetDealerProductByIdQuery, useGetDealerProductImagesQuery } from "../../services/dealerProductApi";
 import { QueryWrapper, ScreenLoader } from "../../components/Loading";
 import { styles } from "./styles";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ProductVideo from "../../components/ProductVideo/ProductVideo";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { getCatalogProductImageUrls } from "../../utils/catalog";
 
 type ProductDetailRouteProp = RouteProp<AppStackParamList, "ProductDetail">;
 
-// Placeholder image URL
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/400x400/cccccc/666666?text=No+Image";
 
 const ProductDetailScreen = () => {
   const route = useRoute<ProductDetailRouteProp>();
   const { productId } = route.params;
+  const userType = useAppSelector((state) => state.auth.userType);
+  const isDealer = userType === "dealer";
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState(null as string | null);
   const [refreshing, setRefreshing] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
 
-  // Fetch product details from API with refetch on mount
-  const productQuery = useGetProductByIdQuery(productId);
-  const productImagesQuery = useGetProductImagesQuery(productId);
+  const productQuery = useGetProductByIdQuery(productId, { skip: isDealer });
+  const productImagesQuery = useGetProductImagesQuery(productId, { skip: isDealer });
+  const dealerProductQuery = useGetDealerProductByIdQuery(productId, { skip: !isDealer });
+  const dealerProductImagesQuery = useGetDealerProductImagesQuery(productId, { skip: !isDealer });
+  const { data: categories = [] } = useGetCategoriesQuery(undefined, { skip: isDealer });
 
-  // Fetch categories to get category name
-  const { data: categories = [] } = useGetCategoriesQuery();
+  const activeProductQuery = isDealer ? dealerProductQuery : productQuery;
+  const activeProductImagesQuery = isDealer ? dealerProductImagesQuery : productImagesQuery;
+  const product: any = activeProductQuery.data;
 
-  const product = productQuery.data;
+  const categoryName = isDealer
+    ? product?.category_name || undefined
+    : product?.category_id
+      ? categories.find((cat) => cat.id === product.category_id)?.name
+      : undefined;
 
-  // Find category name by ID
-  const categoryName = product?.category_id ? categories.find((cat) => cat.id === product.category_id)?.name : undefined;
-
-  // Helper to force retry on image load error
   const handleImageError = useCallback(() => {
     setImageRetry((prev) => prev + 1);
   }, []);
 
-  // Handle pull-to-refresh (single grouped refetch)
   const handleRefresh = useCallback(async () => {
-    if (!productQuery.refetch && !productImagesQuery.refetch) return;
+    const refetchFns = [activeProductQuery.refetch, activeProductImagesQuery.refetch].filter(
+      (refetch) => typeof refetch === "function",
+    ) as Array<() => Promise<any>>;
+
+    if (refetchFns.length === 0) {
+      return;
+    }
 
     setRefreshing(true);
     try {
-      await Promise.all([productQuery.refetch?.(), productImagesQuery.refetch?.()]);
+      await Promise.all(refetchFns.map((refetch) => refetch()));
       setImageRetry((prev) => prev + 1);
     } catch (error) {
       console.error("Error refreshing product:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [productQuery, productImagesQuery]);
+  }, [activeProductImagesQuery.refetch, activeProductQuery.refetch]);
 
-  // Prepare images array - prioritize product images query, then product.images, then primary_image
   const images = useMemo(() => {
-    let imageUrls: string[] = [];
-
-    if (productImagesQuery.data && productImagesQuery.data.length > 0) {
-      imageUrls = productImagesQuery.data.map((img) => img.image_url);
-    } else if (product?.images && product.images.length > 0) {
-      imageUrls = product.images.map((img) => img.image_url);
-    } else if (product?.primary_image) {
-      imageUrls = [product.primary_image];
-    } else {
-      return [PLACEHOLDER_IMAGE];
-    }
-
+    const imageUrls = getCatalogProductImageUrls(product, activeProductImagesQuery.data as any);
     return imageUrls.length > 0 ? imageUrls : [PLACEHOLDER_IMAGE];
-  }, [productImagesQuery.data, product?.images, product?.primary_image]);
+  }, [activeProductImagesQuery.data, product]);
+
+  useEffect(() => {
+    if (currentImageIndex >= images.length) {
+      setCurrentImageIndex(0);
+    }
+  }, [currentImageIndex, images.length]);
 
   const handleImageChange = (direction: "left" | "right") => {
     if (direction === "left") {
@@ -95,7 +100,7 @@ const ProductDetailScreen = () => {
   return (
     <Screen headerTitle="Chi tiết sản phẩm" showBackButton safeAreaTopColor={Colors.primary} statusBarStyle="light-content">
       <QueryWrapper
-        query={productQuery}
+        query={activeProductQuery as any}
         errorMessage="Lỗi tải chi tiết sản phẩm"
         checkEmpty={() => !product}
         emptyMessage="Không tìm thấy sản phẩm"
@@ -105,8 +110,7 @@ const ProductDetailScreen = () => {
             <ScreenLoader />
           </View>
         }
-      >
-        {() => {
+        children={() => {
           if (!product) return null;
 
           return (
@@ -117,7 +121,6 @@ const ProductDetailScreen = () => {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
             >
               <View style={styles.body}>
-                {/* Image Carousel */}
                 <TouchableOpacity
                   style={styles.imageCarousel}
                   onPress={() => setSelectedImage(images[currentImageIndex])}
@@ -131,7 +134,6 @@ const ProductDetailScreen = () => {
                     onError={handleImageError}
                   />
 
-                  {/* Image Navigation */}
                   {images.length > 1 && (
                     <>
                       <TouchableOpacity style={[styles.imageNav, styles.imageNavLeft]} onPress={() => handleImageChange("left")}>
@@ -142,7 +144,6 @@ const ProductDetailScreen = () => {
                         <Ionicons name="chevron-forward" size={24} color={Colors.background.light} />
                       </TouchableOpacity>
 
-                      {/* Image Indicators */}
                       <View style={styles.imageIndicators}>
                         {images.map((_, index) => (
                           <View key={index} style={[styles.indicator, index === currentImageIndex && styles.indicatorActive]} />
@@ -152,11 +153,9 @@ const ProductDetailScreen = () => {
                   )}
                 </TouchableOpacity>
 
-                {/* Product Info */}
                 <View style={styles.infoSection}>
                   <Text style={styles.productName}>{product.name}</Text>
 
-                  {/* Image Gallery Thumbnails */}
                   {images.length > 1 && (
                     <View style={styles.thumbnailSection}>
                       <Text style={styles.sectionTitle}>Hình ảnh ({images.length})</Text>
@@ -183,7 +182,6 @@ const ProductDetailScreen = () => {
                     </View>
                   )}
 
-                  {/* Product Video */}
                   {product.video_url && (
                     <View style={styles.videoSection}>
                       <Text style={styles.sectionTitle}>Video sản phẩm</Text>
@@ -191,7 +189,6 @@ const ProductDetailScreen = () => {
                     </View>
                   )}
 
-                  {/* Product Description */}
                   {product.description && (
                     <View style={styles.descriptionSection}>
                       <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
@@ -199,7 +196,6 @@ const ProductDetailScreen = () => {
                     </View>
                   )}
 
-                  {/* Product Metadata */}
                   <View style={styles.metadataSection}>
                     <View style={styles.metadataRow}>
                       <Ionicons name="cube-outline" size={20} color={Colors.text.secondary} />
@@ -221,7 +217,6 @@ const ProductDetailScreen = () => {
                     )}
                   </View>
 
-                  {/* Contact Button */}
                   <View style={styles.actionSection}>
                     <ConfirmButton
                       title="Liên hệ để đặt hàng"
@@ -237,9 +232,8 @@ const ProductDetailScreen = () => {
             </ScrollView>
           );
         }}
-      </QueryWrapper>
+      />
 
-      {/* Full Screen Image Modal */}
       <Modal visible={!!selectedImage} transparent={true} animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={styles.modalCloseButton} onPress={() => setSelectedImage(null)}>

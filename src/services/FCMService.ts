@@ -258,6 +258,11 @@ class FCMService {
         return;
       }
 
+      if (state.auth.userType === 'dealer') {
+        console.log('ℹ️ FCMService: Dealer account skips backend FCM token registration');
+        return;
+      }
+
       // Re-register with backend (backend will handle update if token exists)
       console.log('🔄 FCMService: Re-registering token with backend');
       await this.registerTokenWithBackend(token, state.auth.userId, state.auth.userType);

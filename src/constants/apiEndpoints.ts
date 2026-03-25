@@ -145,6 +145,19 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Get assigned orders by employee (required param: employee_id; optional param: status; no body)',
     params: ['employee_id', 'status'],
   },
+  getAvailableEmployeeOrders: {
+    method: 'GET',
+    path: '/employees/orders/available',
+    description: 'Get available orders for employee self-claim (optional params: page, limit, search; no body)',
+    params: ['page', 'limit', 'search'],
+  },
+  claimEmployeeOrder: {
+    method: 'POST',
+    path: '/employees/orders/:id/claim',
+    description: 'Claim an available service order (required param: id; required body: employee_id)',
+    params: ['id'],
+    body: ['employee_id'],
+  },
   updateEmployeeOrderStatus: {
     method: 'PUT',
     path: '/employees/orders/:id/status',
@@ -357,7 +370,7 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
   },
   getUnreadCount: {
     method: 'GET',
-    path: '/notifications/count',
+    path: '/notifications/unread-count',
     description: 'Count unread notifications (required params: recipient_id, recipient_type)',
     params: ['recipient_id', 'recipient_type'],
   },
@@ -368,13 +381,13 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     body: ['recipient_id', 'recipient_type', 'message'],
   },
   markNotificationRead: {
-    method: 'PATCH',
+    method: 'PUT',
     path: '/notifications/:id/read',
     description: 'Mark notification as read (required param: id; no body)',
   },
   markAllNotificationsRead: {
-    method: 'PATCH',
-    path: '/notifications/mark-all-read',
+    method: 'PUT',
+    path: '/notifications/read-all',
     description: 'Mark all notifications as read (required body: recipient_id, recipient_type)',
     body: ['recipient_id', 'recipient_type'],
   },
@@ -446,6 +459,84 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     method: 'DELETE',
     path: '/offers/:id',
     description: 'Delete offer (required param: id; no body)',
+  },
+  // Dealer Categories
+  getDealerCategories: {
+    method: 'GET',
+    path: '/dealer/categories',
+    description: 'Get all dealer categories (no body)',
+  },
+  createDealerCategory: {
+    method: 'POST',
+    path: '/dealer/categories',
+    description: 'Create dealer category (required body: name)',
+    body: ['name'],
+  },
+  getDealerCategoryById: {
+    method: 'GET',
+    path: '/dealer/categories/:id',
+    description: 'Get dealer category by ID with dealer products (required param: id; no body)',
+  },
+  updateDealerCategory: {
+    method: 'PUT',
+    path: '/dealer/categories/:id',
+    description: 'Update dealer category (required param: id; optional body: name, description, image_url)',
+    body: ['name', 'description', 'image_url'],
+  },
+  deleteDealerCategory: {
+    method: 'DELETE',
+    path: '/dealer/categories/:id',
+    description: 'Delete dealer category (required param: id; no body)',
+  },
+  // Dealer Products
+  getDealerProducts: {
+    method: 'GET',
+    path: '/dealer/products',
+    description: 'Get all dealer products with images (no body)',
+  },
+  getDealerProductById: {
+    method: 'GET',
+    path: '/dealer/products/:id',
+    description: 'Get dealer product by ID with images (required param: id; no body)',
+  },
+  getDealerProductImages: {
+    method: 'GET',
+    path: '/dealer/products/:productId/images',
+    description: 'Get dealer product images (required param: productId; no body)',
+  },
+  createDealerProduct: {
+    method: 'POST',
+    path: '/dealer/products',
+    description: 'Create dealer product (required body: name, price, category_id)',
+    body: ['name', 'price', 'category_id'],
+  },
+  updateDealerProduct: {
+    method: 'PUT',
+    path: '/dealer/products/:id',
+    description: 'Update dealer product (required param: id; optional body: name, description, price, category_id, video_url)',
+    body: ['name', 'description', 'price', 'category_id', 'video_url'],
+  },
+  deleteDealerProduct: {
+    method: 'DELETE',
+    path: '/dealer/products/:id',
+    description: 'Delete dealer product (required param: id; no body)',
+  },
+  createDealerProductImage: {
+    method: 'POST',
+    path: '/dealer/products/images',
+    description: 'Create dealer product image (required body: product_id, image_url)',
+    body: ['product_id', 'image_url'],
+  },
+  updateDealerProductImage: {
+    method: 'PUT',
+    path: '/dealer/products/images/:id',
+    description: 'Update dealer product image (required param: id; optional body: image_url, is_primary)',
+    body: ['image_url', 'is_primary'],
+  },
+  deleteDealerProductImage: {
+    method: 'DELETE',
+    path: '/dealer/products/images/:id',
+    description: 'Delete dealer product image (required param: id; no body)',
   },
   // Categories
   getCategories: {

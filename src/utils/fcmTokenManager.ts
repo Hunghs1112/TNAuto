@@ -1,5 +1,11 @@
 // src/utils/fcmTokenManager.ts - Utility to manage FCM token registration
-import { fcmService } from '../services/FCMService';
+
+type SupportedUserType = 'customer' | 'employee' | 'dealer';
+
+async function getFCMService() {
+  const module = await import('../services/FCMService');
+  return module.fcmService;
+}
 
 /**
  * Register FCM token after login
@@ -7,24 +13,28 @@ import { fcmService } from '../services/FCMService';
  */
 export async function registerFCMTokenAfterLogin(
   userId: string,
-  userType: 'customer' | 'employee'
+  userType: SupportedUserType,
 ): Promise<boolean> {
-
   try {
-    // Always fetch fresh token on new login (không dùng cached)
+    const fcmService = await getFCMService();
+
+    // Always fetch fresh token on new login (khong dung cached)
     const token = await fcmService.getFCMToken();
 
     if (!token) {
-      console.error('❌ FCM Token Manager: Failed to get FCM token');
+      console.error('FCM Token Manager: Failed to get FCM token');
       return false;
     }
 
-    // Register token with backend (errors handled inside, won't throw)
+    // Backend register flow currently supports customer/employee.
+    if (userType === 'dealer') {
+      return true;
+    }
+
     await fcmService.registerTokenWithBackend(token, userId, userType);
-    
     return true;
   } catch (error) {
-    console.error('❌ FCM Token Manager: Unexpected error:', error);
+    console.error('FCM Token Manager: Unexpected error:', error);
     return false;
   }
 }
@@ -34,24 +44,20 @@ export async function registerFCMTokenAfterLogin(
  * Call this function before logout
  */
 export async function unregisterFCMTokenOnLogout(): Promise<boolean> {
-
   try {
-    // Get saved token
+    const fcmService = await getFCMService();
     const token = await fcmService.getSavedToken();
-    
+
     if (!token) {
       return true;
     }
 
-    // Unregister from backend
     await fcmService.unregisterTokenFromBackend(token);
-    
-    // Delete token locally
     await fcmService.deleteToken();
-    
+
     return true;
   } catch (error) {
-    console.error('❌ FCM Token Manager: Unregistration failed:', error);
+    console.error('FCM Token Manager: Unregistration failed:', error);
     return false;
   }
 }
@@ -61,25 +67,25 @@ export async function unregisterFCMTokenOnLogout(): Promise<boolean> {
  */
 export async function refreshFCMTokenRegistration(
   userId: string,
-  userType: 'customer' | 'employee'
+  userType: SupportedUserType,
 ): Promise<boolean> {
-
   try {
-    // Get new token
+    const fcmService = await getFCMService();
     const token = await fcmService.getFCMToken();
-    
+
     if (!token) {
-      console.error('❌ FCM Token Manager: Failed to get FCM token');
+      console.error('FCM Token Manager: Failed to get FCM token');
       return false;
     }
 
-    // Re-register with backend
+    if (userType === 'dealer') {
+      return true;
+    }
+
     await fcmService.registerTokenWithBackend(token, userId, userType);
-    
     return true;
   } catch (error) {
-    console.error('❌ FCM Token Manager: Refresh failed:', error);
+    console.error('FCM Token Manager: Refresh failed:', error);
     return false;
   }
 }
-

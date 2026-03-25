@@ -1,4 +1,3 @@
-// src/services/notificationApi.ts (Updated: Use params object for getNotifications to let RTK serialize query string)
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
@@ -20,7 +19,7 @@ interface BackendNotification {
   ref_type?: string | null;
   ref_id?: string | null;
   priority?: number;
-  metadata?: any;
+  metadata?: Record<string, any> | null;
   created_at?: string;
 }
 
@@ -40,6 +39,10 @@ interface Notification {
   ref_id?: string | null;
   created_at?: string;
   sent_at?: string | null;
+  order_id?: string;
+  source?: string;
+  claimable?: boolean;
+  metadata?: Record<string, any>;
 }
 
 interface ApiResponse<T> {
@@ -48,6 +51,7 @@ interface ApiResponse<T> {
   error?: string;
   count?: number;
   message?: string;
+  unread_count?: number;
 }
 
 interface GetNotificationsParams {
@@ -68,6 +72,35 @@ interface MarkAllReadParams {
   recipient_type: string;
 }
 
+const getMetadata = (item: BackendNotification) =>
+  item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+
+const normalizeBoolean = (value: unknown) => {
+  if (value === true || value === 1 || value === '1' || value === 'true') {
+    return true;
+  }
+
+  if (value === false || value === 0 || value === '0' || value === 'false') {
+    return false;
+  }
+
+  return undefined;
+};
+
+const extractOrderId = (item: BackendNotification, metadata: Record<string, any>) => {
+  const fallbackRefId =
+    item.ref_type === 'order' || item.type?.includes('order')
+      ? item.ref_id
+      : undefined;
+  const rawOrderId = metadata.order_id ?? fallbackRefId;
+
+  if (rawOrderId === undefined || rawOrderId === null || rawOrderId === '') {
+    return undefined;
+  }
+
+  return String(rawOrderId);
+};
+
 export const notificationApi = createApi({
   ...API_CONFIG,
   reducerPath: 'notificationApi' as const,
@@ -75,45 +108,65 @@ export const notificationApi = createApi({
   tagTypes: ['Notification'] as const,
   endpoints: (builder) => ({
     getNotifications: builder.query<Notification[], GetNotificationsParams>({
-      query: (params) => ({ 
-        url: ENDPOINTS.getNotifications.path, 
-        params // RTK will serialize to ?recipient_id=...&recipient_type=...&is_read=...&limit=...&offset=...
+      query: (params) => ({
+        url: ENDPOINTS.getNotifications.path,
+        params,
       }),
       providesTags: ['Notification'],
       transformResponse: (response: ApiResponse<BackendNotification[]>) => {
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to fetch notifications');
         }
+
         return response.data.map((item: BackendNotification) => {
-          const isRead = (item.is_read === true || item.is_read === 1);
+          const metadata = getMetadata(item);
+          const isRead = item.is_read === true || item.is_read === 1;
+          const normalizedClaimable = normalizeBoolean(metadata.claimable);
+
           return {
             ...item,
-            // Normalize legacy/new formats
-            is_read: (isRead ? 1 : 0),
+            type: item.type || metadata.type,
+            title: item.title ?? metadata.title ?? null,
+            body: item.body ?? metadata.body ?? null,
+            is_read: isRead ? 1 : 0,
             read: isRead,
             image_url: item.image_url ?? null,
+            status: item.status ?? metadata.status,
+            order_id: extractOrderId(item, metadata),
+            source: metadata.source,
+            claimable: normalizedClaimable,
+            metadata,
           };
         });
       },
     }),
     getUnreadCount: builder.query<number, UnreadCountParams>({
-      query: (params) => ({ 
-        url: ENDPOINTS.getUnreadCount.path, 
-        params 
+      query: (params) => ({
+        url: ENDPOINTS.getUnreadCount.path,
+        params,
       }),
       providesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ unread_count: number }>) => {
-        if (!response.success || !response.data) {
+        if (!response.success) {
           throw new Error(response.error || 'Failed to get unread count');
         }
-        return response.data.unread_count;
+
+        if (typeof response.data?.unread_count === 'number') {
+          return response.data.unread_count;
+        }
+
+        if (typeof response.unread_count === 'number') {
+          return response.unread_count;
+        }
+
+        return 0;
       },
     }),
     createNotification: builder.mutation<void, { recipient_id: string; recipient_type: string; message: string; image_url?: string }>({
-      query: (body) => ({ 
-        url: ENDPOINTS.createNotification.path, 
-        method: 'POST', 
-        body 
+      query: (body) => ({
+        url: ENDPOINTS.createNotification.path,
+        method: 'POST',
+        body,
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ notification_id: string }>) => {
@@ -123,9 +176,9 @@ export const notificationApi = createApi({
       },
     }),
     markNotificationRead: builder.mutation<void, string>({
-      query: (id) => ({ 
-        url: buildEndpointUrl('markNotificationRead', { id }), 
-        method: 'PUT' 
+      query: (id) => ({
+        url: buildEndpointUrl('markNotificationRead', { id }),
+        method: 'PUT',
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {
@@ -135,10 +188,10 @@ export const notificationApi = createApi({
       },
     }),
     markAllNotificationsRead: builder.mutation<void, MarkAllReadParams>({
-      query: (body) => ({ 
-        url: ENDPOINTS.markAllNotificationsRead.path, 
-        method: 'PATCH',
-        body
+      query: (body) => ({
+        url: ENDPOINTS.markAllNotificationsRead.path,
+        method: 'PUT',
+        body,
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string; updated_count: number }>) => {
@@ -148,9 +201,9 @@ export const notificationApi = createApi({
       },
     }),
     deleteNotification: builder.mutation<void, string>({
-      query: (id) => ({ 
-        url: buildEndpointUrl('deleteNotification', { id }), 
-        method: 'DELETE' 
+      query: (id) => ({
+        url: buildEndpointUrl('deleteNotification', { id }),
+        method: 'DELETE',
       }),
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {
@@ -160,10 +213,10 @@ export const notificationApi = createApi({
       },
     }),
     registerFcmToken: builder.mutation<void, { user_id: string; user_type: string; token: string; device_info?: string }>({
-      query: (body) => ({ 
-        url: ENDPOINTS.registerFcmToken.path, 
-        method: 'POST', 
-        body 
+      query: (body) => ({
+        url: ENDPOINTS.registerFcmToken.path,
+        method: 'POST',
+        body,
       }),
       transformResponse: (response: ApiResponse<{ message: string; token_id?: number; is_new?: boolean }>) => {
         if (!response.success) {
@@ -172,22 +225,23 @@ export const notificationApi = createApi({
       },
     }),
     getUserFcmTokens: builder.query<any[], { user_id: string; user_type: string }>({
-      query: (params) => ({ 
-        url: ENDPOINTS.getUserFcmTokens.path, 
-        params 
+      query: (params) => ({
+        url: ENDPOINTS.getUserFcmTokens.path,
+        params,
       }),
       transformResponse: (response: ApiResponse<{ tokens: any[]; count: number }>) => {
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to get FCM tokens');
         }
+
         return response.data.tokens;
       },
     }),
     deleteFcmToken: builder.mutation<void, { token: string }>({
-      query: (body) => ({ 
-        url: ENDPOINTS.deleteFcmToken.path, 
-        method: 'DELETE', 
-        body 
+      query: (body) => ({
+        url: ENDPOINTS.deleteFcmToken.path,
+        method: 'DELETE',
+        body,
       }),
       transformResponse: (response: ApiResponse<{ message: string }>) => {
         if (!response.success) {
@@ -196,13 +250,14 @@ export const notificationApi = createApi({
       },
     }),
     getActiveFcmTokens: builder.query<any[], void>({
-      query: () => ({ 
-        url: ENDPOINTS.getActiveFcmTokens.path 
+      query: () => ({
+        url: ENDPOINTS.getActiveFcmTokens.path,
       }),
       transformResponse: (response: ApiResponse<{ tokens: any[]; count: number }>) => {
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to get active FCM tokens');
         }
+
         return response.data.tokens;
       },
     }),

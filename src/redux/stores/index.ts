@@ -8,6 +8,8 @@ import { customerApi } from '../../services/customerApi';
 import { offerApi } from '../../services/offerApi';
 import { productApi } from '../../services/productApi';
 import { categoryApi } from '../../services/categoryApi';
+import { dealerProductApi } from '../../services/dealerProductApi';
+import { dealerCategoryApi } from '../../services/dealerCategoryApi';
 import { serviceOrderApi } from '../../services/serviceOrderApi';
 import { employeeApi } from '../../services/employeeApi';
 import { imageApi } from '../../services/imageApi';
@@ -65,6 +67,8 @@ export const store = configureStore({
     [offerApi.reducerPath]: offerApi.reducer,
     [productApi.reducerPath]: productApi.reducer,
     [categoryApi.reducerPath]: categoryApi.reducer,
+    [dealerProductApi.reducerPath]: dealerProductApi.reducer,
+    [dealerCategoryApi.reducerPath]: dealerCategoryApi.reducer,
     [serviceOrderApi.reducerPath]: serviceOrderApi.reducer,
     [employeeApi.reducerPath]: employeeApi.reducer,
     [imageApi.reducerPath]: imageApi.reducer,
@@ -86,6 +90,8 @@ export const store = configureStore({
       offerApi.middleware, 
       productApi.middleware,
       categoryApi.middleware,
+      dealerProductApi.middleware,
+      dealerCategoryApi.middleware,
       serviceOrderApi.middleware,
       employeeApi.middleware,
       imageApi.middleware,

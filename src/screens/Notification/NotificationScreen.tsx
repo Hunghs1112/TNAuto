@@ -1,89 +1,115 @@
-// src/screens/Notification/NotificationScreen.tsx
 import React, { useEffect, useCallback, useMemo } from "react";
-import { View, FlatList, ActivityIndicator, Text, RefreshControl, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  FlatList,
+  ActivityIndicator,
+  Text,
+  RefreshControl,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from '@react-native-vector-icons/ionicons';
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { RootState } from "../../redux/types";
 import { PerformanceConfig } from "../../config/performance";
-import { useGetNotificationsQuery, useGetUnreadCountQuery, useDeleteNotificationMutation, useMarkNotificationReadMutation } from "../../services/notificationApi";
-import { setNotifications, deleteNotification as deleteNotificationAction, setUnreadCount } from "../../redux/slices/notificationSlice";
-import { useNavigation } from "@react-navigation/native";
+import {
+  useDeleteNotificationMutation,
+  useGetNotificationsQuery,
+  useGetUnreadCountQuery,
+  useMarkNotificationReadMutation,
+} from "../../services/notificationApi";
+import {
+  setNotifications,
+  deleteNotification as deleteNotificationAction,
+  setUnreadCount,
+} from "../../redux/slices/notificationSlice";
 import { AppStackParamList } from "../../navigation/AppNavigator";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Colors } from "../../constants/colors";
 import { Screen } from "../../components/layout";
 import Item from "../../components/Item";
 import ErrorView from "../../components/Loading/ErrorView";
 import { styles } from "./styles";
-import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-const NotificationScreen: React.FC = () => {
+const getNotificationOrderId = (item: any) => {
+  const rawOrderId = item?.order_id ?? item?.metadata?.order_id ?? (item?.ref_type === 'order' ? item?.ref_id : undefined);
+
+  if (rawOrderId !== undefined && rawOrderId !== null && rawOrderId !== '') {
+    return String(rawOrderId);
+  }
+
+  const message = String(item?.message || '');
+  const orderMatch = message.match(/#(\d+)/);
+  return orderMatch?.[1];
+};
+
+const NotificationScreen = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation<NavigationProp>();
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Notification'] });
   const userType = useAppSelector((state: RootState) => state.auth.userType || 'customer');
   const userId = useAppSelector((state: RootState) => state.auth.userId || '');
   const recipientId = userId;
   const recipientType = userType;
 
-  const { 
-    data: notifications, 
-    isLoading, 
-    error, 
+  const {
+    data: notifications,
+    isLoading,
+    error,
     refetch: refetchNotifications,
-    isFetching: isFetchingNotifications 
+    isFetching: isFetchingNotifications,
   } = useGetNotificationsQuery(
     { recipient_id: recipientId, recipient_type: recipientType },
-    { skip: !recipientId }
+    { skip: !recipientId },
   );
 
-  const { 
-    data: unreadCount, 
+  const {
+    data: unreadCount,
     refetch: refetchUnreadCount,
-    isFetching: isFetchingUnreadCount 
+    isFetching: isFetchingUnreadCount,
   } = useGetUnreadCountQuery(
     { recipient_id: recipientId, recipient_type: recipientType },
-    { skip: !recipientId }
+    { skip: !recipientId },
   );
 
-  // Use isFetching to determine actual refreshing state
   const actualRefreshing = refreshing || isFetchingNotifications || isFetchingUnreadCount;
 
-  // Enhanced refresh handler that refetches all queries
   const handleRefresh = useCallback(async () => {
     baseOnRefresh();
     const refetchPromises: Promise<any>[] = [];
-    
+
     if (refetchNotifications) {
       refetchPromises.push(refetchNotifications());
     }
-    
+
     if (refetchUnreadCount) {
       refetchPromises.push(refetchUnreadCount());
     }
-    
+
     try {
       await Promise.all(refetchPromises);
-    } catch (error) {
-      console.error('NotificationScreen: Error during refetch:', error);
+    } catch (refreshError) {
+      console.error('NotificationScreen: Error during refetch:', refreshError);
     }
   }, [baseOnRefresh, refetchNotifications, refetchUnreadCount]);
 
   const [deleteNotificationApi] = useDeleteNotificationMutation();
   const [markNotificationReadApi] = useMarkNotificationReadMutation();
 
-  // Sync to slice on mount/refetch
   useEffect(() => {
     if (notifications) {
       dispatch(setNotifications(notifications));
     }
   }, [notifications, dispatch]);
 
-  // Sync unread count
   useEffect(() => {
     if (unreadCount !== undefined) {
       dispatch(setUnreadCount(unreadCount));
@@ -95,12 +121,12 @@ const NotificationScreen: React.FC = () => {
       if (item?.id) {
         await markNotificationReadApi(String(item.id)).unwrap();
       }
-    } catch (e) {
-      // Ignore - keep navigation responsive
+    } catch (markReadError) {
+      console.error('NotificationScreen: Failed to mark notification as read:', markReadError);
     }
 
     const dataType = item?.type;
-    const message = String(item?.message || '');
+    const orderId = getNotificationOrderId(item);
 
     if (dataType === 'service_reminder' && item?.ref_id) {
       navigation.navigate('ServiceDetail', { serviceId: Number(item.ref_id) });
@@ -108,38 +134,45 @@ const NotificationScreen: React.FC = () => {
     }
 
     if (dataType === 'warranty_reminder') {
-      if (item?.ref_type === 'order' && item?.ref_id) {
-        if (userType === 'customer') {
-          navigation.navigate('OrderDetail', { id: String(item.ref_id) });
+      if (orderId) {
+        if (userType === 'employee') {
+          navigation.navigate('EmployeeOrderDetail', { id: orderId });
         } else {
-          navigation.navigate('EmployeeOrderDetail', { id: String(item.ref_id) });
+          navigation.navigate('OrderDetail', { id: orderId });
         }
         return;
       }
+
       navigation.navigate('Warranty');
       return;
     }
 
-    if (dataType && String(dataType).includes('order')) {
-      const orderId = item?.ref_type === 'order' && item?.ref_id ? String(item.ref_id) : undefined;
+    if (
+      dataType === 'order_available_for_claim' ||
+      dataType === 'order_claimed' ||
+      dataType === 'order_assigned' ||
+      dataType === 'order_status_update' ||
+      dataType === 'order_created' ||
+      dataType === 'order_completed'
+    ) {
       if (orderId) {
-        if (userType === 'customer') {
-          navigation.navigate('OrderDetail', { id: orderId });
-        } else {
+        if (userType === 'employee') {
           navigation.navigate('EmployeeOrderDetail', { id: orderId });
+        } else {
+          navigation.navigate('OrderDetail', { id: orderId });
         }
         return;
       }
+
+      navigation.navigate('Home');
+      return;
     }
 
-    // Legacy fallback: Parse order_id from message like "Đơn hàng #X ..."
-    const orderMatch = message.match(/#(\d+)/);
-    if (orderMatch) {
-      const orderId = orderMatch[1];
-      if (userType === 'customer') {
-        navigation.navigate('OrderDetail', { id: orderId });
-      } else {
+    if (orderId) {
+      if (userType === 'employee') {
         navigation.navigate('EmployeeOrderDetail', { id: orderId });
+      } else {
+        navigation.navigate('OrderDetail', { id: orderId });
       }
     }
   }, [markNotificationReadApi, navigation, userType]);
@@ -157,16 +190,16 @@ const NotificationScreen: React.FC = () => {
             try {
               await deleteNotificationApi(notificationId).unwrap();
               dispatch(deleteNotificationAction(notificationId));
-            } catch (error) {
+            } catch (deleteError) {
               Alert.alert('Lỗi', 'Không thể xóa thông báo');
+              console.error('NotificationScreen: Failed to delete notification:', deleteError);
             }
           },
         },
-      ]
+      ],
     );
   }, [deleteNotificationApi, dispatch]);
 
-  // Show loading only on initial load (no data yet)
   if (isLoading && !notifications) {
     return (
       <Screen
@@ -183,7 +216,6 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
-  // Show error only if no data available
   if (error && !notifications) {
     return (
       <Screen
@@ -193,7 +225,7 @@ const NotificationScreen: React.FC = () => {
         statusBarStyle="light-content"
       >
         <View style={styles.errorContainer}>
-          <ErrorView 
+          <ErrorView
             message="Lỗi tải thông báo"
             onRetry={refetchNotifications}
             icon="notifications-outline"
@@ -203,7 +235,6 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
-  // Check if we have data
   if (!notifications || notifications.length === 0) {
     return (
       <Screen
@@ -219,7 +250,6 @@ const NotificationScreen: React.FC = () => {
     );
   }
 
-  const { bottom: bottomInset } = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 76;
 
   const renderItem = useCallback(({ item }: { item: any }) => {
@@ -253,8 +283,8 @@ const NotificationScreen: React.FC = () => {
           onPress={() => handlePress(item)}
           isPressable={true}
         />
-        <TouchableOpacity 
-          style={{ 
+        <TouchableOpacity
+          style={{
             position: 'absolute',
             top: 8,
             right: 8,
@@ -272,24 +302,24 @@ const NotificationScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
     );
-  }, [handlePress, handleDelete]);
+  }, [handleDelete, handlePress]);
 
   const keyExtractor = useCallback((item: { id: string }) => item.id, []);
 
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
-      length: 110 + 12, // item minHeight + separator
+      length: 110 + 12,
       offset: (110 + 12) * index,
       index,
     }),
-    []
+    [],
   );
 
   const renderSeparator = useCallback(() => <View style={{ height: 12 }} />, []);
 
-  const headerTitle = useMemo(() => 
-    `Thông báo${unreadCount && unreadCount > 0 ? ` (${unreadCount})` : ''}`, 
-    [unreadCount]
+  const headerTitle = useMemo(
+    () => `Thông báo${unreadCount && unreadCount > 0 ? ` (${unreadCount})` : ''}`,
+    [unreadCount],
   );
 
   return (
@@ -309,11 +339,11 @@ const NotificationScreen: React.FC = () => {
         getItemLayout={getItemLayout}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
-          styles.list, 
-          { 
+          styles.list,
+          {
             paddingBottom: TAB_BAR_HEIGHT + bottomInset,
-            paddingHorizontal: 16
-          }
+            paddingHorizontal: 16,
+          },
         ]}
         ItemSeparatorComponent={renderSeparator}
         refreshControl={<RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />}
