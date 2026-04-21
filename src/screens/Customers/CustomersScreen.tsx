@@ -21,7 +21,7 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 const CustomersScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const userId = useAppSelector((state) => state.auth.userId);
-  const currentEmployee = useAppSelector((state) => state.auth.currentEmployee);
+  const currentEmployee = useAppSelector((state) => state.employee.currentEmployee);
   
   const employeeId = currentEmployee?.id || userId;
   
@@ -189,5 +189,4 @@ const CustomersScreen: React.FC = () => {
 };
 
 export default CustomersScreen;
-
 

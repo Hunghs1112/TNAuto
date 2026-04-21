@@ -28,18 +28,18 @@ export default function Loading({ visible, text = 'Đang tải...' }: LoadingPro
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: Colors.alpha.black60,
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
-    backgroundColor: 'white',
+    backgroundColor: Colors.background.light,
     paddingHorizontal: 30,
     paddingVertical: 25,
     borderRadius: 16,
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
+    shadowColor: Colors.shadow.default,
     shadowOffset: {
       width: 0,
       height: 4,

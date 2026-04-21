@@ -4,7 +4,6 @@ import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, Touchab
 import { RootView } from "../../components/layout";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
 import { PerformanceConfig } from "../../config/performance";
 import Header from "../../components/Header";
 import ErrorView from "../../components/Loading/ErrorView";
@@ -27,6 +26,9 @@ const MyServiceScreen: React.FC = () => {
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
   const userPhone = useAppSelector((state: RootState) => state.auth.userPhone || '');
+  const hasGarageContext = useAppSelector(
+    (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
   const services = useAppSelector((state: RootState) => state.services.services);
   const [selectedStatus, setSelectedStatus] = useState('all');
 
@@ -40,55 +42,22 @@ const MyServiceScreen: React.FC = () => {
   useEffect(() => {
     if (userType === 'dealer') {
       // Dealer không được phép xem/điều hướng chức năng dịch vụ.
-      navigation.replace('Category' as never);
+      navigation.replace('Category');
     }
   }, [userType, navigation]);
 
-  // Don't render if not logged in (will redirect)
-  if (!isLoggedIn) {
-    return null;
-  }
+  useEffect(() => {
+    if (isLoggedIn && userType === 'customer' && !hasGarageContext) {
+      navigation.replace('SelectGarage');
+    }
+  }, [hasGarageContext, isLoggedIn, navigation, userType]);
 
   const { data: ordersResponse, isLoading, error, refetch, isFetching } = useGetCustomerOrdersQuery(userPhone, {
-    skip: !userPhone || userType === 'dealer',
+    skip: !userPhone || userType === 'dealer' || !hasGarageContext,
   });
 
-  // Use isFetching to determine actual refreshing state
-  const actualRefreshing = refreshing || isFetching;
-
-  // Enhanced refresh handler that refetches the query
-  const handleRefresh = useCallback(async () => {
-    baseOnRefresh();
-    if (refetch) {
-      try {
-        await refetch();
-      } catch (error) {
-        console.error('MyServiceScreen: Error during refetch:', error);
-      }
-    }
-  }, [baseOnRefresh, refetch]);
-
-  const orders = ordersResponse?.data || [];
-
-  if (userType === 'dealer') {
-    return null;
-  }
-
-  // Memoized sorted orders
-  const sortedOrders = useMemo(() => 
-    [...orders].sort((a, b) => new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime()),
-    [orders]
-  );
-
-  // Memoized filtered orders
-  const filteredOrders = useMemo(() => 
-    selectedStatus === 'all' 
-      ? sortedOrders 
-      : sortedOrders.filter(order => order.status === selectedStatus),
-    [sortedOrders, selectedStatus]
-  );
-
-  const statusFilters = [
+  const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse?.data]);
+  const statusFilters = useMemo(() => ([
     { key: 'all', label: 'Tất cả' },
     { key: 'received', label: 'Đã đặt lịch' },
     { key: 'ready_for_pickup', label: 'Chờ xác nhận' },
@@ -96,7 +65,32 @@ const MyServiceScreen: React.FC = () => {
     { key: 'completed', label: 'Hoàn thành' },
     { key: 'cancelled', label: 'Đã hủy' },
     { key: 'canceled', label: 'Đã hủy' },
-  ];
+  ]), []);
+
+  const actualRefreshing = refreshing || isFetching;
+
+  const handleRefresh = useCallback(async () => {
+    baseOnRefresh();
+    if (refetch) {
+      try {
+        await refetch();
+      } catch (refetchError) {
+        console.error('MyServiceScreen: Error during refetch:', refetchError);
+      }
+    }
+  }, [baseOnRefresh, refetch]);
+
+  const sortedOrders = useMemo(
+    () => [...orders].sort((a, b) => new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime()),
+    [orders],
+  );
+
+  const filteredOrders = useMemo(
+    () => selectedStatus === 'all'
+      ? sortedOrders
+      : sortedOrders.filter(order => order.status === selectedStatus),
+    [selectedStatus, sortedOrders],
+  );
 
   const sectionTitle = useMemo(() => {
     const filter = statusFilters.find(f => f.key === selectedStatus);
@@ -121,6 +115,7 @@ const MyServiceScreen: React.FC = () => {
         receiveDate={item.receive_date}
         scheduleDate={item.delivery_date || 'Chưa xác định'}
         status={item.status}
+        garageName={item.garage_name || item.garage_code || null}
         onPress={() => handleOrderPress(item.id)}
       />
     );
@@ -128,11 +123,25 @@ const MyServiceScreen: React.FC = () => {
 
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
+  // Don't render if not logged in (will redirect)
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  if (userType === 'dealer') {
+    return null;
+  }
+
+  if (userType === 'customer' && !hasGarageContext) {
+    return null;
+  }
+
+
   if (isLoading) {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Dịch vụ của tôi" />
           <View style={[styles.whiteSection, { justifyContent: 'center', alignItems: 'center' }]}>
             <ActivityIndicator size="large" color={Colors.text.primary} />
@@ -146,7 +155,7 @@ const MyServiceScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Dịch vụ của tôi" />
           <View style={styles.whiteSection}>
             <View style={styles.body}>
@@ -166,7 +175,7 @@ const MyServiceScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <SafeAreaView style={styles.root}>
-          <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
+          <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title="Dịch vụ của tôi" />
           <View style={styles.whiteSection}>
             <View style={styles.body}>
@@ -184,7 +193,7 @@ const MyServiceScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <RootView style={styles.root}>
-        <StatusBar barStyle="light-content" backgroundColor="#DA1C12" />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
         <Header title="Dịch vụ của tôi" />
         
       <View style={styles.whiteSection}>

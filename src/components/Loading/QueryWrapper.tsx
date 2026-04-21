@@ -1,15 +1,21 @@
 // src/components/Loading/QueryWrapper.tsx - Wrapper for handling query states
 import React from 'react';
-import { UseQueryHookResult } from '@reduxjs/toolkit/query/react';
 import ScreenLoader from './ScreenLoader';
 import ErrorView from './ErrorView';
 import EmptyView from './EmptyView';
+
+interface QueryLike<T> {
+  data?: T;
+  isLoading: boolean;
+  error?: unknown;
+  refetch: () => unknown;
+}
 
 interface QueryWrapperProps<T> {
   /**
    * RTK Query hook result (from useGetXXXQuery)
    */
-  query: UseQueryHookResult<T, any>;
+  query: QueryLike<T>;
   
   /**
    * Children to render when data is loaded successfully
@@ -133,4 +139,3 @@ export default function QueryWrapper<T>({
     />
   );
 }
-

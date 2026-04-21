@@ -1,5 +1,5 @@
 // navigation/RootNavigator.tsx - Root navigator with navigation reference
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Provider } from "react-redux";
@@ -10,6 +10,7 @@ import Loading from "../components/Loading/Loading";
 import { useAppSelector } from "../redux/hooks/useAppSelector";
 import { navigationRef } from "./RootNavigation";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import SplashScreen from "../screens/Splash/SplashScreen";
 
 export type RootStackParamList = {
   App: undefined;
@@ -18,8 +19,17 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppContent = React.memo(() => {
+  const [showSplash, setShowSplash] = useState(true);
   const loadingState = useAppSelector((state: RootState) => state.loading);
   const { isLoading, message } = useMemo(() => loadingState, [loadingState]);
+
+  const handleSplashFinish = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
 
   return (
     <ErrorBoundary>

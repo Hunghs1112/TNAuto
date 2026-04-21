@@ -10,12 +10,14 @@ import { styles } from "./styles";
 import { CommonActions, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useLoginCustomerMutation } from "../../services";
-import { useCheckPhoneMutation } from "../../services/authApi";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { setLoggedIn } from "../../redux/slices/authSlice";
 import { registerFCMTokenAfterLogin } from "../../utils/fcmTokenManager";
+import { saveAndSetActiveGarage, upsertSavedGarage } from "../../redux/slices/garageContextSlice";
+import { AuthStackParamList } from "../../navigation/AuthNavigator";
 
-type NavigationProp = NativeStackNavigationProp<any>;
+type NavigationProp = NativeStackNavigationProp<AuthStackParamList, "Login">;
+
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -24,111 +26,88 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const [loginCustomer] = useLoginCustomerMutation();
-  const [checkPhone] = useCheckPhoneMutation();
-
 
   const handleLogin = async () => {
-    if (!phone.trim()) {
+    const normalizedPhone = phone.trim();
+
+    if (!normalizedPhone) {
       Alert.alert("Lỗi", "Vui lòng nhập số điện thoại!");
       return;
     }
 
     setIsLoading(true);
     try {
-      // Step 1: Check phone type
-      const checkResult = await checkPhone({ phone: phone.trim() }).unwrap();
-      
-      if (!checkResult.success) {
-        Alert.alert("Lỗi", checkResult.error || "Không thể kiểm tra số điện thoại");
-        setIsLoading(false);
+      const loginResult = await loginCustomer({ phone: normalizedPhone }).unwrap();
+
+      if (!loginResult.success || !loginResult.customer) {
+        Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
         return;
       }
 
-      // Step 2: Handle based on user_type
-      if (checkResult.user_type === 'not_found') {
-        // Phone not registered - suggest registration
-        Alert.alert(
-          "Tài khoản không tồn tại",
-          "Số điện thoại này chưa được đăng ký. Vui lòng đăng ký trước khi đăng nhập.",
-          [
-            { text: "Đóng", style: "cancel" },
-            { 
-              text: "Đăng ký ngay", 
-              onPress: () => navigation.navigate("Register")
-            }
-          ]
-        );
-        setIsLoading(false);
-        return;
-      }
-      
-      if (checkResult.user_type === 'customer') {
-        // Auto-login customer (no password needed)
-        try {
-          const loginResult = await loginCustomer({ phone: phone.trim() }).unwrap();
-          
-          if (loginResult.success && loginResult.customer) {
-            const userId = loginResult.customer.id?.toString() || '';
-            
-            dispatch(setLoggedIn({ 
-              isLoggedIn: true, 
-              userType: 'customer', 
-              userId,
-              userName: loginResult.customer?.name || 'Customer',
-              userPhone: loginResult.customer?.phone || '',
-              userLicensePlate: loginResult.customer?.license_plate || '',
-              avatarUrl: loginResult.customer?.avatar_url || '',
-              userEmail: loginResult.customer?.email || ''
-            }));
+      const userId = String(loginResult.customer_id || loginResult.customer.id || "");
 
-            // Register FCM token in background
-            registerFCMTokenAfterLogin(userId, 'customer').catch(error => {
-              console.error('Failed to register FCM token:', error);
-            });
+      dispatch(setLoggedIn({
+        isLoggedIn: true,
+        userType: 'customer',
+        userId,
+        userName: loginResult.customer?.name || 'Customer',
+        userPhone: loginResult.customer?.phone || normalizedPhone,
+        userLicensePlate: loginResult.customer?.license_plate || '',
+        avatarUrl: loginResult.customer?.avatar_url || '',
+        userEmail: loginResult.customer?.email || '',
+        authMode: 'identity_lookup',
+      }));
 
-            // Navigate to Home (which contains MainTabs) after successful login
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [{ name: "Home" }],
-              })
-            );
-          } else {
-            Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại!");
-          }
-        } catch (error: any) {
-          console.error('Customer login error:', error);
-          Alert.alert("Lỗi", "Không thể đăng nhập. Vui lòng thử lại.");
+      const linkedGarages = Array.isArray(loginResult.linked_garages)
+        ? loginResult.linked_garages
+        : [];
+
+      linkedGarages.forEach((garage, index) => {
+        const payload = {
+          garageId: garage.id,
+          garageCode: garage.code,
+          garageName: garage.name,
+          address: garage.address,
+          avatarUrl: garage.avatar_url,
+          status: garage.status,
+          resolved: true,
+        };
+
+        if (index === 0) {
+          dispatch(saveAndSetActiveGarage(payload));
+        } else {
+          dispatch(upsertSavedGarage(payload));
         }
-        setIsLoading(false);
-        return;
-      }
-      
-      if (checkResult.user_type === 'dealer') {
-        // Navigate to Dealer login screen
-        setIsLoading(false);
-        navigation.navigate("DealerLogin", {
-          phone: phone.trim(),
-        });
-        return;
-      }
-      
-      if (checkResult.user_type === 'employee') {
-        // Navigate to password screen for employee
-        setIsLoading(false);
-        navigation.navigate("EmployeePassword", {
-          phone: phone.trim(),
-          employeeData: checkResult.data!,
-        });
-        return;
-      }
-      
-    } catch (error: any) {
-      console.error('Check phone error:', error);
-      Alert.alert(
-        "Lỗi kết nối",
-        "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng."
+      });
+
+      registerFCMTokenAfterLogin(userId, 'customer').catch(error => {
+        console.error('Failed to register FCM token:', error);
+      });
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: linkedGarages.length > 0 ? "Home" : "SelectGarage" }],
+        })
       );
+    } catch (error: any) {
+      const backendMessage = error?.data?.error || error?.data?.message || error?.error;
+      const message =
+        backendMessage ||
+        "Không thể đăng nhập. Vui lòng kiểm tra số điện thoại hoặc thử lại.";
+
+      Alert.alert(
+        "Đăng nhập thất bại",
+        message,
+        [
+          { text: "Đóng", style: "cancel" },
+          {
+            text: "Đăng ký",
+            onPress: () => navigation.navigate("Register"),
+          },
+        ],
+      );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -166,6 +145,7 @@ export default function LoginScreen() {
             placeholder="Số điện thoại"
             placeholderTextColor={Colors.text.placeholder}
             keyboardType="phone-pad"
+            focusBorderColor={Colors.accent.yellow}
           />
         </View>
 

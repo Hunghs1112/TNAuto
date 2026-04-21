@@ -1,5 +1,6 @@
 // src/screens/Service/ServiceScreen.tsx
 import React, { useEffect, useMemo, useCallback } from "react";
+import { View } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/AppNavigator";
@@ -8,8 +9,13 @@ import { useGetServicesQuery } from "../../services";
 import { useGetServiceCategoryByIdQuery } from "../../services/serviceCategoryApi";
 import { useRefreshQueries } from "../../hooks/useRefreshQueries";
 import { formatSecondsToDaysHours, secondsToMonths } from "../../utils/dateHelpers";
-import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { selectGarageCode, selectHasGarageContext, selectSavedGarages } from "../../redux/selectors";
+import GarageTabs from "../../components/GarageTabs";
+import GarageSelectionPrompt from "../../components/GarageSelectionPrompt";
+import { Screen } from "../../components/layout";
+import { Colors } from "../../constants/colors";
+import useCustomerGarageSelection from "../../hooks/useCustomerGarageSelection";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type ServiceScreenRouteProp = RouteProp<AppStackParamList, 'Service'>;
@@ -17,22 +23,26 @@ type ServiceScreenRouteProp = RouteProp<AppStackParamList, 'Service'>;
 const ServiceScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ServiceScreenRouteProp>();
-  const dispatch = useAppDispatch();
+  const { activateGarage } = useCustomerGarageSelection();
   const categoryId = route.params?.categoryId;
   const categoryName = route.params?.categoryName;
   const userType = useAppSelector((s) => s.auth.userType);
+  const currentGarageCode = useAppSelector(selectGarageCode);
+  const hasGarageContext = useAppSelector(selectHasGarageContext);
+  const savedGarages = useAppSelector(selectSavedGarages);
   const isDealer = userType === "dealer";
+  const showGarageTabs = !isDealer && savedGarages.length > 1;
 
   
   
   // Nếu có categoryId, lấy services từ category API
-  const categoryQuery = useGetServiceCategoryByIdQuery(categoryId!, {
-    skip: !categoryId || isDealer,
+  const categoryQuery = useGetServiceCategoryByIdQuery({ id: categoryId!, garageCode: currentGarageCode }, {
+    skip: !categoryId || isDealer || !hasGarageContext,
   });
   
   // Nếu không có categoryId, lấy tất cả services
-  const allServicesQuery = useGetServicesQuery(undefined, {
-    skip: !!categoryId || isDealer,
+  const allServicesQuery = useGetServicesQuery({ garageCode: currentGarageCode }, {
+    skip: !!categoryId || isDealer || !hasGarageContext,
   });
 
   const { refreshing, onRefresh } = useRefreshQueries([
@@ -64,20 +74,43 @@ const ServiceScreen = () => {
     await onRefresh();
   }, [onRefresh]);
 
+  const handleGarageChange = useCallback(
+    async (garageCode: string) => {
+      const garage = savedGarages.find((item) => item.garageCode === garageCode);
+
+      if (!garage) {
+        return;
+      }
+
+      await activateGarage(
+        {
+          garageId: garage.garageId,
+          garageCode: garage.garageCode,
+          garageName: garage.garageName,
+          address: garage.address,
+          avatarUrl: garage.avatarUrl,
+          status: garage.status,
+        },
+        'tab',
+      );
+    },
+    [activateGarage, savedGarages],
+  );
+
   useEffect(() => {
     if (isDealer) {
       // Dealer không được phép xem/điều hướng dịch vụ.
-      navigation.replace("Category" as never);
+      navigation.replace("Category");
     }
   }, [isDealer, navigation]);
 
   const mapDataToItems = useCallback(
-    (data: any) => {
-      if (!data?.success || !data?.data) {
+    (response: any) => {
+      if (!response?.success || !response?.data) {
         return [];
       }
 
-      return data.data.map((service: any) => {
+      return response.data.map((service: any) => {
         const descriptionParts = [
           service.description,
           `Thời gian ước tính: ${formatSecondsToDaysHours(service.estimated_time)}`,
@@ -109,6 +142,16 @@ const ServiceScreen = () => {
     return null;
   }
 
+  if (!hasGarageContext) {
+    return (
+      <Screen headerTitle={categoryName || "Dịch vụ"} showBackButton statusBarStyle="light-content">
+        <View style={{ flex: 1, backgroundColor: Colors.background.light }}>
+          <GarageSelectionPrompt onPress={() => navigation.navigate("SelectGarage")} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <GenericListScreen
       title={categoryName || "Dịch vụ"}
@@ -120,6 +163,15 @@ const ServiceScreen = () => {
       refreshing={refreshing}
       onRefresh={handleRefresh}
       mapDataToItems={mapDataToItems}
+      topContent={
+        showGarageTabs ? (
+          <GarageTabs
+            garages={savedGarages}
+            activeGarageCode={currentGarageCode}
+            onChangeGarage={handleGarageChange}
+          />
+        ) : undefined
+      }
     />
   );
 };

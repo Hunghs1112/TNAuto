@@ -2,22 +2,24 @@
 import React, { useState } from "react";
 import { View, Text, Alert, Image, TouchableOpacity } from "react-native";
 import { Screen, FormContainer } from "../../components/layout";
-import { Colors } from "../../constants/colors";
 import { Button } from "../../components/ui";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import { styles } from "../Login/styles";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useDealerRegisterMutation } from "../../services/authApi";
+import { useDealerRegisterMutation, useLazyResolveGarageByCodeQuery } from "../../services/authApi";
 import { AuthStackParamList } from "../../navigation/AuthNavigator";
 import { validatePhone, validateEmail } from "../../utils/validation";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function DealerRegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const currentGarageCode = useAppSelector((state) => state.garageContext.garageCode || '');
   
   const [formData, setFormData] = useState({
+    garage_code: currentGarageCode,
     name: "",
     phone: "",
     password: "",
@@ -28,16 +30,17 @@ export default function DealerRegisterScreen() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [dealerRegister] = useDealerRegisterMutation();
+  const [resolveGarageByCode] = useLazyResolveGarageByCodeQuery();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleRegister = async () => {
-    const { name, phone, password, email, address } = formData;
+    const { garage_code, name, phone, password, email } = formData;
 
-    if (!name.trim() || !phone.trim() || !password.trim()) {
-      Alert.alert("Lỗi", "Vui lòng điền đầy đủ Tên, Số điện thoại và Mật khẩu!");
+    if (!garage_code.trim() || !name.trim() || !phone.trim() || !password.trim()) {
+      Alert.alert("Lỗi", "Vui lòng điền đầy đủ Mã gara, Tên, Số điện thoại và Mật khẩu!");
       return;
     }
 
@@ -57,6 +60,7 @@ export default function DealerRegisterScreen() {
 
     setIsLoading(true);
     try {
+      await resolveGarageByCode(garage_code.trim()).unwrap();
       const result = await dealerRegister(formData).unwrap();
       
       if (result.success) {
@@ -104,33 +108,45 @@ export default function DealerRegisterScreen() {
 
         <View style={styles.inputContainer}>
           <TextInputComponent
+            value={formData.garage_code}
+            onChangeText={(v) => handleInputChange('garage_code', v.toUpperCase())}
+            placeholder="Mã gara *"
+            autoCapitalize="characters"
+            focusBorderColor={Colors.accent.yellow}
+          />
+          <TextInputComponent
             value={formData.name}
             onChangeText={(v) => handleInputChange('name', v)}
             placeholder="Tên đại lý *"
+            focusBorderColor={Colors.accent.yellow}
           />
           <TextInputComponent
             value={formData.phone}
             onChangeText={(v) => handleInputChange('phone', v)}
             placeholder="Số điện thoại *"
             keyboardType="phone-pad"
+            focusBorderColor={Colors.accent.yellow}
           />
           <TextInputComponent
             value={formData.password}
             onChangeText={(v) => handleInputChange('password', v)}
             placeholder="Mật khẩu (plain-text) *"
             secureTextEntry={true}
+            focusBorderColor={Colors.accent.yellow}
           />
           <TextInputComponent
             value={formData.email}
             onChangeText={(v) => handleInputChange('email', v)}
             placeholder="Email"
             keyboardType="email-address"
+            focusBorderColor={Colors.accent.yellow}
           />
           <TextInputComponent
             value={formData.address}
             onChangeText={(v) => handleInputChange('address', v)}
             placeholder="Địa chỉ"
             multiline
+            focusBorderColor={Colors.accent.yellow}
           />
         </View>
 

@@ -3,17 +3,15 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import Screen from "../../components/layout/Screen/Screen";
 import Item from "../../components/Item";
+import FloatingNoticeBanner from "../../components/FloatingNoticeBanner";
 import { Colors } from "../../constants/colors";
-import { AppStackParamList } from "../../navigation/AppNavigator";
 import { getPrimaryCatalogProductImageUrl } from "../../utils/catalog";
 import { styles } from "./styles";
 import UserHeader from "./UserHeader";
 import VehicleInfoCard from "./VehicleInfoCard";
-import ServiceMenu from "./ServiceMenu";
 import SectionHeader from "./SectionHeader";
 import QuickBookingForm from "./QuickBookingForm";
 import OrdersList from "./components/OrdersList";
@@ -21,22 +19,37 @@ import AvailableOrdersList from "./components/AvailableOrdersList";
 import EmployeeOrdersList from "./components/EmployeeOrdersList";
 import WarrantyInfo from "./components/WarrantyInfo";
 import ViewMoreButton from "./ViewMoreButton";
+import DocumentExpiryCards from "./DocumentExpiryCards";
 
 export type HomeScreenViewProps = {
-  navbarHeight: number;
   actualRefreshing: boolean;
   onRefresh: () => void;
 
   isLoggedIn: boolean;
   userType: any;
   userName: string;
+  garageName?: string;
+  canChangeGarage?: boolean;
   unreadCount?: number;
+  offerCount?: number;
+  insuranceCount?: number;
 
   userId: string;
   userPhone: string;
   services: any;
   homePreviewServices?: any[];
   homePreviewProducts?: any[];
+  vehicle?: any;
+  shouldShowPromoHome?: boolean;
+  banner?: {
+    variant: "info" | "warning" | "danger";
+    title: string;
+    subtitle?: string;
+    nextRoute?: any;
+    nextParams?: any;
+  } | null;
+  onDismissBanner?: () => void;
+  onBannerPress?: () => void;
 
   displayedOrders: any[];
   sortedOrders: any[];
@@ -50,22 +63,34 @@ export type HomeScreenViewProps = {
   assignedLoading: boolean;
 
   onNotificationPress: () => void;
+  onOfferPress: () => void;
+  onWarrantyPress: () => void;
   onOrderPress: (id: string) => void;
   onClaimOrder: (id: string) => void;
   onViewMore: () => void;
   onLoginPress: () => void;
+  onGaragePress: () => void;
 };
 
 const HomeScreenView = ({
   isLoggedIn,
   userType,
   userName,
+  garageName,
+  canChangeGarage = false,
   unreadCount,
+  offerCount,
+  insuranceCount,
   userId,
   userPhone,
   services,
   homePreviewServices = [],
   homePreviewProducts = [],
+  vehicle = null,
+  shouldShowPromoHome = false,
+  banner = null,
+  onDismissBanner,
+  onBannerPress,
   displayedOrders,
   sortedOrders,
   ordersLoading,
@@ -75,12 +100,15 @@ const HomeScreenView = ({
   sortedAssignedOrders,
   assignedLoading,
   onNotificationPress,
+  onOfferPress,
+  onWarrantyPress,
   onOrderPress,
   onClaimOrder,
   onViewMore,
   onLoginPress,
+  onGaragePress,
 }: HomeScreenViewProps) => {
-  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const navigation = useNavigation<any>();
 
   return (
     <Screen hideHeader statusBarStyle="light-content">
@@ -101,17 +129,51 @@ const HomeScreenView = ({
         <View style={styles.headerBackground}>
           <UserHeader
             userName={isLoggedIn ? userName : "Khách"}
+            garageName={isLoggedIn ? garageName : undefined}
+            canChangeGarage={Boolean(isLoggedIn && canChangeGarage)}
+            onGaragePress={isLoggedIn ? onGaragePress : undefined}
             notificationCount={isLoggedIn ? unreadCount : undefined}
+            offerCount={isLoggedIn ? offerCount : undefined}
+            insuranceCount={isLoggedIn ? insuranceCount : undefined}
             onNotificationPress={isLoggedIn ? onNotificationPress : undefined}
+            onOfferPress={isLoggedIn ? onOfferPress : undefined}
+            onInsurancePress={isLoggedIn ? onWarrantyPress : undefined}
             isLoggedIn={isLoggedIn}
           />
-          <View style={styles.serviceMenuOverlay}>
-            <ServiceMenu />
-          </View>
+          {!shouldShowPromoHome && isLoggedIn && userType === "customer" && (
+            <View style={styles.documentExpiryOverlay}>
+              <DocumentExpiryCards vehicle={vehicle} />
+            </View>
+          )}
         </View>
 
+        {!shouldShowPromoHome && banner && (
+          <View style={styles.bannerInlineWrap}>
+            <FloatingNoticeBanner
+              title={banner.title}
+              subtitle={banner.subtitle}
+              onDismiss={onDismissBanner}
+              onPress={onBannerPress}
+            />
+          </View>
+        )}
+
         <View style={styles.bottomSheet}>
-          {isLoggedIn && userType === "employee" ? (
+          {shouldShowPromoHome ? (
+            <View style={styles.section}>
+              <View style={styles.loginPromptCard}>
+                <Ionicons name="business-outline" size={48} color={Colors.primary} />
+                <Text style={styles.loginPromptTitle}>Liên kết mã gara để sử dụng đầy đủ tính năng</Text>
+                <Text style={styles.loginPromptDescription}>
+                  Tài khoản của bạn chưa được gắn với mã gara nào. Hãy nhập mã gara để kết nối tài khoản, đồng bộ dữ liệu và bắt đầu sử dụng dịch vụ.
+                </Text>
+                <TouchableOpacity style={styles.loginPromptButton} onPress={onGaragePress}>
+                  <Text style={styles.loginPromptButtonText}>Nhập mã gara</Text>
+                  <Ionicons name="arrow-forward" size={20} color={Colors.background.light} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : isLoggedIn && userType === "employee" ? (
             <>
               <View style={styles.section}>
                 <SectionHeader title="Việc mới tạo chưa giao ai" />

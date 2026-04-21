@@ -50,8 +50,16 @@ export const offerApi = createApi({
   baseQuery: baseQueryWithRetry,
   tagTypes: ['Offer', 'OfferImage'] as const,
   endpoints: (builder) => ({
-    getOffers: builder.query<GetOffersResponse, void>({
-      query: () => ENDPOINTS.getOffers.path,
+    getOffers: builder.query<GetOffersResponse, { garageCode?: string } | void>({
+      query: ({ garageCode } = {}) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getOffers');
+        }
+
+        return ENDPOINTS.getOffers.path.replace(':garageCode', encodeURIComponent(normalizedGarageCode));
+      },
       providesTags: (result) =>
         result?.data
           ? [
@@ -72,9 +80,18 @@ export const offerApi = createApi({
         return response;
       },
     }),
-    getOfferById: builder.query<GetOfferResponse, number>({
-      query: (id) => buildEndpointUrl('getOfferById', { id: id.toString() }),
-      providesTags: (result, error, id) => [{ type: 'Offer' as const, id }],
+    getOfferById: builder.query<GetOfferResponse, { garageCode: string; id: number }>({
+      query: ({ garageCode, id }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getOfferById');
+        }
+
+        return ENDPOINTS.getOfferById.path
+          .replace(':garageCode', encodeURIComponent(normalizedGarageCode))
+          .replace(':id', id.toString());
+      },
+      providesTags: (result, error, { id }) => [{ type: 'Offer' as const, id }],
       transformResponse: (response: GetOfferResponse) => {
         if (!response.success || !response.data) throw new Error('Failed to fetch offer');
         return response;
@@ -82,11 +99,20 @@ export const offerApi = createApi({
     }),
     // Lấy danh sách ảnh của ưu đãi (nếu backend hỗ trợ endpoint riêng)
     // Nếu không, có thể sử dụng images từ getOfferById
-    getOfferImages: builder.query<OfferImage[], number>({
-      query: (offerId) => `/offers/${offerId}/images`,
-      providesTags: (result, error, offerId) => [
+    getOfferImages: builder.query<OfferImage[], { garageCode: string; offerId: number }>({
+      query: ({ garageCode, offerId }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getOfferImages');
+        }
+
+        return ENDPOINTS.getOfferImages.path
+          .replace(':garageCode', encodeURIComponent(normalizedGarageCode))
+          .replace(':offerId', offerId.toString());
+      },
+      providesTags: (result, error, { offerId }) => [
         { type: 'OfferImage' as const, id: offerId },
-        { type: 'Offer' as const, id: offerId }
+        { type: 'Offer' as const, id: offerId },
       ],
       transformResponse: (response: GetOfferImagesResponse | OfferImage[]) => {
         // Hỗ trợ cả 2 format: response trực tiếp là array hoặc có wrapper

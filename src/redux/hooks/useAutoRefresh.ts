@@ -13,12 +13,12 @@ import { productApi } from '../../services/productApi';
 import { categoryApi } from '../../services/categoryApi';
 import { dealerProductApi } from '../../services/dealerProductApi';
 import { dealerCategoryApi } from '../../services/dealerCategoryApi';
-import { serviceOrderApi } from '../../services/serviceOrderApi';
 import { serviceApi } from '../../services/serviceApi';
 import { notificationApi } from '../../services/notificationApi';
 import { employeeApi } from '../../services/employeeApi';
 import { warrantyApi } from '../../services/warrantyApi';
 import { vehicleApi } from '../../services/vehicleApi';
+import { serviceCategoryApi } from '../../services/serviceCategoryApi';
 
 type TagTypes = 
   | 'Customer' 
@@ -30,7 +30,8 @@ type TagTypes =
   | 'Notification' 
   | 'Employee'
   | 'Warranty'
-  | 'Vehicle';
+  | 'Vehicle'
+  | 'ServiceCategory';
 
 interface UseAutoRefreshOptions {
   /**
@@ -83,12 +84,12 @@ export const useAutoRefresh = (options: UseAutoRefreshOptions = {}) => {
         { tag: 'Category', api: categoryApi },
         { tag: 'Product', api: dealerProductApi },
         { tag: 'Category', api: dealerCategoryApi },
-        { tag: 'ServiceOrder', api: serviceOrderApi },
         { tag: 'Service', api: serviceApi },
         { tag: 'Notification', api: notificationApi },
         { tag: 'Employee', api: employeeApi },
         { tag: 'Warranty', api: warrantyApi },
         { tag: 'Vehicle', api: vehicleApi },
+        { tag: 'ServiceCategory', api: serviceCategoryApi },
       ];
 
       apiSlices.forEach(({ tag, api }) => {

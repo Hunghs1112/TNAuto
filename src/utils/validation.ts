@@ -108,6 +108,21 @@ export const validateName = (name: string): { isValid: boolean; error?: string }
   return { isValid: true };
 };
 
+export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+  if (!email || email.trim() === '') {
+    return { isValid: false, error: 'Email không được để trống' };
+  }
+
+  const normalized = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(normalized)) {
+    return { isValid: false, error: 'Email không đúng định dạng' };
+  }
+
+  return { isValid: true };
+};
+
 /**
  * Format phone number for display (add spaces for readability)
  * Example: "0909123456" -> "0909 123 456"
@@ -138,4 +153,3 @@ export const cleanPhone = (phone: string): string => {
 export const formatLicensePlate = (plate: string): string => {
   return plate.replace(/\s/g, '').toUpperCase();
 };
-

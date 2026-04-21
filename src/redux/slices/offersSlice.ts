@@ -1,14 +1,6 @@
 // src/redux/slices/offersSlice.ts (Updated: Added image_url to Offer interface)
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface Offer {
-  id: number;
-  name: string;
-  image_url?: string;
-  service_id: number;
-  service_name: string;
-  created_at: string;
-}
+import type { Offer } from '../../types/api.types';
 
 interface OffersState {
   offers: Offer[];

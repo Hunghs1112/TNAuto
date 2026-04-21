@@ -12,7 +12,9 @@ import { useRegisterCustomerMutation } from "../../services";
 import {
   validateName,
   validatePhone,
+  validateLicensePlate,
   cleanPhone,
+  formatLicensePlate,
 } from "../../utils/validation";
 
 export type AuthStackParamList = {
@@ -24,53 +26,24 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const nameRef = React.useRef<TextInput>(null as unknown as TextInput);
-  const phoneRef = React.useRef<TextInput>(null as unknown as TextInput);
-  const plateRef = React.useRef<TextInput>(null as unknown as TextInput);
-  const scrollRef = React.useRef<ScrollView>(null);
-  const [bottomInset, setBottomInset] = React.useState(0);
-
-  React.useEffect(() => {
-    const onShow = (e: any) => setBottomInset(e?.endCoordinates?.height || 0);
-    const onHide = () => setBottomInset(0);
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const subShow = Keyboard.addListener(showEvent, onShow);
-    const subHide = Keyboard.addListener(hideEvent, onHide);
-    return () => {
-      subShow.remove();
-      subHide.remove();
-    };
-  }, []);
-
-  const scrollToInput = (ref: React.RefObject<TextInput>) => {
-    try {
-      const node = ref.current ? findNodeHandle(ref.current) : null;
-      const scrollView: any = scrollRef.current as any;
-      if (node && scrollView && typeof scrollView.scrollResponderScrollNativeHandleToKeyboard === 'function') {
-        scrollView.scrollResponderScrollNativeHandleToKeyboard(node, 140, true);
-      }
-    } catch {}
-  };
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [licensePlate, setLicensePlate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [nameError, setNameError] = useState<string | undefined>(undefined);
-  const [phoneError, setPhoneError] = useState<string | undefined>(undefined);
-  const [plateError, setPlateError] = useState<string | undefined>(undefined);
 
   const [registerCustomer] = useRegisterCustomerMutation();
 
   const handleRegister = async () => {
-    // Validate name (optional)
     const trimmedName = name.trim();
-    const hasName = trimmedName.length > 0;
-    if (hasName) {
-      const nameValidation = validateName(name);
-      if (!nameValidation.isValid) {
-        Alert.alert("Lỗi xác thực", nameValidation.error || "Họ và tên không hợp lệ");
-        return;
-      }
+    if (!trimmedName) {
+      Alert.alert("Lỗi xác thực", "Vui lòng nhập họ và tên.");
+      return;
+    }
+
+    const nameValidation = validateName(name);
+    if (!nameValidation.isValid) {
+      Alert.alert("Lỗi xác thực", nameValidation.error || "Họ và tên không hợp lệ");
+      return;
     }
 
     // Validate phone (optional)
@@ -83,21 +56,33 @@ export default function RegisterScreen() {
       }
     }
 
-    // Validate license plate (optional but must be valid format if provided)
+    const trimmedPlate = licensePlate.trim();
+    if (!trimmedPlate) {
+      Alert.alert("Lỗi xác thực", "Vui lòng nhập biển số xe.");
+      return;
+    }
+
+    const plateValidation = validateLicensePlate(licensePlate);
+    if (!plateValidation.isValid) {
+      Alert.alert("Lỗi xác thực", plateValidation.error || "Biển số xe không hợp lệ");
+      return;
+    }
 
     setIsLoading(true);
     try {
       // Clean and format data before sending
       const cleanedPhone = hasPhone ? cleanPhone(phone) : undefined;
-          
+      const formattedPlate = formatLicensePlate(licensePlate);
+      
       const requestBody: { name: string; phone?: string; license_plate?: string; avatar_url?: string } = {
-        name: hasName ? trimmedName : "Khách hàng",
+        name: trimmedName,
       };
 
       if (cleanedPhone) {
         requestBody.phone = cleanedPhone;
       }
 
+      requestBody.license_plate = formattedPlate;
 
       const result = await registerCustomer(requestBody).unwrap();
       
@@ -179,7 +164,7 @@ export default function RegisterScreen() {
         paddingCustom={{ horizontal: 'xl', top: 'lg', bottom: 'xl' }}
         dismissKeyboardOnPress
       >
-        <Text style={styles.welcomeText}>Chào mừng đến với TN Auto</Text>
+        <Text style={styles.welcomeText}>Chào mừng đến với GaraOne</Text>
         <Text style={styles.subtitle}>Đăng ký tại đây</Text>
 
         <View style={styles.logoFrame}>
@@ -194,7 +179,7 @@ export default function RegisterScreen() {
           <TextInputComponent
             value={name}
             onChangeText={setName}
-            placeholder="Họ và tên"
+            placeholder="Họ và tên *"
             placeholderTextColor={Colors.text.placeholder}
           />
           <TextInputComponent
@@ -204,6 +189,13 @@ export default function RegisterScreen() {
             placeholderTextColor={Colors.text.placeholder}
             keyboardType="phone-pad"
           />
+          <TextInputComponent
+            value={licensePlate}
+            onChangeText={(text) => setLicensePlate(text.toUpperCase())}
+            placeholder="Biển số xe * (VD: 29A-12345)"
+            placeholderTextColor={Colors.text.placeholder}
+          />
+          <Text style={styles.helperText}>Các trường có dấu * là bắt buộc.</Text>
         </View>
 
         <View style={styles.actions}>

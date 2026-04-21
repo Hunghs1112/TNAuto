@@ -3,7 +3,6 @@
 export * from './authApi';
 export * from './customerApi';
 export * from './employeeApi';
-export * from './serviceOrderApi';
 export * from './serviceApi';
 export * from './productApi';
 export * from './categoryApi';

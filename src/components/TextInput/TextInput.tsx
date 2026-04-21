@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, TextInput, StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import { spacing } from "../../design-system/spacing";
-import { borderRadius, borderPresets } from "../../design-system/borders";
+import { borderPresets } from "../../design-system/borders";
 import { selectPlatform } from "../../utils/platform";
 import { textStyles } from "../../design-system/typography";
 
@@ -22,12 +22,15 @@ interface TextInputComponentProps {
   style?: any;
   iconRight?: React.ReactNode;
   onFocus?: () => void;
+  onBlur?: () => void;
   inputRef?: React.RefObject<any>;
   maxLength?: number;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   returnKeyType?: "done" | "next" | "go" | "send" | "search" | "default";
   onSubmitEditing?: () => void;
   blurOnSubmit?: boolean;
+  autoFocus?: boolean;
+  focusBorderColor?: string;
 }
 
 const TextInputComponent: React.FC<TextInputComponentProps> = ({
@@ -45,26 +48,42 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
   style,
   iconRight,
   onFocus,
+  onBlur,
   inputRef,
   maxLength,
   autoCapitalize,
   returnKeyType = "default",
   onSubmitEditing,
   blurOnSubmit,
+  autoFocus = false,
+  focusBorderColor = Colors.accent.yellow,
 }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
   const handleChangeText = useCallback((text: string) => {
     onChangeText(text);
   }, [onChangeText]);
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+    onFocus?.();
+  }, [onFocus]);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+    onBlur?.();
+  }, [onBlur]);
 
   const inputStyle = useMemo(() => [
     styles.input,
     {
       color: textColor,
-      borderColor: borderColor,
+      borderColor: isFocused && focusBorderColor ? focusBorderColor : borderColor,
       paddingRight: iconRight ? 40 : spacing.md,
       textAlignVertical: multiline ? "top" : "center",
+      transform: multiline ? undefined : [{ translateY: -2 }],
     },
-  ], [textColor, borderColor, iconRight, multiline]);
+  ], [textColor, borderColor, focusBorderColor, iconRight, isFocused, multiline]);
   return (
     <View style={[styles.container, style]}>
       <TextInput
@@ -79,7 +98,15 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
         keyboardType={keyboardType}
         editable={editable}
         style={inputStyle}
-        underlineColorAndroid="transparent"
+        underlineColorAndroid={Colors.transparent}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        autoFocus={autoFocus}
+        maxLength={maxLength}
+        autoCapitalize={autoCapitalize}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
+        blurOnSubmit={blurOnSubmit}
       />
       {iconRight && (
         <View style={styles.iconRightContainer} pointerEvents="none">

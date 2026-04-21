@@ -54,23 +54,68 @@ interface ApiResponse<T> {
   unread_count?: number;
 }
 
-interface GetNotificationsParams {
-  recipient_id: string;
-  recipient_type: string;
+interface NotificationScopeParams {
+  user_type?: 'customer' | 'employee' | 'dealer' | string;
+}
+
+interface GetNotificationsParams extends NotificationScopeParams {
+  customer_id?: string;
   is_read?: number;
   limit?: number;
   offset?: number;
 }
 
-interface UnreadCountParams {
-  recipient_id: string;
-  recipient_type: string;
+interface UnreadCountParams extends NotificationScopeParams {
+  customer_id?: string;
 }
 
-interface MarkAllReadParams {
-  recipient_id: string;
-  recipient_type: string;
+interface MarkAllReadParams extends NotificationScopeParams {
+  customer_id?: string;
 }
+
+const compactParams = (params?: Record<string, any>) => {
+  if (!params) {
+    return undefined;
+  }
+
+  const entries = Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries);
+};
+
+const resolveNotificationEndpoints = (scope?: string) => {
+  if (scope === 'employee') {
+    return {
+      list: ENDPOINTS.getEmployeeNotifications.path,
+      unreadCount: ENDPOINTS.getEmployeeUnreadCount.path,
+      markReadKey: 'markEmployeeNotificationRead' as const,
+      markAllRead: ENDPOINTS.markAllEmployeeNotificationsRead.path,
+      deleteKey: 'deleteEmployeeNotification' as const,
+    };
+  }
+
+  if (scope === 'dealer') {
+    return {
+      list: ENDPOINTS.getDealerNotifications.path,
+      unreadCount: ENDPOINTS.getDealerUnreadCount.path,
+      markReadKey: 'markDealerNotificationRead' as const,
+      markAllRead: ENDPOINTS.markAllDealerNotificationsRead.path,
+      deleteKey: 'deleteDealerNotification' as const,
+    };
+  }
+
+  return {
+    list: ENDPOINTS.getCustomerNotifications.path,
+    unreadCount: ENDPOINTS.getCustomerUnreadCount.path,
+    markReadKey: 'markCustomerNotificationRead' as const,
+    markAllRead: ENDPOINTS.markAllCustomerNotificationsRead.path,
+    deleteKey: 'deleteCustomerNotification' as const,
+  };
+};
 
 const getMetadata = (item: BackendNotification) =>
   item.metadata && typeof item.metadata === 'object' ? item.metadata : {};
@@ -107,11 +152,17 @@ export const notificationApi = createApi({
   baseQuery: baseQueryWithRetry,
   tagTypes: ['Notification'] as const,
   endpoints: (builder) => ({
-    getNotifications: builder.query<Notification[], GetNotificationsParams>({
-      query: (params) => ({
-        url: ENDPOINTS.getNotifications.path,
-        params,
-      }),
+    getNotifications: builder.query<Notification[], GetNotificationsParams | void>({
+      query: (params) => {
+        const scope = params?.user_type;
+        const endpoints = resolveNotificationEndpoints(scope);
+        const { user_type, ...rest } = (params || {}) as GetNotificationsParams;
+
+        return {
+          url: endpoints.list,
+          params: compactParams(rest as Record<string, any>),
+        };
+      },
       providesTags: ['Notification'],
       transformResponse: (response: ApiResponse<BackendNotification[]>) => {
         if (!response.success || !response.data) {
@@ -140,11 +191,17 @@ export const notificationApi = createApi({
         });
       },
     }),
-    getUnreadCount: builder.query<number, UnreadCountParams>({
-      query: (params) => ({
-        url: ENDPOINTS.getUnreadCount.path,
-        params,
-      }),
+    getUnreadCount: builder.query<number, UnreadCountParams | void>({
+      query: (params) => {
+        const scope = params?.user_type;
+        const endpoints = resolveNotificationEndpoints(scope);
+        const { user_type, ...rest } = (params || {}) as UnreadCountParams;
+
+        return {
+          url: endpoints.unreadCount,
+          params: compactParams(rest as Record<string, any>),
+        };
+      },
       providesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ unread_count: number }>) => {
         if (!response.success) {
@@ -175,11 +232,15 @@ export const notificationApi = createApi({
         }
       },
     }),
-    markNotificationRead: builder.mutation<void, string>({
-      query: (id) => ({
-        url: buildEndpointUrl('markNotificationRead', { id }),
-        method: 'PUT',
-      }),
+    markNotificationRead: builder.mutation<void, { id: string; user_type?: 'customer' | 'employee' | 'dealer' | string }>({
+      query: ({ id, user_type }) => {
+        const endpoints = resolveNotificationEndpoints(user_type);
+
+        return {
+          url: buildEndpointUrl(endpoints.markReadKey, { id }),
+          method: 'PUT',
+        };
+      },
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {
         if (!response.success) {
@@ -187,12 +248,18 @@ export const notificationApi = createApi({
         }
       },
     }),
-    markAllNotificationsRead: builder.mutation<void, MarkAllReadParams>({
-      query: (body) => ({
-        url: ENDPOINTS.markAllNotificationsRead.path,
-        method: 'PUT',
-        body,
-      }),
+    markAllNotificationsRead: builder.mutation<void, MarkAllReadParams | void>({
+      query: (body) => {
+        const scope = body?.user_type;
+        const endpoints = resolveNotificationEndpoints(scope);
+        const { user_type, ...rest } = (body || {}) as MarkAllReadParams;
+
+        return {
+          url: endpoints.markAllRead,
+          method: 'PUT',
+          body: compactParams(rest as Record<string, any>),
+        };
+      },
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string; updated_count: number }>) => {
         if (!response.success) {
@@ -200,11 +267,15 @@ export const notificationApi = createApi({
         }
       },
     }),
-    deleteNotification: builder.mutation<void, string>({
-      query: (id) => ({
-        url: buildEndpointUrl('deleteNotification', { id }),
-        method: 'DELETE',
-      }),
+    deleteNotification: builder.mutation<void, { id: string; user_type?: 'customer' | 'employee' | 'dealer' | string }>({
+      query: ({ id, user_type }) => {
+        const endpoints = resolveNotificationEndpoints(user_type);
+
+        return {
+          url: buildEndpointUrl(endpoints.deleteKey, { id }),
+          method: 'DELETE',
+        };
+      },
       invalidatesTags: ['Notification'],
       transformResponse: (response: ApiResponse<{ message: string }>) => {
         if (!response.success) {
@@ -221,6 +292,18 @@ export const notificationApi = createApi({
       transformResponse: (response: ApiResponse<{ message: string; token_id?: number; is_new?: boolean }>) => {
         if (!response.success) {
           throw new Error(response.error || 'Failed to register FCM token');
+        }
+      },
+    }),
+    refreshFcmToken: builder.mutation<void, { token: string }>({
+      query: (body) => ({
+        url: ENDPOINTS.refreshFcmToken.path,
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<{ message: string }>) => {
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to refresh FCM token');
         }
       },
     }),
@@ -272,6 +355,7 @@ export const {
   useMarkAllNotificationsReadMutation,
   useDeleteNotificationMutation,
   useRegisterFcmTokenMutation,
+  useRefreshFcmTokenMutation,
   useGetUserFcmTokensQuery,
   useDeleteFcmTokenMutation,
   useGetActiveFcmTokensQuery,

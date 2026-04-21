@@ -10,6 +10,7 @@ import { useGetOffersQuery } from '../../services/offerApi';
 import { setServices } from '../slices/servicesSlice';
 import { setCategories } from '../slices/categorySlice';
 import { setOffers } from '../slices/offersSlice';
+import { selectGarageCode } from '../selectors';
 
 /**
  * Hook to prefetch critical data (services, categories, offers) on app startup
@@ -27,25 +28,35 @@ export const usePrefetchData = () => {
   const dispatch = useAppDispatch();
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
+  const activeGarageCode = useAppSelector(selectGarageCode);
+  const hasGarageContext = useAppSelector(
+    (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
   const isDealer = userType === 'dealer';
+  const hasGarageCode = Boolean(activeGarageCode);
+  const canUseTenantCatalog =
+    (userType === 'employee' || userType === 'dealer' ? isLoggedIn : hasGarageContext) && hasGarageCode;
 
   // Prefetch services (critical for booking and home screens)
-  const { data: servicesData, isSuccess: servicesSuccess } = useGetServicesQuery(undefined, {
-    skip: !isLoggedIn || isDealer, // Dealer khong dung luong service
+  const { data: servicesData, isSuccess: servicesSuccess } = useGetServicesQuery({ garageCode: activeGarageCode }, {
+    skip: !canUseTenantCatalog || isDealer, // Dealer khong dung luong service
   });
 
   // Prefetch categories (critical for product browsing)
-  const { data: categoriesData, isSuccess: categoriesSuccess } = useGetCategoriesQuery(undefined, {
-    skip: !isLoggedIn || isDealer,
+  const { data: categoriesData, isSuccess: categoriesSuccess } = useGetCategoriesQuery({ garageCode: activeGarageCode }, {
+    skip: !canUseTenantCatalog || isDealer,
   });
   const { data: dealerCategoriesData, isSuccess: dealerCategoriesSuccess } = useGetDealerCategoriesQuery(undefined, {
     skip: !isLoggedIn || !isDealer,
   });
 
   // Prefetch offers (critical for home screen badge)
-  const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(undefined, {
-    skip: !isLoggedIn, // Only fetch if user is logged in
-  });
+  const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(
+    { garageCode: activeGarageCode },
+    {
+      skip: !canUseTenantCatalog, // Only fetch when tenant context is ready
+    },
+  );
 
   // Sync services to redux slice when loaded
   useEffect(() => {
@@ -77,7 +88,7 @@ export const usePrefetchData = () => {
   useEffect(() => {
     if (offersSuccess && offersData?.data) {
       dispatch(setOffers({ 
-        data: offersData.data, 
+        data: offersData.data as any, 
         count: offersData.count 
       }));
       console.log('usePrefetchData: Offers prefetched and synced:', offersData.count);
@@ -113,4 +124,3 @@ export const usePrefetchUserData = () => {
 
   console.log('usePrefetchUserData: User data ready for', userType, userPhone, userId);
 };
-

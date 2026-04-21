@@ -26,11 +26,6 @@ export async function registerFCMTokenAfterLogin(
       return false;
     }
 
-    // Backend register flow currently supports customer/employee.
-    if (userType === 'dealer') {
-      return true;
-    }
-
     await fcmService.registerTokenWithBackend(token, userId, userType);
     return true;
   } catch (error) {
@@ -78,11 +73,7 @@ export async function refreshFCMTokenRegistration(
       return false;
     }
 
-    if (userType === 'dealer') {
-      return true;
-    }
-
-    await fcmService.registerTokenWithBackend(token, userId, userType);
+    await fcmService.refreshTokenWithBackend(token, userId, userType);
     return true;
   } catch (error) {
     console.error('FCM Token Manager: Refresh failed:', error);

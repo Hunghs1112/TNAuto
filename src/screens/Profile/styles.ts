@@ -1,132 +1,192 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../../constants/colors";
+import { Typography } from "../../constants/typo";
 import { spacing } from "../../design-system/spacing";
 import { textStyles } from "../../design-system/typography";
 
 export const styles = StyleSheet.create({
-  // Root
   container: {
     flex: 1,
     backgroundColor: Colors.background.muted,
   },
   scrollContent: {
-    flexGrow: 1,
+    paddingBottom: spacing["2xl"],
   },
-
-  // Hero (Phần màu)
   heroContainer: {
-    height: 220,
+    height: 292,
   },
-  heroGradient: {
+  heroSurface: {
     flex: 1,
-    paddingBottom: spacing["6xl"],
+    paddingTop: spacing.xl,
+    backgroundColor: Colors.primary,
+  },
+  heroDecorativeContainer: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0.12,
+  },
+  heroDecorativeCircle: {
+    position: "absolute",
+    borderRadius: 999,
+    backgroundColor: Colors.background.light,
+  },
+  heroCircle1: {
+    width: 220,
+    height: 220,
+    top: -80,
+    right: -60,
+  },
+  heroCircle2: {
+    width: 150,
+    height: 150,
+    bottom: 140,
+    left: -50,
+  },
+  heroCircle3: {
+    width: 120,
+    height: 120,
+    top: "34%",
+    right: 30,
+  },
+  heroContent: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing["2xl"],
+    gap: spacing.lg,
+    zIndex: 1,
   },
   heroTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: spacing["2xl"],
-    paddingHorizontal: spacing.xl,
+  },
+  avatarShell: {
+    width: 98,
+    height: 98,
+    borderRadius: 32,
+    padding: 4,
+    backgroundColor: Colors.alpha.white12,
+    borderWidth: 1,
+    borderColor: Colors.alpha.white20,
+    marginRight: spacing.lg,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+    elevation: 8,
   },
   avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.65)",
-    marginRight: spacing.lg,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    width: "100%",
+    height: "100%",
+    borderRadius: 28,
+    backgroundColor: Colors.alpha.white12,
   },
   heroText: {
     flex: 1,
+    gap: 4,
   },
   userName: {
-    ...textStyles.h2,
+    fontSize: 30,
+    lineHeight: 34,
+    fontFamily: Typography.fontFamily.semibold,
+    fontWeight: Typography.weight.semibold,
+    letterSpacing: -0.4,
     color: Colors.background.light,
-    marginBottom: 2,
   },
   userPhone: {
     ...textStyles.body,
-    color: "rgba(255,255,255,0.85)",
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    color: Colors.background.light,
   },
-  userRole: {
+  roleChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: Colors.secondaryLight,
+    borderWidth: 1,
+    borderColor: Colors.secondary,
+  },
+  roleChipText: {
     ...textStyles.bodySmall,
-    color: "rgba(255,255,255,0.78)",
-    marginTop: 4,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    letterSpacing: 0.2,
+    color: Colors.background.light,
   },
-
-  // White sheet (Phần trắng)
   sheet: {
-    marginTop: -28,
+    marginTop: -64,
     backgroundColor: Colors.background.light,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: "hidden",
-    flex: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    minHeight: 420,
   },
   sheetContent: {
-    paddingVertical: spacing.xl,
-    gap: spacing.xl,
-  },
-
-  // Section
-  section: {
     paddingHorizontal: spacing.xl,
-  },
-  sectionTitle: {
-    ...textStyles.bodyStrong,
-    color: Colors.text.secondary,
-    marginBottom: spacing.sm,
-  },
-
-  // List
-  listCard: {
-    backgroundColor: Colors.background.light,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.neutral[100],
-    overflow: "hidden",
+    paddingTop: spacing.xl,
+    paddingBottom: spacing["2xl"],
+    gap: spacing.md,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    minHeight: 56,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    minHeight: 68,
+    borderWidth: 1,
+    borderColor: Colors.alpha.primary12,
+    borderRadius: 20,
+    backgroundColor: Colors.surface.elevated,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  rowSpacing: {
+    marginBottom: spacing.md,
   },
   rowPressed: {
-    opacity: 0.92,
-  },
-  rowDivider: {
-    height: 1,
-    backgroundColor: Colors.neutral[100],
-    marginLeft: spacing.lg + 40 + spacing.md,
+    backgroundColor: Colors.primarySoft,
+    borderColor: Colors.alpha.primary20,
   },
   rowIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.primarySoft,
-    alignItems: "center",
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.alpha.primary12,
+    backgroundColor: Colors.primarySoft,
   },
   rowText: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
   rowTitle: {
     ...textStyles.bodyStrong,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
     color: Colors.text.primary,
-    marginBottom: 2,
   },
-  rowSubtitle: {
-    ...textStyles.bodySmall,
-    color: Colors.text.secondary,
+  rowArrowWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.alpha.primary08,
+    borderWidth: 1,
+    borderColor: Colors.alpha.primary12,
   },
-
-  // Actions
-  actions: {
-    paddingHorizontal: spacing.xl,
+  actionsGroup: {
+    paddingTop: spacing.md,
     gap: spacing.md,
   },
   actionButton: {
@@ -135,9 +195,14 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    borderRadius: 14,
-    minHeight: 48,
+    borderRadius: 20,
+    minHeight: 58,
     borderWidth: 1,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   actionButtonPressed: {
     opacity: 0.92,
@@ -146,28 +211,28 @@ export const styles = StyleSheet.create({
     opacity: 0.6,
   },
   actionIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
-
   deleteButton: {
-    backgroundColor: Colors.status.error,
-    borderColor: Colors.status.error,
+    backgroundColor: Colors.secondaryLight,
+    borderColor: Colors.secondary,
   },
   deleteIconWrap: {
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: Colors.alpha.white18,
   },
   deleteButtonText: {
     ...textStyles.bodyStrong,
+    fontFamily: Typography.fontFamily.semibold,
+    fontWeight: Typography.weight.semibold,
     color: Colors.background.light,
   },
-
   logoutButton: {
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.surface.elevated,
     borderColor: Colors.primary,
   },
   logoutIconWrap: {
@@ -175,6 +240,8 @@ export const styles = StyleSheet.create({
   },
   logoutButtonText: {
     ...textStyles.bodyStrong,
+    fontFamily: Typography.fontFamily.semibold,
+    fontWeight: Typography.weight.semibold,
     color: Colors.primary,
   },
 });

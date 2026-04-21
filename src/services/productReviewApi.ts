@@ -54,8 +54,7 @@ export const productReviewApi = createApi({
     // GET /api/products/:id/reviews/stats - Get review statistics
     getReviewStats: builder.query<ReviewStats, number>({
       query: (productId) => 
-        buildEndpointUrl('getProductReviewStats', { id: productId.toString() }) || 
-        `/api/products/${productId}/reviews/stats`,
+        buildEndpointUrl('getProductReviewStats', { id: productId.toString() }),
       providesTags: ['ProductReview'],
       transformResponse: (response: ApiResponse<ReviewStats>) => {
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch review stats');

@@ -80,6 +80,21 @@ const TabButton = React.memo(function TabButton({
     return { color } as any;
   });
 
+  const iconWrapStyle = useAnimatedStyle(() => {
+    const borderColor = interpolateColor(active.value, [0, 1], [Colors.transparent, Colors.secondaryLight]);
+    const backgroundColor = interpolateColor(
+      active.value,
+      [0, 1],
+      [Colors.transparent, Colors.secondarySoft]
+    );
+
+    return {
+      borderColor,
+      backgroundColor,
+      transform: [{ translateY: active.value * -1 }],
+    };
+  });
+
   return (
     <AnimatedPressable
       onPress={onPress}
@@ -88,9 +103,15 @@ const TabButton = React.memo(function TabButton({
       style={[styles.tabButton, animStyle]}
       accessibilityRole="button"
     >
-      <Animated.Text style={[styles.iconText, iconColorStyle]}>
-        <Ionicons name={icon as any} size={22} color={Colors.text.tertiary} />
-      </Animated.Text>
+      <Animated.View style={[styles.iconWrap, iconWrapStyle]}>
+        <Animated.Text style={[styles.iconText, iconColorStyle]}>
+          <Ionicons
+            name={icon as any}
+            size={20}
+            color={isActive ? Colors.secondary : Colors.text.tertiary}
+          />
+        </Animated.Text>
+      </Animated.View>
       <Animated.Text style={[styles.tabLabel, labelStyle]}>{label}</Animated.Text>
     </AnimatedPressable>
   );
@@ -175,14 +196,14 @@ const Navbar = (props: BottomTabBarProps) => {
       ? [
           { key: "offer", label: "Ưu đãi", icon: "pricetag-outline", routeName: "Offer" },
           { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
-          { key: "home", label: "Trang chủ", icon: "home", routeName: "Home", isCenter: true },
+          { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
           { key: "service", label: "Danh mục", icon: "grid-outline", routeName: "Category" },
           { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
         ]
       : [
           { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "Booking", requiresAuth: true },
           { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
-          { key: "home", label: "Trang chủ", icon: "home", routeName: "Home", isCenter: true },
+          { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
           { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceCategory" },
           { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
         ];
@@ -281,6 +302,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 16,
   },
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+  },
   iconText: { lineHeight: 22 },
   tabLabel: { marginTop: 4, fontSize: 10, fontFamily: Typography.fontFamily.medium },
   centerSlot: {
@@ -307,7 +337,7 @@ const styles = StyleSheet.create({
     height: 76,
     borderRadius: 38,
     borderWidth: 2,
-    borderColor: "#22c55e",
+    borderColor: Colors.secondary,
   },
   centerButton: {
     width: 64,

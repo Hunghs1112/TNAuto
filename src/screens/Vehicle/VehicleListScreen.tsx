@@ -12,6 +12,7 @@ import { useGetCustomerVehiclesQuery } from '../../services/vehicleApi';
 import { Vehicle } from '../../types/api.types';
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
+import { useAppSelector } from '../../redux/hooks/useAppSelector';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -27,9 +28,21 @@ interface VehicleListScreenProps {
 const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
   const { userPhone } = route.params;
   const navigation = useNavigation<NavigationProp>();
+  const hasGarageContext = useAppSelector(
+    (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
   const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Customer'] });
-  const { data: vehiclesData, isLoading, refetch } = useGetCustomerVehiclesQuery({ phone: userPhone });
+  const { data: vehiclesData, isLoading, refetch } = useGetCustomerVehiclesQuery(
+    { phone: userPhone },
+    { skip: !hasGarageContext },
+  );
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasGarageContext) {
+      navigation.replace('SelectGarage');
+    }
+  }, [hasGarageContext, navigation]);
 
   const imageUrls = useMemo(
     () => (vehiclesData?.data ?? []).map((v) => v.image_url).filter((u): u is string => !!u),
@@ -108,6 +121,10 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
         </View>
       </RootView>
     );
+  }
+
+  if (!hasGarageContext) {
+    return null;
   }
 
   return (
@@ -274,7 +291,7 @@ const styles = StyleSheet.create({
   // Modal styles for full screen image
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: Colors.alpha.black90,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -283,7 +300,7 @@ const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -292,7 +309,7 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -304,4 +321,3 @@ const styles = StyleSheet.create({
 });
 
 export default VehicleListScreen;
-

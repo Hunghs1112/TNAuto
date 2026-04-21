@@ -10,7 +10,6 @@ import { productApi } from '../../services/productApi';
 import { categoryApi } from '../../services/categoryApi';
 import { dealerProductApi } from '../../services/dealerProductApi';
 import { dealerCategoryApi } from '../../services/dealerCategoryApi';
-import { serviceOrderApi } from '../../services/serviceOrderApi';
 import { employeeApi } from '../../services/employeeApi';
 import { imageApi } from '../../services/imageApi';
 import { serviceApi } from '../../services/serviceApi';
@@ -31,6 +30,7 @@ import employeeReducer from '../slices/employeeSlice';
 import imageReducer from '../slices/imageSlice';
 import notificationReducer from '../slices/notificationSlice';
 import warrantyReducer from '../slices/warrantySlice'; // Added
+import garageContextReducer, { sanitizeGarageContextState } from '../slices/garageContextSlice';
 
 // Cấu hình persist riêng cho auth reducer
 const authPersistConfig = {
@@ -47,10 +47,18 @@ const employeePersistConfig = {
 
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
 const persistedEmployeeReducer = persistReducer(employeePersistConfig, employeeReducer);
+const garagePersistConfig = {
+  key: 'garageContext',
+  storage: AsyncStorage,
+  version: 1,
+  migrate: async (state: any) => sanitizeGarageContextState(state),
+};
+const persistedGarageContextReducer = persistReducer(garagePersistConfig, garageContextReducer);
 
 export const store = configureStore({
   reducer: {
     auth: persistedAuthReducer,
+    garageContext: persistedGarageContextReducer,
     loading: loadingReducer,
     customer: customerReducer,
     services: servicesReducer,
@@ -69,7 +77,6 @@ export const store = configureStore({
     [categoryApi.reducerPath]: categoryApi.reducer,
     [dealerProductApi.reducerPath]: dealerProductApi.reducer,
     [dealerCategoryApi.reducerPath]: dealerCategoryApi.reducer,
-    [serviceOrderApi.reducerPath]: serviceOrderApi.reducer,
     [employeeApi.reducerPath]: employeeApi.reducer,
     [imageApi.reducerPath]: imageApi.reducer,
     [serviceApi.reducerPath]: serviceApi.reducer,
@@ -92,7 +99,6 @@ export const store = configureStore({
       categoryApi.middleware,
       dealerProductApi.middleware,
       dealerCategoryApi.middleware,
-      serviceOrderApi.middleware,
       employeeApi.middleware,
       imageApi.middleware,
       serviceApi.middleware,

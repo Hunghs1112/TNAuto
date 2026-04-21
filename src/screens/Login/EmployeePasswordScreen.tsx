@@ -12,6 +12,7 @@ import { useLoginEmployeeMutation } from "../../services";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { setLoggedIn } from "../../redux/slices/authSlice";
 import { setCurrentEmployee } from "../../redux/slices/employeeSlice";
+import { setGarageContext } from "../../redux/slices/garageContextSlice";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { registerFCMTokenAfterLogin } from "../../utils/fcmTokenManager";
 
@@ -52,9 +53,20 @@ export default function EmployeePasswordScreen() {
           userName: result.employee.name || 'Employee',
           userPhone: result.employee.phone || '',
           userLicensePlate: '',
-          avatarUrl: result.employee.avatar_url || ''
+          avatarUrl: result.employee.avatar_url || '',
+          token: result.token || '',
+          expiresAt: result.expires_at || '',
         }));
         dispatch(setCurrentEmployee(result.employee));
+        dispatch(setGarageContext({
+          garageId: result.garage?.id ?? result.garage_id,
+          garageCode: result.garage?.code,
+          garageName: result.garage?.name,
+          address: result.garage?.address,
+          avatarUrl: result.garage?.avatar_url,
+          status: result.garage?.status,
+          resolved: true,
+        }));
 
         // Register FCM token in background
         registerFCMTokenAfterLogin(userId, 'employee').catch(error => {
@@ -131,6 +143,7 @@ export default function EmployeePasswordScreen() {
             placeholderTextColor={Colors.text.placeholder}
             secureTextEntry={true}
             autoFocus={true}
+            focusBorderColor={Colors.accent.yellow}
           />
         </View>
 

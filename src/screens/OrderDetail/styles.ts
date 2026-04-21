@@ -318,7 +318,7 @@ export const styles = StyleSheet.create({
   // Modal styles for full screen image
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: Colors.alpha.black90,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -327,7 +327,7 @@ export const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -336,7 +336,7 @@ export const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },

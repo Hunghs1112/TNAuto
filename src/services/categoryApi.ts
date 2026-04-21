@@ -1,6 +1,6 @@
 // src/services/categoryApi.ts
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
+import { ENDPOINTS } from '../constants/apiEndpoints';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 export interface Category {
@@ -43,10 +43,21 @@ export const categoryApi = createApi({
   baseQuery: baseQueryWithRetry,
   tagTypes: ['Category'],
   endpoints: (builder) => ({
-    // GET /api/categories - Get all categories
-    getCategories: builder.query<Category[], void>({
-      query: () => ENDPOINTS.getCategories.path,
-      transformResponse: (response: ApiResponse<Category[]>) => {
+    // GET /api/app/garages/:garageCode/categories - Get all categories
+    getCategories: builder.query<Category[], GarageScopedQueryArg | void>({
+      query: ({ garageCode } = {}) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getCategories');
+        }
+
+        return ENDPOINTS.getCategories.path.replace(':garageCode', encodeURIComponent(normalizedGarageCode));
+      },
+      transformResponse: (response: ApiResponse<Category[]> | Category[]) => {
+        if (Array.isArray(response)) {
+          return response;
+        }
+
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch categories');
         return response.data;
       },
@@ -59,13 +70,26 @@ export const categoryApi = createApi({
           : [{ type: 'Category', id: 'LIST' }],
     }),
 
-    // GET /api/categories/:id - Get category details with products
-    getCategoryById: builder.query<CategoryWithProducts, number>({
-      query: (id) => buildEndpointUrl('getCategoryById', { id: id.toString() }),
-      providesTags: (result, error, id) => [{ type: 'Category', id }],
-      transformResponse: (response: ApiResponse<CategoryWithProducts>) => {
-        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch category');
-        return response.data;
+    // GET /api/app/garages/:garageCode/categories/:id - Get category details with products
+    getCategoryById: builder.query<CategoryWithProducts, GarageScopedCategoryArg>({
+      query: ({ id, garageCode }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getCategoryById');
+        }
+
+        return ENDPOINTS.getCategoryById.path
+          .replace(':garageCode', encodeURIComponent(normalizedGarageCode))
+          .replace(':id', id.toString());
+      },
+      providesTags: (result, error, { id }) => [{ type: 'Category', id }],
+      transformResponse: (response: ApiResponse<CategoryWithProducts> | CategoryWithProducts) => {
+        if (response && typeof response === 'object' && 'success' in response) {
+          if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch category');
+          return response.data;
+        }
+
+        return response as CategoryWithProducts;
       },
     }),
 
@@ -122,4 +146,3 @@ export const {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
 } = categoryApi;
-

@@ -134,7 +134,7 @@ class FCMService {
   /**
    * Register FCM token with backend
    */
-  async registerTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee'): Promise<void> {
+  async registerTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee' | 'dealer'): Promise<void> {
     try {
       console.log('📤 FCMService: Registering token with backend...', {
         userId,
@@ -169,6 +169,29 @@ class FCMService {
       console.error('❌ FCMService: Register token with backend error:', error);
       // Don't throw - allow app to continue working even if FCM registration fails
       // Token will be re-registered on next app start or token refresh
+    }
+  }
+
+  async refreshTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee' | 'dealer'): Promise<void> {
+    try {
+      const deviceInfo = `${Platform.OS} ${Platform.Version}`;
+      const { notificationApi } = await import('./notificationApi');
+
+      const refreshMutation = store.dispatch(
+        notificationApi.endpoints.refreshFcmToken.initiate({
+          token,
+        }),
+      );
+
+      const result = await refreshMutation;
+
+      if ('error' in result) {
+        throw new Error(`Failed to refresh token: ${JSON.stringify(result.error)}`);
+      }
+
+      console.log('✅ FCMService: Token refreshed with backend successfully');
+    } catch (error) {
+      console.error('❌ FCMService: Refresh token with backend error:', error);
     }
   }
 
@@ -258,14 +281,8 @@ class FCMService {
         return;
       }
 
-      if (state.auth.userType === 'dealer') {
-        console.log('ℹ️ FCMService: Dealer account skips backend FCM token registration');
-        return;
-      }
-
-      // Re-register with backend (backend will handle update if token exists)
-      console.log('🔄 FCMService: Re-registering token with backend');
-      await this.registerTokenWithBackend(token, state.auth.userId, state.auth.userType);
+      console.log('🔄 FCMService: Refreshing token with backend');
+      await this.refreshTokenWithBackend(token, state.auth.userId, state.auth.userType);
     });
 
     console.log('✅ FCMService: Token refresh listener setup complete');

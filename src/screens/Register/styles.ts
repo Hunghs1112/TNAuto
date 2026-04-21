@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
     marginTop: "2%",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    backgroundColor: Colors.background.light || "#FFFFFF",
+    backgroundColor: Colors.background.light,
   },
   formGroup: {
     width: "100%",

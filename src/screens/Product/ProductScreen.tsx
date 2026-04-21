@@ -17,6 +17,10 @@ import { useRefreshQueries } from "../../hooks/useRefreshQueries";
 import { ListItemSkeleton } from "../../components/SkeletonLoader";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { getPrimaryCatalogProductImageUrl } from "../../utils/catalog";
+import { selectGarageCode, selectHasGarageContext, selectSavedGarages } from "../../redux/selectors";
+import GarageTabs from "../../components/GarageTabs";
+import GarageSelectionPrompt from "../../components/GarageSelectionPrompt";
+import useCustomerGarageSelection from "../../hooks/useCustomerGarageSelection";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type ProductScreenRouteProp = RouteProp<AppStackParamList, "Product">;
@@ -25,18 +29,22 @@ type CatalogProduct = Product | DealerProduct;
 const ProductScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ProductScreenRouteProp>();
+  const { activateGarage } = useCustomerGarageSelection();
   const userType = useAppSelector((state) => state.auth.userType);
+  const currentGarageCode = useAppSelector(selectGarageCode);
+  const hasGarageContext = useAppSelector(selectHasGarageContext);
+  const savedGarages = useAppSelector(selectSavedGarages);
   const isDealer = userType === "dealer";
   const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ["Product", "Category"] });
 
   const categoryId = route.params?.categoryId;
   const categoryName = route.params?.categoryName;
 
-  const allProductsQuery = useGetProductsQuery(undefined, {
-    skip: isDealer || !!categoryId,
+  const allProductsQuery = useGetProductsQuery({ garageCode: currentGarageCode }, {
+    skip: isDealer || !!categoryId || !hasGarageContext,
   });
-  const categoryQuery = useGetCategoryByIdQuery(categoryId!, {
-    skip: isDealer || !categoryId,
+  const categoryQuery = useGetCategoryByIdQuery({ id: categoryId!, garageCode: currentGarageCode }, {
+    skip: isDealer || !categoryId || !hasGarageContext,
   });
   const dealerProductsQuery = useGetDealerProductsQuery(undefined, {
     skip: !isDealer || !!categoryId,
@@ -103,6 +111,7 @@ const ProductScreen = () => {
     categoryName ||
     (isDealer ? dealerCategoryQuery.data?.name : categoryQuery.data?.name) ||
     "Sản phẩm";
+  const showGarageTabs = !isDealer && savedGarages.length > 1;
 
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
@@ -146,6 +155,44 @@ const ProductScreen = () => {
     return null;
   }, [activeQuery.isLoading]);
 
+  const handleGarageChange = useCallback(
+    async (garageCode: string) => {
+      const garage = savedGarages.find((item) => item.garageCode === garageCode);
+
+      if (!garage) {
+        return;
+      }
+
+      await activateGarage(
+        {
+          garageId: garage.garageId,
+          garageCode: garage.garageCode,
+          garageName: garage.garageName,
+          address: garage.address,
+          avatarUrl: garage.avatarUrl,
+          status: garage.status,
+        },
+        'tab',
+      );
+    },
+    [activateGarage, savedGarages],
+  );
+
+  if (!isDealer && !hasGarageContext) {
+    return (
+      <Screen
+        headerTitle={headerTitle}
+        showBackButton
+        statusBarStyle="light-content"
+        useScrollView={false}
+      >
+        <View style={styles.whiteSection}>
+          <GarageSelectionPrompt onPress={() => navigation.navigate("SelectGarage")} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       headerTitle={headerTitle}
@@ -154,6 +201,13 @@ const ProductScreen = () => {
       useScrollView={false}
     >
       <View style={styles.whiteSection}>
+        {showGarageTabs && (
+          <GarageTabs
+            garages={savedGarages}
+            activeGarageCode={currentGarageCode}
+            onChangeGarage={handleGarageChange}
+          />
+        )}
         <View style={styles.body}>
           <QueryWrapper
             query={activeQuery as any}

@@ -12,6 +12,8 @@ interface Order {
   id: number | string;
   service_id?: number;
   service_name?: string;
+  garage_code?: string | null;
+  garage_name?: string | null;
   employee_name?: string | null;
   customer_name?: string | null;
   receive_date: string;
@@ -29,6 +31,8 @@ interface OrdersListProps {
   onOrderPress: (id: string) => void;
   emptyMessage?: string;
 }
+
+const ORDER_ITEM_SPACING = 10;
 
 const OrdersList: React.FC<OrdersListProps> = memo(({
   orders,
@@ -71,6 +75,7 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
       receiveDate={item.receive_date}
       scheduleDate={item.delivery_date || 'Chưa xác định'}
       status={item.status}
+      garageName={item.garage_name || item.garage_code || null}
       serviceImageUrl={getServiceImageUrl(item)}
       onPress={() => onOrderPress(item.id.toString())}
     />
@@ -105,6 +110,7 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
       data={orders}
       keyExtractor={keyExtractor}
       renderItem={renderOrderItem}
+      ItemSeparatorComponent={() => <View style={{ height: ORDER_ITEM_SPACING }} />}
       showsVerticalScrollIndicator={false}
       scrollEnabled={false}
       nestedScrollEnabled={false}
@@ -121,4 +127,3 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
 OrdersList.displayName = 'OrdersList';
 
 export default OrdersList;
-

@@ -1,7 +1,7 @@
 // src/services/vehicleApi.ts
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
-import { Vehicle, ApiResponse, ServiceOrder } from '../types/api.types';
+import { Vehicle, ApiResponse, ServiceOrder, VehicleDocumentFields } from '../types/api.types';
 
 export interface GetVehiclesResponse extends ApiResponse<Vehicle[]> {
   count: number;
@@ -11,6 +11,24 @@ export interface VehicleWithOrders extends Vehicle {
   orders?: ServiceOrder[];
 }
 
+type CreateVehicleRequest = {
+  customer_id: number | string;
+  garage_code?: string | null;
+  garage_id?: number | string | null;
+  license_plate: string;
+  model?: string | null;
+  image_url?: string | null;
+} & Partial<Omit<VehicleDocumentFields, 'inspection_status' | 'insurance_status'>>;
+
+type UpdateVehicleRequest = {
+  id: string;
+  customer_id?: number | string;
+  garage_code?: string | null;
+  garage_id?: number | string | null;
+  model?: string | null;
+  image_url?: string | null;
+} & Partial<Omit<VehicleDocumentFields, 'inspection_status' | 'insurance_status'>>;
+
 export const vehicleApi = createApi({
   ...API_CONFIG,
   reducerPath: 'vehicleApi' as const,
@@ -18,9 +36,9 @@ export const vehicleApi = createApi({
   tagTypes: ['Vehicle'] as const,
   endpoints: (builder) => ({
     // Get customer vehicles
-    getCustomerVehicles: builder.query<GetVehiclesResponse, { customer_id?: string; phone?: string }>({
+    getCustomerVehicles: builder.query<GetVehiclesResponse, { customer_id?: string; phone?: string } | void>({
       query: (params) => ({
-        url: params.phone ? '/customers/vehicles' : '/vehicles',
+        url: '/api/app/customer/vehicles',
         params,
       }),
       providesTags: ['Vehicle'],
@@ -38,7 +56,7 @@ export const vehicleApi = createApi({
     
     // Get vehicle by ID with orders
     getVehicleById: builder.query<VehicleWithOrders, string>({
-      query: (id) => `/vehicles/${id}`,
+      query: (id) => `/api/app/customer/vehicles/${id}`,
       providesTags: (result, error, id) => [{ type: 'Vehicle' as const, id }],
       transformResponse: (response: any) => {
         if (response.success && response.data) {
@@ -49,9 +67,9 @@ export const vehicleApi = createApi({
     }),
     
     // Search vehicles by license plate
-    searchVehiclesByPlate: builder.query<GetVehiclesResponse, string>({
-      query: (license_plate) => ({
-        url: '/vehicles/search',
+    searchVehiclesByPlate: builder.query<GetVehiclesResponse, { garageCode: string; license_plate: string }>({
+      query: ({ garageCode, license_plate }) => ({
+        url: `/api/app/garages/${encodeURIComponent(garageCode)}/vehicles/search`,
         params: { license_plate },
       }),
       transformResponse: (response: any) => {
@@ -67,9 +85,9 @@ export const vehicleApi = createApi({
     }),
     
     // Create vehicle
-    createVehicle: builder.mutation<ApiResponse<Vehicle>, { customer_id: number; license_plate: string; model?: string; image_url?: string }>({
-      query: (body) => ({
-        url: '/vehicles',
+    createVehicle: builder.mutation<ApiResponse<Vehicle>, CreateVehicleRequest & { garageCode: string }>({
+      query: ({ garageCode, ...body }) => ({
+        url: `/api/app/garages/${encodeURIComponent(garageCode)}/vehicles`,
         method: 'POST',
         body,
       }),
@@ -77,9 +95,9 @@ export const vehicleApi = createApi({
     }),
     
     // Update vehicle
-    updateVehicle: builder.mutation<ApiResponse<Vehicle>, { id: string; model?: string; image_url?: string }>({
-      query: ({ id, ...body }) => ({
-        url: `/vehicles/${id}`,
+    updateVehicle: builder.mutation<ApiResponse<Vehicle>, UpdateVehicleRequest & { garageCode: string }>({
+      query: ({ id, garageCode, ...body }) => ({
+        url: `/api/app/garages/${encodeURIComponent(garageCode)}/vehicles/${id}`,
         method: 'PUT',
         body,
       }),
@@ -87,9 +105,9 @@ export const vehicleApi = createApi({
     }),
     
     // Delete vehicle
-    deleteVehicle: builder.mutation<ApiResponse<void>, string>({
-      query: (id) => ({
-        url: `/vehicles/${id}`,
+    deleteVehicle: builder.mutation<ApiResponse<void>, { garageCode: string; id: string }>({
+      query: ({ garageCode, id }) => ({
+        url: `/api/app/garages/${encodeURIComponent(garageCode)}/vehicles/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Vehicle'],
@@ -105,4 +123,3 @@ export const {
   useUpdateVehicleMutation,
   useDeleteVehicleMutation,
 } = vehicleApi;
-

@@ -22,6 +22,7 @@ import CategoryScreen from "../screens/Category/CategoryScreen";
 import ProductDetailScreen from "../screens/ProductDetail/ProductDetailScreen";
 import VehicleListScreen from "../screens/Vehicle/VehicleListScreen";
 import VehicleDetailScreen from "../screens/Vehicle/VehicleDetailScreen";
+import VehicleEditScreen from "../screens/Vehicle/VehicleEditScreen";
 import AccountInfoScreen from "../screens/AccountInfo/AccountInfoScreen";
 import LoginScreen from "../screens/Login/LoginScreen";
 import RegisterScreen from "../screens/Register/RegisterScreen";
@@ -29,6 +30,7 @@ import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
 import DealerLoginScreen from "../screens/Login/DealerLoginScreen";
 import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
 import { usePrefetchData } from "../redux/hooks/usePrefetchData";
+import SelectGarageScreen from "../screens/Garage/SelectGarageScreen";
 
 export type AppStackParamList = {
   Home: undefined;
@@ -52,6 +54,7 @@ export type AppStackParamList = {
   Warranty: undefined;
   VehicleList: { userId: string; userPhone: string };
   VehicleDetail: { vehicleId: string; licensePlate: string };
+  VehicleEdit: { vehicleId: string; licensePlate: string };
   Login: undefined;
   Register: undefined;
   EmployeePassword: {
@@ -66,19 +69,17 @@ export type AppStackParamList = {
   };
   DealerLogin: {
     phone: string;
+    garageCode?: string;
   };
   DealerRegister: undefined;
+  SelectGarage: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 export default function AppNavigator() {
-
   // Prefetch critical data (services, categories, offers) when app loads
   usePrefetchData();
-
-  // Luồng hiện tại: luôn vào Home (MainTabs), không chặn bằng auth
-  const initialRouteName: keyof AppStackParamList = "Home";
 
   // Smooth screen transition configuration - Slide từ phải qua trái
   const screenOptions: NativeStackNavigationOptions = {
@@ -90,7 +91,8 @@ export default function AppNavigator() {
   };
 
   return (
-    <Stack.Navigator screenOptions={screenOptions} initialRouteName={initialRouteName}>
+    <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
+      <Stack.Screen name="SelectGarage" component={SelectGarageScreen} />
       {/* Tabs with Navbar (bottom tab visible) */}
       <Stack.Screen name="Home" component={MainTabs} />
 
@@ -119,6 +121,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Warranty" component={WarrantyScreen} />
       <Stack.Screen name="VehicleList" component={VehicleListScreen} />
       <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
+      <Stack.Screen name="VehicleEdit" component={VehicleEditScreen} />
     </Stack.Navigator>
   );
 }

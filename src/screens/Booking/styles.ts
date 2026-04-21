@@ -27,6 +27,17 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
+  activeGarageContainer: {
+    width: "100%",
+    marginBottom: 16,
+    gap: 8,
+  },
+  activeGarageLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: Typography.weight.medium,
+    fontSize: 13,
+    color: Colors.text.secondary,
+  },
   dateRowContainer: {
     flexDirection: "row",
     gap: 0,
@@ -93,7 +104,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.primarySoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.primary + '20',
+    borderColor: Colors.alpha.primary12,
   },
   estimatedTimeRow: {
     flexDirection: "row",
@@ -120,7 +131,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Colors.primarySoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.primary + '20',
+    borderColor: Colors.alpha.primary12,
     gap: 8,
   },
   vehicleInfoRow: {

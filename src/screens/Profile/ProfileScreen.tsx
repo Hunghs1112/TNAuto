@@ -1,7 +1,5 @@
-// screens/Profile/ProfileScreen.tsx - Modern Profile & Settings Screen with original logic
 import React, { useEffect } from "react";
 import { View, Text, Pressable, Image, ScrollView, Alert, ActivityIndicator } from "react-native";
-import LinearGradient from "react-native-linear-gradient";
 
 import { Screen } from "../../components/layout";
 import { Colors } from "../../constants/colors";
@@ -11,9 +9,9 @@ import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { logout } from "../../redux/slices/authSlice";
 import { clearCurrentEmployee } from "../../redux/slices/employeeSlice";
+import { clearGarageContext } from "../../redux/slices/garageContextSlice";
 import { clearWarranties } from "../../redux/slices/warrantySlice";
 import { warrantyApi } from "../../services/warrantyApi";
-import { serviceOrderApi } from "../../services/serviceOrderApi";
 import { vehicleApi } from "../../services/vehicleApi";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
@@ -40,19 +38,18 @@ const ProfileScreen = () => {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   const userName = useAppSelector((state) => state.auth.userName || "Người dùng");
   const userType = useAppSelector((state) => state.auth.userType || "customer");
+  const userId = useAppSelector((state) => state.auth.userId || "");
   const avatarUrl = useAppSelector(
     (state) => state.auth.avatarUrl || "https://i.pravatar.cc/150?img=12",
   );
   const userPhone = useAppSelector((state) => state.auth.userPhone || "");
+  const garageName = useAppSelector((state) => state.garageContext.garageName || "");
 
   const [deleteAccount, { isLoading: isDeleting }] = useDeleteAccountMutation();
 
   useEffect(() => {
     if (!isLoggedIn) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Home" }],
-      });
+      navigation.replace("Login");
     }
   }, [isLoggedIn, navigation]);
 
@@ -72,10 +69,10 @@ const ProfileScreen = () => {
     // Clear cached/persisted user-scoped data to avoid leaking previous account data
     dispatch(clearWarranties());
     dispatch(warrantyApi.util.resetApiState());
-    dispatch(serviceOrderApi.util.resetApiState());
     dispatch(vehicleApi.util.resetApiState());
 
     dispatch(clearCurrentEmployee());
+    dispatch(clearGarageContext());
     dispatch(logout());
   };
 
@@ -149,7 +146,28 @@ const ProfileScreen = () => {
             icon: "person-outline",
             onPress: () => navigation.navigate("AccountInfo"),
           },
+          ...(userType === "customer"
+            ? [
+                {
+                  id: "vehicle",
+                  title: "Thông tin xe",
+                  subtitle: "Cập nhật xe và giấy tờ xe",
+                  icon: "car-outline",
+                  onPress: () => navigation.navigate("VehicleList", { userId, userPhone }),
+                },
+              ]
+            : []),
+          {
+            id: "garage",
+            title: "Gara hiện tại",
+            subtitle: garageName || "Chọn gara đang sử dụng",
+            icon: "business-outline",
+            onPress: () => navigation.navigate("SelectGarage"),
+          },
         ];
+
+  const roleLabel =
+    userType === "employee" ? "Nhân viên" : userType === "dealer" ? "Đại lý" : "Khách hàng";
 
   return (
     <Screen hideHeader statusBarStyle="light-content">
@@ -159,53 +177,57 @@ const ProfileScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.heroContainer}>
-          <LinearGradient
-            colors={[...Colors.gradients.primary, Colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            <View style={styles.heroTopRow}>
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
-              <View style={styles.heroText}>
-                <Text style={styles.userName}>{userName}</Text>
-                <Text style={styles.userPhone}>{userPhone}</Text>
-                <Text style={styles.userRole}>
-                  {userType === "employee" ? "Nhân viên" : "Khách hàng"}
-                </Text>
+          <View style={styles.heroSurface}>
+            <View style={styles.heroDecorativeContainer}>
+              <View style={[styles.heroDecorativeCircle, styles.heroCircle1]} />
+              <View style={[styles.heroDecorativeCircle, styles.heroCircle2]} />
+              <View style={[styles.heroDecorativeCircle, styles.heroCircle3]} />
+            </View>
+            <View style={styles.heroContent}>
+              <View style={styles.heroTopRow}>
+                <View style={styles.avatarShell}>
+                  <Image source={{ uri: avatarUrl }} style={styles.avatar} resizeMode="cover" />
+                </View>
+
+                <View style={styles.heroText}>
+                  <Text style={styles.userName}>{userName}</Text>
+                  <Text style={styles.userPhone}>{userPhone}</Text>
+                  <View style={styles.roleChip}>
+                    <Ionicons name="sparkles-outline" size={14} color={Colors.background.light} />
+                    <Text style={styles.roleChipText}>{roleLabel}</Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         <View style={styles.sheet}>
           <View style={styles.sheetContent}>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Cài đặt</Text>
-              <View style={styles.listCard}>
-                {settingsItems.map((item, index) => (
-                  <React.Fragment key={item.id}>
-                    <Pressable
-                      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-                      onPress={item.onPress}
-                      android_ripple={{ color: Colors.neutral[100] }}
-                    >
-                      <View style={styles.rowIcon}>
-                        <Ionicons name={item.icon as any} size={22} color={Colors.primary} />
-                      </View>
-                      <View style={styles.rowText}>
-                        <Text style={styles.rowTitle}>{item.title}</Text>
-                        {!!item.subtitle && <Text style={styles.rowSubtitle}>{item.subtitle}</Text>}
-                      </View>
-                      <Ionicons name="chevron-forward" size={20} color={Colors.neutral[400]} />
-                    </Pressable>
-                    {index < settingsItems.length - 1 && <View style={styles.rowDivider} />}
-                  </React.Fragment>
-                ))}
-              </View>
-            </View>
+            {settingsItems.map((item, index) => (
+              <Pressable
+                key={item.id}
+                style={({ pressed }) => [
+                  styles.row,
+                  index < settingsItems.length - 1 && styles.rowSpacing,
+                  pressed && styles.rowPressed,
+                ]}
+                onPress={item.onPress}
+                android_ripple={{ color: Colors.neutral[100] }}
+              >
+                <View style={styles.rowIcon}>
+                  <Ionicons name={item.icon as any} size={20} color={Colors.primary} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle}>{item.title}</Text>
+                </View>
+                <View style={styles.rowArrowWrap}>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+                </View>
+              </Pressable>
+            ))}
 
-            <View style={styles.actions}>
+            <View style={styles.actionsGroup}>
               {userType !== "employee" && (
                 <Pressable
                   style={({ pressed }) => [

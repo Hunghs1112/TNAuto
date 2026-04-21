@@ -4,13 +4,19 @@ import { createGenericSlice } from './createGenericSlice';
 export interface Warranty {
   id: number;
   order_id: number;
-  customer_id: number;
+  service_id?: number | null;
+  product_id?: number | null;
+  dealer_id?: number | null;
   warranty_period: number;
   start_date: string;
   end_date: string;
-  note?: string;
-  created_at: string;
-  updated_at: string;
+  warranty_type?: string | null;
+  warranty_status?: string | null;
+  days_remaining?: number | null;
+  license_plate?: string | null;
+  service_name?: string | null;
+  product_name?: string | null;
+  dealer_name?: string | null;
 }
 
 // Tạo slice sử dụng factory pattern để giảm code duplication

@@ -8,10 +8,8 @@ import Screen from '../../components/layout/Screen/Screen';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
-import ConfirmButton from '../../components/ConfirmButton';
 import ErrorView from '../../components/Loading/ErrorView';
 import { useGetOrderDetailsQuery } from '../../services/customerApi';
-import { useCompleteServiceOrderMutation } from '../../services/serviceOrderApi';
 import { ServiceOrderImage } from '../../types/api.types';
 import { styles } from './styles';
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
@@ -20,21 +18,31 @@ import { useAppSelector } from '../../redux/hooks/useAppSelector';
 const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
   const [refreshing, setRefreshing] = useState(false);
-  const { data: orderData, isLoading, error, refetch, isFetching } = useGetOrderDetailsQuery(id);
-  const [completeServiceOrder] = useCompleteServiceOrderMutation();
+  const hasGarageContext = useAppSelector(
+    (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
+  const userType = useAppSelector((s) => s.auth.userType);
+  const { data: orderData, isLoading, error, refetch, isFetching } = useGetOrderDetailsQuery(id, {
+    skip: userType === 'customer' && !hasGarageContext,
+  });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
-  const userType = useAppSelector((s) => s.auth.userType);
   const isDealer = userType === 'dealer';
 
   useEffect(() => {
     if (isDealer) {
-      navigation.replace('Category' as never);
+      navigation.replace('Category');
     }
   }, [isDealer, navigation]);
 
-  if (isDealer) {
+  useEffect(() => {
+    if (userType === 'customer' && !hasGarageContext) {
+      navigation.replace('SelectGarage');
+    }
+  }, [hasGarageContext, navigation, userType]);
+
+  if (isDealer || (userType === 'customer' && !hasGarageContext)) {
     return null;
   }
 
@@ -175,22 +183,6 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     );
   };
 
-  const handleConfirm = async () => {
-    try {
-      await completeServiceOrder({
-        id,
-        // delivery_date is REQUIRED by backend. Use local date in YYYY-MM-DD.
-        delivery_date: new Date().toISOString().split('T')[0],
-        // warranty_period: optional. If omitted, backend will use service.warranty_period.
-      }).unwrap();
-
-      // Refresh order detail to get warranty_start / warranty_end / warranty_period
-      await refetch();
-    } catch (err) {
-      console.error('Failed to complete service order:', err);
-    }
-  };
-
   const isCompleted = orderData.status === 'completed';
   const showConfirmationRow = orderData.status !== 'ready_for_pickup' && orderData.status !== 'completed';
   const warrantyEndStr = orderData.warranty?.warranty_end || (orderData.warranty as any)?.end_date;
@@ -308,7 +300,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
               {isCompleted && warrantyEndDate && (
                 <View style={[
                   styles.warrantyEndRow,
-                  isWarrantyExpired && { backgroundColor: Colors.warranty.expired + '20' }
+                  isWarrantyExpired && { backgroundColor: Colors.alpha.expired12 }
                 ]}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                     <Ionicons 
@@ -330,13 +322,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
                 </View>
               )}
 
-              {/* Confirm Button (only for ready_for_pickup status) */}
-              {orderData.status === 'ready_for_pickup' && (
-                <ConfirmButton
-                  title="Xác nhận"
-                  onPress={handleConfirm}
-                />
-              )}
+              {/* Customer app: no confirm API here per new contract */}
             </View>
           </ScrollView>
         </View>

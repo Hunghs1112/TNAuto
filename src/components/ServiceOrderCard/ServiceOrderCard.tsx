@@ -10,6 +10,7 @@ import { spacing } from "../../design-system/spacing"
 import { borderRadius } from "../../design-system/borders"
 import { getRedShadowStyle } from "../../design-system/shadows"
 import { textStyles } from "../../design-system/typography"
+import GarageBadge from "../GarageBadge"
 
 interface ServiceOrderCardProps {
   serviceName: string
@@ -17,6 +18,7 @@ interface ServiceOrderCardProps {
   receiveDate: string
   scheduleDate: string
   status?: string
+  garageName?: string | null
   serviceImageUrl?: string | null
   onPress?: () => void
 }
@@ -42,22 +44,31 @@ const getStatusText = (status?: string) => {
 const getStatusColor = (status?: string): string => {
   switch (status) {
     case 'received':
-      return Colors.status.pending;
+      return '#3B82F6'; // blue
     case 'ready_for_pickup':
-      return Colors.status.warning;
+      return '#F59E0B'; // amber
     case 'in_progress':
-      return Colors.status.inProgress;
+      return '#8B5CF6'; // violet
     case 'completed':
-      return Colors.status.success;
+      return '#22C55E'; // green
     case 'cancelled':
     case 'canceled':
-      return Colors.status.cancelled;
+      return '#EF4444'; // red
     default:
       return Colors.status.pending;
   }
 };
 
-const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, secondaryName, receiveDate, scheduleDate, status, serviceImageUrl, onPress }) => {
+const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
+  serviceName,
+  secondaryName,
+  receiveDate,
+  scheduleDate,
+  status,
+  garageName,
+  serviceImageUrl,
+  onPress,
+}) => {
   const statusText = useMemo(() => getStatusText(status), [status]);
   const statusColor = useMemo(() => getStatusColor(status), [status]);
   const isCompleted = status === 'completed';
@@ -99,6 +110,7 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, second
                 <View style={styles.serviceText}>
                   <Text style={styles.serviceName}>{serviceName}</Text>
                   <Text style={styles.secondaryName}>{secondaryName}</Text>
+                  <GarageBadge garageName={garageName} />
                   {status && (
                     <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
                       <Text style={styles.statusText}>{statusText}</Text>
@@ -121,7 +133,7 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({ serviceName, second
               <Ionicons
                 name={isCompleted ? "calendar" : "calendar-outline"}
                 size={18}
-                color={isCompleted ? "#DA1C12" : Colors.secondary}
+                color={isCompleted ? Colors.primaryLight : Colors.secondary}
               />
             </View>
             <Text style={styles.dateLabel} numberOfLines={1}>
@@ -246,10 +258,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   receiveDateIcon: {
-    backgroundColor: 'rgba(255, 149, 0, 0.1)', // Orange soft background
+    backgroundColor: Colors.secondarySoft,
   },
   scheduleDateIcon: {
-    backgroundColor: 'rgba(218, 28, 18, 0.1)', // Red soft background
+    backgroundColor: Colors.primarySoft,
   },
   receiveDate: {
     color: Colors.secondary,
@@ -258,7 +270,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weight.semibold,
   },
   scheduleDate: {
-    color: '#DA1C12',
+    color: Colors.primaryLight,
     ...textStyles.bodySmall,
     flex: 1,
     fontWeight: Typography.weight.semibold,

@@ -12,17 +12,42 @@ export const baseQueryWithRetry = retry(
 
     baseUrl: API_BASE_URL,
     timeout: 15000, // 15 seconds timeout
-    prepareHeaders: (headers) => {
+    prepareHeaders: (headers, { getState, endpoint }) => {
       // Set default headers for all requests
       headers.set('Content-Type', 'application/json');
       headers.set('Accept', 'application/json');
-      
-      // You can add authentication token here if needed
-      // const token = getState()?.auth?.token;
-      // if (token) {
-      //   headers.set('Authorization', `Bearer ${token}`);
-      // }
-      
+
+      const state = getState() as any;
+      const token = state?.auth?.token;
+      const customerId = state?.auth?.userId;
+      const userType = state?.auth?.userType;
+
+      const nonAuthEndpoints = new Set([
+        'addCustomerGarage',
+        'getPublicGarages',
+        'resolveGarageByCode',
+        'registerCustomer',
+        'loginCustomer',
+        'loginEmployee',
+        'dealerLogin',
+        'dealerRegister',
+      ]);
+
+      if (token && !nonAuthEndpoints.has(endpoint)) {
+        headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        headers.delete('Authorization');
+      }
+
+      // New contract: customer aggregate routes use customer context, not garage headers.
+      if (userType === 'customer' && customerId) {
+        headers.set('x-customer-id', String(customerId));
+      } else {
+        headers.delete('x-customer-id');
+      }
+
+      headers.delete('x-garage-code');
+
       return headers;
     },
   }),
@@ -79,4 +104,3 @@ export const baseApi = createApi({
 });
 
 export default baseApi;
-

@@ -26,7 +26,7 @@ const CustomerDetailScreen: React.FC = () => {
   const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh();
   const { customerId, customerName, customerPhone } = route.params;
   const userId = useAppSelector((state) => state.auth.userId);
-  const currentEmployee = useAppSelector((state) => state.auth.currentEmployee);
+  const currentEmployee = useAppSelector((state) => state.employee.currentEmployee);
   const services = useAppSelector((state) => state.services.services);
   
   const employeeId = currentEmployee?.id || userId;
@@ -187,5 +187,4 @@ const CustomerDetailScreen: React.FC = () => {
 };
 
 export default CustomerDetailScreen;
-
 

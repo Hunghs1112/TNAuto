@@ -13,7 +13,6 @@
 // 4. Products will automatically include primary_image in response
 
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
 export interface ProductImage {
@@ -41,14 +40,29 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+interface GarageScopedQueryArg {
+  garageCode?: string;
+}
+
+interface GarageScopedProductArg extends GarageScopedQueryArg {
+  id: number;
+}
+
 export const productApi = createApi({
   ...API_CONFIG,
   reducerPath: 'productApi' as const,
   baseQuery: baseQueryWithRetry,
   tagTypes: ['Product', 'ProductImage'] as const,
   endpoints: (builder) => ({
-    getProducts: builder.query<Product[], void>({
-      query: () => ENDPOINTS.getProducts.path,
+    getProducts: builder.query<Product[], GarageScopedQueryArg>({
+      query: ({ garageCode }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getProducts');
+        }
+
+        return `/api/app/garages/${encodeURIComponent(normalizedGarageCode)}/products`;
+      },
       providesTags: (result) =>
         result
           ? [
@@ -61,17 +75,31 @@ export const productApi = createApi({
         return response.data;
       },
     }),
-    getProductById: builder.query<Product, number>({
-      query: (id) => buildEndpointUrl('getProductById', { id: id.toString() }),
-      providesTags: (result, error, id) => [{ type: 'Product' as const, id }],
+    getProductById: builder.query<Product, GarageScopedProductArg>({
+      query: ({ id, garageCode }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getProductById');
+        }
+
+        return `/api/app/garages/${encodeURIComponent(normalizedGarageCode)}/products/${id}`;
+      },
+      providesTags: (result, error, { id }) => [{ type: 'Product' as const, id }],
       transformResponse: (response: ApiResponse<Product>) => {
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch product');
         return response.data;
       },
     }),
-    getProductImages: builder.query<ProductImage[], number>({
-      query: (productId) => buildEndpointUrl('getProductImages', { productId: productId.toString() }),
-      providesTags: (result, error, productId) => [{ type: 'ProductImage' as const, id: productId }],
+    getProductImages: builder.query<ProductImage[], GarageScopedProductArg>({
+      query: ({ id, garageCode }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getProductImages');
+        }
+
+        return `/api/app/garages/${encodeURIComponent(normalizedGarageCode)}/products/${id}/images`;
+      },
+      providesTags: (result, error, { id }) => [{ type: 'ProductImage' as const, id }],
       transformResponse: (response: ApiResponse<ProductImage[]>) => {
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch product images');
         return response.data;
@@ -79,7 +107,7 @@ export const productApi = createApi({
     }),
     createProduct: builder.mutation<{ id: number }, { name: string; price: number; description?: string; category_id?: number }>({
       query: (body) => ({ 
-        url: ENDPOINTS.createProduct.path, 
+        url: '/products', 
         method: 'POST', 
         body 
       }),
@@ -94,7 +122,7 @@ export const productApi = createApi({
     }),
     updateProduct: builder.mutation<void, { id: number; name?: string; description?: string; price?: number; category_id?: number }>({
       query: ({ id, ...body }) => ({ 
-        url: buildEndpointUrl('updateProduct', { id: id.toString() }), 
+        url: `/products/${id}`, 
         method: 'PATCH', 
         body 
       }),
@@ -108,7 +136,7 @@ export const productApi = createApi({
     }),
     deleteProduct: builder.mutation<void, number>({
       query: (id) => ({ 
-        url: buildEndpointUrl('deleteProduct', { id: id.toString() }), 
+        url: `/products/${id}`, 
         method: 'DELETE' 
       }),
       invalidatesTags: [{ type: 'Product' as const, id: 'LIST' }, { type: 'ProductImage' as const, id: 'LIST' }],
@@ -118,7 +146,7 @@ export const productApi = createApi({
     }),
     createProductImage: builder.mutation<{ id: number }, { product_id: number; image_url: string; is_primary?: boolean }>({
       query: (body) => ({ 
-        url: ENDPOINTS.createProductImage.path, 
+        url: '/products/images', 
         method: 'POST', 
         body 
       }),
@@ -130,7 +158,7 @@ export const productApi = createApi({
     }),
     deleteProductImage: builder.mutation<void, number>({
       query: (id) => ({ 
-        url: buildEndpointUrl('deleteProductImage', { id: id.toString() }), 
+        url: `/products/images/${id}`, 
         method: 'DELETE' 
       }),
       invalidatesTags: [{ type: 'Product' as const, id: 'LIST' }, { type: 'ProductImage' as const, id: 'LIST' }],

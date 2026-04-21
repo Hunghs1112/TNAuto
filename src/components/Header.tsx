@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: borderRadius.full,
-    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    backgroundColor: Colors.alpha.white14,
   },
   title: {
     color: Colors.text.primary,

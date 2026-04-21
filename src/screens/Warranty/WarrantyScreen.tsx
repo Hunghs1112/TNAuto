@@ -13,13 +13,12 @@ import {
 import { Screen } from '../../components/layout';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
-import { Typography } from '../../constants/typo';
 import ErrorView from '../../components/Loading/ErrorView';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { useAppDispatch } from '../../redux/hooks/useAppDispatch';
 import { RootState } from '../../redux/types';
-import { useGetWarrantiesQuery } from '../../services/warrantyApi';
-import { useGetServiceOrderByIdQuery } from '../../services/serviceOrderApi';
+import { useGetWarrantiesQuery, type Warranty as WarrantyApiItem } from '../../services/warrantyApi';
+import { useGetOrderDetailsQuery } from '../../services/customerApi';
 
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
 import { useNavigation } from '@react-navigation/native';
@@ -29,22 +28,7 @@ import { styles } from './styles';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-interface WarrantyItem {
-  id: number;
-  order_id: number;
-  customer_id: number;
-  warranty_period: number;
-  start_date: string;
-  end_date: string;
-  note?: string;
-  created_at: string;
-  updated_at: string;
-  // Populated fields from API
-  service_name?: string;
-  employee_name?: string;
-  license_plate?: string;
-  vehicle_type?: string;
-}
+type WarrantyItem = WarrantyApiItem;
 
 const WarrantyScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -52,7 +36,30 @@ const WarrantyScreen: React.FC = () => {
   const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Warranty'] });
   const userId = useAppSelector((state: RootState) => state.auth.userId);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
+  const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const warranties = useAppSelector((state: RootState) => state.warranty.items);
+  const garageCode = useAppSelector((state: RootState) => state.garageContext.garageCode);
+  const { bottom: bottomInset } = useSafeAreaInsets();
+  const TAB_BAR_HEIGHT = 76;
+
+  // 🔍 DEBUG: Log trạng thái auth và warranty
+  console.log('🛡️ [WarrantyScreen] === RENDER ===');
+  console.log('🛡️ [WarrantyScreen] isLoggedIn:', isLoggedIn);
+  console.log('🛡️ [WarrantyScreen] userType:', userType);
+  console.log('🛡️ [WarrantyScreen] userId:', userId);
+  console.log('🛡️ [WarrantyScreen] warranties count (redux):', warranties?.length);
+
+  const queryArgs = userType === 'customer'
+    ? {
+        userType: 'customer' as const,
+        userId,
+        garageCode: garageCode || 'DEFAULT',
+        status: 'all' as const,
+      }
+    : undefined;
+
+  console.log('🛡️ [WarrantyScreen] queryArgs:', JSON.stringify(queryArgs));
+  console.log('🛡️ [WarrantyScreen] skip query:', userType !== 'customer' || !isLoggedIn || !userId);
 
   const {
     data: warrantiesData,
@@ -60,13 +67,25 @@ const WarrantyScreen: React.FC = () => {
     isFetching,
     error,
     refetch,
-  } = useGetWarrantiesQuery(
-    userType === 'customer' ? { userType: userType as any, userId } : undefined
-  );
+  } = useGetWarrantiesQuery(queryArgs, {
+    skip: userType !== 'customer' || !isLoggedIn || !userId,
+  });
+
+  // 🔍 DEBUG: Log kết quả query
+  console.log('🛡️ [WarrantyScreen] isLoading:', isLoading);
+  console.log('🛡️ [WarrantyScreen] isFetching:', isFetching);
+  console.log('🛡️ [WarrantyScreen] error:', error ? JSON.stringify(error) : 'none');
+  console.log('🛡️ [WarrantyScreen] garageCode:', garageCode);
+  console.log('🛡️ [WarrantyScreen] warrantiesData:', warrantiesData ? `${warrantiesData.length} items` : 'null/undefined');
+  if (warrantiesData && warrantiesData.length > 0) {
+    console.log('🛡️ [WarrantyScreen] first warranty:', JSON.stringify(warrantiesData[0]));
+  }
 
   // Sync query data into local slice for rendering
   useEffect(() => {
+    console.log('🛡️ [WarrantyScreen] useEffect: warrantiesData changed, syncing to redux...');
     if (warrantiesData) {
+      console.log('🛡️ [WarrantyScreen] Dispatching setWarranties with', warrantiesData.length, 'items');
       dispatch(setWarranties(warrantiesData));
     }
   }, [warrantiesData, dispatch]);
@@ -74,16 +93,13 @@ const WarrantyScreen: React.FC = () => {
   useEffect(() => {
     if (userType === 'dealer') {
       // Dealer không được phép xem/điều hướng các chức năng liên quan dịch vụ/bảo hành.
-      navigation.replace('Category' as never);
+      navigation.replace('Category');
     }
   }, [userType, navigation]);
 
   if (userType === 'dealer') {
     return null;
   }
-
-  const { bottom: bottomInset } = useSafeAreaInsets();
-  const TAB_BAR_HEIGHT = 76;
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -102,6 +118,11 @@ const WarrantyScreen: React.FC = () => {
     return diffDays;
   };
 
+  const getWarrantyPeriodLabel = (period?: number | null): string => {
+    if (period == null) return '--';
+    return `${period} tháng`;
+  };
+
   const getWarrantyStatus = (endDate: string): { status: string; color: string } => {
     const daysRemaining = calculateDaysRemaining(endDate);
     
@@ -116,11 +137,20 @@ const WarrantyScreen: React.FC = () => {
 
   // Component for each warranty item to allow using hooks
   const WarrantyItemComponent = ({ item }: { item: WarrantyItem }) => {
-    const status = getWarrantyStatus(item.end_date);
-    const daysRemaining = calculateDaysRemaining(item.end_date);
+    const fallbackDaysRemaining = calculateDaysRemaining(item.end_date);
+    const computedStatus = getWarrantyStatus(item.end_date);
+    const normalizedStatus = item.warranty_status?.toLowerCase();
+    const status = normalizedStatus === 'expired'
+      ? { status: 'Hết hạn', color: Colors.warranty.expired }
+      : normalizedStatus === 'active'
+        ? fallbackDaysRemaining <= 30
+          ? { status: 'Sắp hết hạn', color: Colors.warranty.expiring }
+          : { status: 'Còn hiệu lực', color: Colors.warranty.active }
+        : computedStatus;
+    const daysRemaining = item.days_remaining ?? fallbackDaysRemaining;
     
     // Fetch order details to enrich warranty data
-    const { data: orderData } = useGetServiceOrderByIdQuery(item.order_id.toString(), {
+    const { data: orderData } = useGetOrderDetailsQuery(item.order_id.toString(), {
       skip: !item.order_id || !!item.service_name, // Skip if no order_id or already has service_name
     });
 
@@ -128,7 +158,6 @@ const WarrantyScreen: React.FC = () => {
     const enrichedItem: WarrantyItem = {
       ...item,
       service_name: item.service_name || orderData?.service_name,
-      employee_name: item.employee_name || orderData?.employee_name || null,
       license_plate: item.license_plate || orderData?.license_plate,
     };
 
@@ -155,6 +184,9 @@ const WarrantyScreen: React.FC = () => {
               {enrichedItem.license_plate && (
                 <Text style={styles.licensePlate}>Biển số: {enrichedItem.license_plate}</Text>
               )}
+              {enrichedItem.product_name ? (
+                <Text style={styles.orderId}>Sản phẩm: {enrichedItem.product_name}</Text>
+              ) : null}
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
@@ -178,11 +210,11 @@ const WarrantyScreen: React.FC = () => {
             </View>
           </View>
 
-          {enrichedItem.employee_name && (
+          {enrichedItem.dealer_name && (
             <View style={styles.infoRow}>
               <Ionicons name="person-outline" size={16} color={Colors.text.secondary} />
-              <Text style={styles.infoLabel}>Nhân viên:</Text>
-              <Text style={styles.infoValue}>{enrichedItem.employee_name}</Text>
+              <Text style={styles.infoLabel}>Gara:</Text>
+              <Text style={styles.infoValue}>{enrichedItem.dealer_name}</Text>
             </View>
           )}
 
@@ -190,7 +222,7 @@ const WarrantyScreen: React.FC = () => {
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.detailLabel}>Thời hạn:</Text>
-              <Text style={styles.detailValue}>{enrichedItem.warranty_period} tháng</Text>
+              <Text style={styles.detailValue}>{getWarrantyPeriodLabel(enrichedItem.warranty_period)}</Text>
             </View>
             <View style={styles.detailItem}>
               <Ionicons name="hourglass-outline" size={16} color={Colors.text.secondary} />
@@ -200,13 +232,6 @@ const WarrantyScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-
-          {enrichedItem.note && (
-            <View style={styles.noteContainer}>
-              <Ionicons name="document-text-outline" size={16} color={Colors.text.secondary} />
-              <Text style={styles.noteText}>{enrichedItem.note}</Text>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>TNGarage</string>
+	<string>GaraOne</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>GaraOne</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -62,13 +62,13 @@
 		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>TNGarage needs access to your camera to allow you to take photos directly within the app for your service orders. When you create or manage a service order, you can take photos of your vehicle at different stages (when receiving the vehicle and when delivering it back) to document its condition. You can also take a photo for your profile picture. Photos taken with the camera are only used for the specific purpose you choose (service order documentation or profile picture) and are securely uploaded to our servers. The app does not record video or access your camera for any other purpose.</string>
+	<string>GaraOne needs access to your camera to allow you to take photos directly within the app for your service orders. When you create or manage a service order, you can take photos of your vehicle at different stages (when receiving the vehicle and when delivering it back) to document its condition. You can also take a photo for your profile picture. Photos taken with the camera are only used for the specific purpose you choose (service order documentation or profile picture) and are securely uploaded to our servers. The app does not record video or access your camera for any other purpose.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>TNAuto may need to save service order documentation images to your photo library if you choose to download them. This allows you to keep a local copy of important service records and warranty documents for your records. Images are only saved with your explicit permission when you choose to download them.</string>
+	<string>GaraOne may need to save service order documentation images to your photo library if you choose to download them. This allows you to keep a local copy of important service records and warranty documents for your records. Images are only saved with your explicit permission when you choose to download them.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>TNAuto needs access to your photo library to allow you to select and upload photos for your service orders. When you create or manage a service order, you can upload photos of your vehicle at different stages (when receiving the vehicle and when delivering it back). You can also select a profile picture from your photo library. The app only accesses photos that you explicitly choose to upload, and these photos are securely transmitted to our servers to document your service orders. We do not access, store, or share any other photos from your library.</string>
+	<string>GaraOne needs access to your photo library to allow you to select and upload photos for your service orders. When you create or manage a service order, you can upload photos of your vehicle at different stages (when receiving the vehicle and when delivering it back). You can also select a profile picture from your photo library. The app only accesses photos that you explicitly choose to upload, and these photos are securely transmitted to our servers to document your service orders. We do not access, store, or share any other photos from your library.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

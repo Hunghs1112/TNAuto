@@ -101,7 +101,7 @@ const Item = ({ title, description, imageUri, onPress, isPressable = true }: Ite
           ) : (
             <View style={styles.imagePlaceholder}>
               <LinearGradient
-                colors={[Colors.primarySoft, '#FFF9F9']}
+                colors={[Colors.primarySoft, Colors.secondarySoft]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.placeholderGradient}

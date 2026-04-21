@@ -46,6 +46,14 @@ interface ApiResponse<T> {
   image_url?: string;
 }
 
+interface GarageScopedQueryArg {
+  garageCode?: string;
+}
+
+interface GarageScopedServiceCategoryArg extends GarageScopedQueryArg {
+  id: number;
+}
+
 export const serviceCategoryApi = createApi({
   ...API_CONFIG,
   reducerPath: 'serviceCategoryApi' as const,
@@ -53,11 +61,10 @@ export const serviceCategoryApi = createApi({
   tagTypes: ['ServiceCategory'] as const,
   endpoints: (builder) => ({
     // GET /api/service-categories - Lấy danh sách tất cả danh mục dịch vụ
-    getServiceCategories: builder.query<ServiceCategory[], void>({
-      query: () => {
-        const path = ENDPOINTS.getServiceCategories?.path || '/service-categories';
-        return path;
-      },
+    getServiceCategories: builder.query<ServiceCategory[], GarageScopedQueryArg>({
+      query: ({ garageCode }) =>
+        (ENDPOINTS.getServiceCategories?.path || '/api/app/garages/:garageCode/service-categories')
+          .replace(':garageCode', encodeURIComponent(garageCode || '')),
       providesTags: ['ServiceCategory'],
       transformResponse: (response: ApiResponse<ServiceCategory[]>) => {
         if (!response.success || !response.data) {
@@ -73,14 +80,18 @@ export const serviceCategoryApi = createApi({
     }),
 
     // GET /api/service-categories/:id - Lấy thông tin chi tiết danh mục kèm danh sách dịch vụ
-    getServiceCategoryById: builder.query<ServiceCategory, number>({
-      query: (id) => {
-        // Use endpoint path directly and replace :id
-        let path = ENDPOINTS.getServiceCategoryById?.path || '/service-categories/:id';
-        path = path.replace(':id', id.toString());
-        return path;
+    getServiceCategoryById: builder.query<ServiceCategory, GarageScopedServiceCategoryArg>({
+      query: ({ id, garageCode }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getServiceCategoryById');
+        }
+
+        return ENDPOINTS.getServiceCategoryById.path
+          .replace(':garageCode', encodeURIComponent(normalizedGarageCode))
+          .replace(':id', id.toString());
       },
-      providesTags: (result, error, id) => [{ type: 'ServiceCategory' as const, id }],
+      providesTags: (result, error, { id }) => [{ type: 'ServiceCategory' as const, id }],
       transformResponse: (response: ApiResponse<ServiceCategory>) => {
         if (!response.success || !response.data) {
           console.error('Failed to fetch service category:', response.error);
@@ -97,7 +108,7 @@ export const serviceCategoryApi = createApi({
     // POST /api/service-categories/admin - Tạo danh mục dịch vụ mới (Admin)
     createServiceCategory: builder.mutation<{ id: number }, CreateServiceCategoryRequest>({
       query: (body) => ({
-        url: ENDPOINTS.createServiceCategory?.path || '/api/service-categories/admin',
+        url: ENDPOINTS.createServiceCategory.path,
         method: 'POST',
         body,
       }),
@@ -145,7 +156,7 @@ export const serviceCategoryApi = createApi({
       categories_with_services: number;
       avg_services_per_category: number;
     }, void>({
-      query: () => ENDPOINTS.getServiceCategoryStats?.path || '/api/service-categories/admin/stats',
+      query: () => ENDPOINTS.getServiceCategoryStats.path,
       providesTags: ['ServiceCategory'],
       transformResponse: (response: ApiResponse<{
         total_categories: number;
@@ -170,6 +181,5 @@ export const {
   useDeleteServiceCategoryMutation,
   useGetServiceCategoryStatsQuery,
 } = serviceCategoryApi;
-
 
 

@@ -5,7 +5,6 @@ import {
   Text, 
   Pressable, 
   Image, 
-  ScrollView, 
   Alert, 
   ActivityIndicator, 
   Modal,
@@ -13,7 +12,6 @@ import {
 } from "react-native";
 import { Screen, FormContainer } from "../../components/layout";
 import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
 import TextInput from "../../components/TextInput/TextInput";
 import DateInput from "../../components/TextInput/DateInput";
 import { Button } from "../../components/ui";
@@ -22,7 +20,7 @@ import { styles } from "./styles";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { RootState } from "../../redux/stores";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
-import { logout, updateUserProfile } from "../../redux/slices/authSlice";
+import { updateUserProfile } from "../../redux/slices/authSlice";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
@@ -37,7 +35,6 @@ import { pickImageFromGallery, pickImageFromCamera, showImagePickerOptions, vali
 import { Asset } from 'react-native-image-picker';
 import { API_BASE_URL } from "../../constants/config";
 import limitedFetch from '../../utils/limitedFetch';
-import { clearAuthStorage } from "../../utils/authStorage";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -51,6 +48,7 @@ const AccountInfoScreen = () => {
   const avatarUrl = useAppSelector((state: RootState) => state.auth.avatarUrl || '');
   const userEmail = useAppSelector((state: RootState) => state.auth.userEmail || '');
   const userId = useAppSelector((state: RootState) => state.auth.userId || '');
+  const userType = useAppSelector((state: RootState) => state.auth.userType || '');
 
   // Form state
   const [name, setName] = useState(userName);
@@ -64,7 +62,7 @@ const AccountInfoScreen = () => {
 
   // API mutations
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
-  const { data: driverLicense, isLoading: isLoadingDriverLicense } = useGetCustomerDriverLicenseQuery(userId, {
+  const { data: driverLicense, isLoading: isLoadingDriverLicense } = useGetCustomerDriverLicenseQuery(undefined, {
     skip: !userId,
   });
   const [upsertCustomerDriverLicense, { isLoading: isSavingDriverLicense }] =
@@ -137,7 +135,7 @@ const AccountInfoScreen = () => {
         setDriverLicenseExpiry('');
       }
     }
-  }, [driverLicense]);
+  }, [driverLicense, userId]);
 
   // Handle avatar selection
   const handleAvatarPress = () => {
@@ -204,7 +202,7 @@ const AccountInfoScreen = () => {
       }
 
       // Prepare update data
-      const updateData: any = { phone: userPhone };
+      const updateData: any = {};
       
       if (name !== userName) {
         updateData.name = name;
@@ -217,7 +215,7 @@ const AccountInfoScreen = () => {
       }
 
       // Track whether anything changed
-      const hasProfileChanges = Object.keys(updateData).length > 1; // More than just phone
+      const hasProfileChanges = Object.keys(updateData).length > 0;
       const trimmedLicenseNumber = driverLicenseNumber.trim();
       const trimmedExpiry = driverLicenseExpiry.trim();
       const hadDriverLicense = !!driverLicense;
@@ -253,13 +251,12 @@ const AccountInfoScreen = () => {
       if (hasDriverLicenseChange && userId) {
         if (trimmedLicenseNumber) {
           await upsertCustomerDriverLicense({
-            customerId: userId,
             license_no: trimmedLicenseNumber,
             // Backend expects 'YYYY-MM-DD' cho ngày, có thể null nếu không có
             expires_at: toBackendDate(trimmedExpiry),
           }).unwrap();
         } else if (hadDriverLicense) {
-          await deleteCustomerDriverLicense({ customerId: userId }).unwrap();
+          await deleteCustomerDriverLicense().unwrap();
         }
       }
 
@@ -283,140 +280,212 @@ const AccountInfoScreen = () => {
     isSavingDriverLicense ||
     isDeletingDriverLicense;
   const PLACEHOLDER_AVATAR = 'https://i.pravatar.cc/150?img=12';
+  const displayName = name.trim() || userName || "Người dùng";
+  const heroEmailText = email.trim();
+  const canManageVehicles = userType === 'customer' && Boolean(userId && userPhone);
+  const saveButtonTitle = isUploadingAvatar
+    ? "Đang tải ảnh..."
+    : isUpdating || isSavingDriverLicense || isDeletingDriverLicense
+      ? "Đang lưu..."
+      : "Lưu thay đổi";
 
   return (
     <Screen
       headerTitle="Thông tin tài khoản"
       showBackButton
-      safeAreaTopColor={Colors.primary}
+      backgroundColor={Colors.background.muted}
       statusBarStyle="light-content"
+      useScrollView={false}
     >
       <FormContainer
         keyboardAvoiding
         withScroll
-        padding={0}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
+        paddingCustom={{ horizontal: 0, top: 0, bottom: 0 }}
+        backgroundColor={Colors.background.muted}
+        contentContainerStyle={styles.scrollContent}
         dismissKeyboardOnPress
       >
-          {/* Avatar Section */}
-          <View style={styles.avatarSection}>
-            <Pressable 
-              onPress={handleAvatarPress} 
-              onLongPress={() => {
-                if (!isUploadingAvatar && (selectedAvatar || PLACEHOLDER_AVATAR)) {
-                  setSelectedImage(selectedAvatar || PLACEHOLDER_AVATAR);
-                }
+        <View style={styles.heroContainer}>
+          <View style={styles.heroSurface}>
+            <View style={styles.heroDecorativeContainer}>
+              <View style={[styles.heroDecorativeCircle, styles.heroCircle1]} />
+              <View style={[styles.heroDecorativeCircle, styles.heroCircle2]} />
+              <View style={[styles.heroDecorativeCircle, styles.heroCircle3]} />
+            </View>
+
+            <View style={styles.heroContent}>
+              <Pressable
+                onPress={handleAvatarPress}
+                onLongPress={() => {
+                  if (!isUploadingAvatar && (selectedAvatar || PLACEHOLDER_AVATAR)) {
+                    setSelectedImage(selectedAvatar || PLACEHOLDER_AVATAR);
+                  }
                 }}
-              style={styles.avatarPressable}
-              disabled={isUploadingAvatar}
-            >
-              <View style={styles.avatarContainer}>
-                {isUploadingAvatar ? (
-                  <View style={styles.avatarLoading}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
+                style={styles.avatarPressable}
+                disabled={isUploadingAvatar}
+              >
+                <View style={styles.avatarShell}>
+                  <View style={styles.avatarContainer}>
+                    {isUploadingAvatar ? (
+                      <View style={styles.avatarLoading}>
+                        <ActivityIndicator size="large" color={Colors.background.light} />
+                      </View>
+                    ) : (
+                      <>
+                        <Image
+                          source={{ uri: selectedAvatar || PLACEHOLDER_AVATAR }}
+                          style={styles.avatar}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.avatarEditBadge}>
+                          <Ionicons name="camera" size={16} color={Colors.background.light} />
+                        </View>
+                      </>
+                    )}
                   </View>
-                ) : (
-                  <>
-                    <Image 
-                      source={{ uri: selectedAvatar || PLACEHOLDER_AVATAR }} 
-                      style={styles.avatar}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.avatarEditBadge}>
-                      <Ionicons name="camera" size={18} color={Colors.background.light} />
-                    </View>
-                  </>
+                </View>
+              </Pressable>
+
+              <View style={styles.heroTextBlock}>
+                <Text style={styles.heroName}>{displayName}</Text>
+                <Text style={styles.heroPhone}>{userPhone}</Text>
+                {!!heroEmailText && (
+                  <Text style={styles.heroEmail} numberOfLines={2}>
+                    {heroEmailText}
+                  </Text>
                 )}
               </View>
-            </Pressable>
-            <Text style={styles.avatarHint}>Nhấn để thay đổi ảnh đại diện</Text>
+            </View>
           </View>
+        </View>
 
-          {/* Profile Card */}
-          <View style={styles.profileCard}>
-            <Text style={styles.sectionTitle}>Thông tin cá nhân</Text>
-            
-            {/* Phone Field */}
-            <View style={styles.fieldContainer}>
-              <View style={styles.fieldLabelRow}>
-                <Ionicons name="call-outline" size={18} color={Colors.text.secondary} />
-                <Text style={styles.fieldLabel}>Số điện thoại</Text>
+        <View style={styles.sheet}>
+          <View style={styles.sheetContent}>
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconWrap}>
+                  <Ionicons name="person-outline" size={20} color={Colors.primary} />
+                </View>
+                <View style={styles.sectionHeaderText}>
+                  <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
+                </View>
               </View>
-              <View style={styles.disabledField}>
-                <Text style={styles.disabledFieldText}>{userPhone}</Text>
-              </View>
-              <Text style={styles.fieldHint}>Số điện thoại không thể thay đổi</Text>
-            </View>
 
-            {/* Name Field */}
-            <View style={styles.fieldContainer}>
-              <View style={styles.fieldLabelRow}>
-                <Ionicons name="person-outline" size={18} color={Colors.text.secondary} />
-                <Text style={styles.fieldLabel}>Họ và tên</Text>
+              <View style={styles.lockedInfoRow}>
+                <View style={styles.lockedInfoIconWrap}>
+                  <Ionicons name="call-outline" size={18} color={Colors.primary} />
+                </View>
+                <View style={styles.lockedInfoText}>
+                  <Text style={styles.lockedInfoLabel}>Số điện thoại</Text>
+                  <Text style={styles.lockedInfoValue}>{userPhone}</Text>
+                </View>
               </View>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Nhập họ và tên"
-                style={styles.input}
-              />
-            </View>
 
-            {/* Email Field */}
-            <View style={styles.fieldContainer}>
-              <View style={styles.fieldLabelRow}>
-                <Ionicons name="mail-outline" size={18} color={Colors.text.secondary} />
-                <Text style={styles.fieldLabel}>Email (tùy chọn)</Text>
-              </View>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Nhập email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={styles.input}
-              />
-            </View>
-
-            {/* Driver License Field */}
-            {uiVisibility?.is_hidden === 0 && (
-              <View style={styles.fieldContainer}>
+              <View style={styles.fieldBlock}>
                 <View style={styles.fieldLabelRow}>
-                  <Ionicons name="card-outline" size={18} color={Colors.text.secondary} />
-                  <Text style={styles.fieldLabel}>Giấy phép lái xe (số GPLX)</Text>
+                  <Ionicons name="person-circle-outline" size={18} color={Colors.text.secondary} />
+                  <Text style={styles.fieldLabel}>Họ và tên</Text>
                 </View>
                 <TextInput
-                  value={driverLicenseNumber}
-                  onChangeText={setDriverLicenseNumber}
-                  placeholder="Nhập số giấy phép lái xe"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Nhập họ và tên"
                   style={styles.input}
                 />
-                <View style={{ height: 12 }} />
-                <DateInput
-                  value={driverLicenseExpiry}
-                  onChangeText={setDriverLicenseExpiry}
-                  placeholder="Chọn hạn GPLX"
-                  label="Hạn GPLX"
-                  fullWidth
+              </View>
+
+              <View style={[styles.fieldBlock, styles.fieldBlockLast]}>
+                <View style={styles.fieldLabelRow}>
+                  <Ionicons name="mail-outline" size={18} color={Colors.text.secondary} />
+                  <Text style={styles.fieldLabel}>Email</Text>
+                </View>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Nhập email"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={styles.input}
                 />
-                <Text style={styles.fieldHint}>
-                  Thông tin GPLX (số & hạn) được lưu gắn với tài khoản khách hàng.
-                </Text>
+              </View>
+            </View>
+
+            {uiVisibility?.is_hidden === 0 && (
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionIconWrap}>
+                    <Ionicons name="card-outline" size={20} color={Colors.primary} />
+                  </View>
+                  <View style={styles.sectionHeaderText}>
+                    <Text style={styles.sectionTitle}>Giấy phép lái xe</Text>
+                  </View>
+                </View>
+
+                <View style={styles.fieldBlock}>
+                  <View style={styles.fieldLabelRow}>
+                    <Ionicons name="document-text-outline" size={18} color={Colors.text.secondary} />
+                    <Text style={styles.fieldLabel}>Số GPLX</Text>
+                  </View>
+                  <TextInput
+                    value={driverLicenseNumber}
+                    onChangeText={setDriverLicenseNumber}
+                    placeholder="Nhập số giấy phép lái xe"
+                    style={styles.input}
+                  />
+                </View>
+
+                <View style={[styles.fieldBlock, styles.fieldBlockLast]}>
+                  <DateInput
+                    value={driverLicenseExpiry}
+                    onChangeText={setDriverLicenseExpiry}
+                    placeholder="Chọn hạn GPLX"
+                    label="Hạn GPLX"
+                    fullWidth
+                    style={styles.dateInput}
+                  />
+                </View>
               </View>
             )}
-          </View>
 
-          {/* Save Button */}
-          <View style={styles.actionSection}>
-            <Button
-              title={isUpdating ? "Đang lưu..." : "Lưu thay đổi"}
-              onPress={handleSaveProfile}
-              disabled={isLoading}
-              loading={isUpdating}
-              variant="primary"
-              fullWidth
-            />
+            {canManageVehicles && (
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionIconWrap}>
+                    <Ionicons name="car-outline" size={20} color={Colors.primary} />
+                  </View>
+                  <View style={styles.sectionHeaderText}>
+                    <Text style={styles.sectionTitle}>Thông tin xe</Text>
+                  </View>
+                </View>
+
+                <Pressable
+                  style={({ pressed }) => [styles.vehicleManageRow, pressed && styles.vehicleManageRowPressed]}
+                  onPress={() => navigation.navigate('VehicleList', { userId, userPhone })}
+                >
+                  <View style={styles.vehicleManageIconWrap}>
+                    <Ionicons name="create-outline" size={18} color={Colors.primary} />
+                  </View>
+                  <View style={styles.vehicleManageText}>
+                    <Text style={styles.vehicleManageTitle}>Cập nhật thông tin xe</Text>
+                    <Text style={styles.vehicleManageSubtitle}>Chỉnh sửa xe và giấy tờ xe</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+                </Pressable>
+              </View>
+            )}
+
+            <View style={styles.actionSection}>
+              <Button
+                title={saveButtonTitle}
+                onPress={handleSaveProfile}
+                disabled={isLoading}
+                loading={isUpdating || isSavingDriverLicense || isDeletingDriverLicense}
+                variant="primary"
+                fullWidth
+              />
+            </View>
           </View>
+        </View>
       </FormContainer>
 
       {/* Full Screen Image Modal */}

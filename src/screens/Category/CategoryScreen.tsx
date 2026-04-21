@@ -1,5 +1,5 @@
 // src/screens/Category/CategoryScreen.tsx (Optimized with new loading pattern)
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { View, FlatList, RefreshControl } from "react-native";
 import { Screen } from "../../components/layout";
 import { Colors } from "../../constants/colors";
@@ -14,18 +14,27 @@ import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 import { PerformanceConfig } from "../../config/performance";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { selectGarageCode, selectHasGarageContext, selectSavedGarages } from "../../redux/selectors";
+import GarageTabs from "../../components/GarageTabs";
+import GarageSelectionPrompt from "../../components/GarageSelectionPrompt";
+import useCustomerGarageSelection from "../../hooks/useCustomerGarageSelection";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type CatalogCategory = Category | DealerCategory;
 
 const CategoryScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  const { activateGarage } = useCustomerGarageSelection();
   const userType = useAppSelector((state) => state.auth.userType);
+  const currentGarageCode = useAppSelector(selectGarageCode);
+  const hasGarageContext = useAppSelector(selectHasGarageContext);
+  const savedGarages = useAppSelector(selectSavedGarages);
   const isDealer = userType === "dealer";
   const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ["Category"] });
-  const categoryQuery = useGetCategoriesQuery(undefined, { skip: isDealer });
+  const categoryQuery = useGetCategoriesQuery({ garageCode: currentGarageCode }, { skip: isDealer || !hasGarageContext });
   const dealerCategoryQuery = useGetDealerCategoriesQuery(undefined, { skip: !isDealer });
   const query = isDealer ? dealerCategoryQuery : categoryQuery;
+  const showGarageTabs = !isDealer && savedGarages.length > 1;
 
   const actualRefreshing = refreshing || query.isFetching;
 
@@ -41,6 +50,45 @@ const CategoryScreen = () => {
     }
   }, [baseOnRefresh, query]);
 
+  const handleGarageChange = useCallback(
+    async (garageCode: string) => {
+      const garage = savedGarages.find((item) => item.garageCode === garageCode);
+
+      if (!garage) {
+        return;
+      }
+
+      await activateGarage(
+        {
+          garageId: garage.garageId,
+          garageCode: garage.garageCode,
+          garageName: garage.garageName,
+          address: garage.address,
+          avatarUrl: garage.avatarUrl,
+          status: garage.status,
+        },
+        'tab',
+      );
+    },
+    [activateGarage, savedGarages],
+  );
+
+  if (!isDealer && !hasGarageContext) {
+    return (
+      <Screen
+        headerTitle="Danh mục sản phẩm"
+        useScrollView={false}
+        showBackButton
+        safeAreaTopColor={Colors.primary}
+        statusBarStyle="light-content"
+      >
+        <View style={styles.whiteSection}>
+          <GarageSelectionPrompt onPress={() => navigation.navigate("SelectGarage")} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen
       headerTitle="Danh mục sản phẩm"
@@ -50,6 +98,13 @@ const CategoryScreen = () => {
       statusBarStyle="light-content"
     >
       <View style={styles.whiteSection}>
+        {showGarageTabs && (
+          <GarageTabs
+            garages={savedGarages}
+            activeGarageCode={currentGarageCode}
+            onChangeGarage={handleGarageChange}
+          />
+        )}
         <View style={styles.body}>
           <QueryWrapper
             query={query as any}
@@ -63,68 +118,50 @@ const CategoryScreen = () => {
               </View>
             }
             children={(categories: CatalogCategory[]) => {
-              const categoryItems = useMemo(
-                () =>
-                  categories.map((category: CatalogCategory) => {
-                    const descriptionParts = [
-                      category.description || "Xem tất cả sản phẩm trong danh mục này",
-                    ];
+              const categoryItems = categories.map((category: CatalogCategory) => {
+                const descriptionParts = [
+                  category.description || "Xem tất cả sản phẩm trong danh mục này",
+                ];
 
-                    if (category.product_count !== undefined && category.product_count !== null) {
-                      descriptionParts.push(`${category.product_count} sản phẩm`);
-                    }
+                if (category.product_count !== undefined && category.product_count !== null) {
+                  descriptionParts.push(`${category.product_count} sản phẩm`);
+                }
 
-                    return {
-                      id: category.id,
-                      title: category.name,
-                      description: descriptionParts.join(" - "),
-                      imageUri: category.image_url ? category.image_url : undefined,
-                      onPress: () => {
-                        navigation.navigate("Product", {
-                          categoryId: category.id,
-                          categoryName: category.name,
-                        });
-                      },
-                    };
-                  }),
-                [categories, navigation],
-              );
-
-              const keyExtractor = useCallback((item: (typeof categoryItems)[0]) => item.id.toString(), []);
-
-              const renderItem = useCallback(
-                ({ item }: { item: (typeof categoryItems)[0] }) => (
-                  <Item
-                    key={item.id}
-                    title={item.title}
-                    description={item.description}
-                    imageUri={item.imageUri}
-                    onPress={item.onPress}
-                  />
-                ),
-                [],
-              );
-
-              const renderSeparator = useCallback(() => <View style={{ height: 12 }} />, []);
-
-              const getItemLayout = useCallback(
-                (_: any, index: number) => ({
-                  length: 110 + 12,
-                  offset: (110 + 12) * index,
-                  index,
-                }),
-                [],
-              );
+                return {
+                  id: category.id,
+                  title: category.name,
+                  description: descriptionParts.join(" - "),
+                  imageUri: category.image_url ? category.image_url : undefined,
+                  onPress: () => {
+                    navigation.navigate("Product", {
+                      categoryId: category.id,
+                      categoryName: category.name,
+                    });
+                  },
+                };
+              });
 
               return (
                 <View style={styles.form}>
                   <FlatList
                     alwaysBounceVertical={true}
                     data={categoryItems}
-                    keyExtractor={keyExtractor}
-                    renderItem={renderItem}
-                    getItemLayout={getItemLayout}
-                    ItemSeparatorComponent={renderSeparator}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={({ item }) => (
+                      <Item
+                        key={item.id}
+                        title={item.title}
+                        description={item.description}
+                        imageUri={item.imageUri}
+                        onPress={item.onPress}
+                      />
+                    )}
+                    getItemLayout={(_, index) => ({
+                      length: 110 + 12,
+                      offset: (110 + 12) * index,
+                      index,
+                    })}
+                    ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.listContent, { flexGrow: 1, paddingHorizontal: 16 }]}
                     refreshControl={<RefreshControl refreshing={actualRefreshing} onRefresh={handleRefresh} />}

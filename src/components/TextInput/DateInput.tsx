@@ -16,6 +16,8 @@ interface DateInputProps {
   dateFormat?: string; // 'DD/MM/YYYY' | 'MM/DD/YYYY'
   disabled?: boolean; // Disable date picker
   fullWidth?: boolean; // Full width instead of 50%
+  minimumDate?: Date;
+  maximumDate?: Date;
 }
 
 const DateInput: React.FC<DateInputProps> = ({
@@ -28,10 +30,11 @@ const DateInput: React.FC<DateInputProps> = ({
   dateFormat = 'DD/MM/YYYY',
   disabled = false,
   fullWidth = false,
+  minimumDate,
+  maximumDate,
 }) => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
-  const [showText, setShowText] = useState(false);
 
   const formatDate = (dateObj: Date): string => {
     const day = String(dateObj.getDate()).padStart(2, '0');
@@ -45,8 +48,33 @@ const DateInput: React.FC<DateInputProps> = ({
     }
   };
 
+  const parseDateValue = (input: string): Date | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [year, month, day] = trimmed.split('-').map(Number);
+      const parsed = new Date(year, month - 1, day);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    const slashMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+    if (slashMatch) {
+      const [, dd, mm, yyyy] = slashMatch;
+      const parsed = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const handleDatePress = () => {
     if (disabled) return;
+    const parsedValue = parseDateValue(value);
+    if (parsedValue) {
+      setDate(parsedValue);
+    }
     setOpen(true);
     if (onDatePress) {
       onDatePress();
@@ -57,7 +85,6 @@ const DateInput: React.FC<DateInputProps> = ({
     setDate(selectedDate);
     const formattedDate = formatDate(selectedDate);
     onChangeText(formattedDate);
-    setShowText(true);
     setOpen(false);
   };
 
@@ -73,44 +100,33 @@ const DateInput: React.FC<DateInputProps> = ({
             <Text style={styles.dateLabel}>{label}</Text>
           </View>
           <View style={styles.dateInputContainer}>
-            <Pressable 
-              style={styles.datePressable} 
+            <Pressable
+              style={styles.datePressable}
               onPress={handleDatePress}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityLabel={label}
             >
-              <TextInputComponent
-                value={value}
-                onChangeText={onChangeText}
-                placeholder={placeholder}
-                placeholderTextColor={disabled ? Colors.text.placeholder : Colors.text.placeholder}
-                textColor={disabled ? Colors.text.secondary : Colors.text.primary}
-                borderColor={disabled ? Colors.neutral[200] : Colors.neutral[300]}
-                editable={false}
-                iconRight={
-                  !disabled ? (
-                    <Pressable
-                      onPress={handleDatePress}
-                      style={styles.dateIconPressable}
-                      accessible={true}
-                      accessibilityRole="button"
-                      accessibilityLabel="Chọn ngày"
-                    >
-                      <Ionicons
-                        name="calendar-outline"
-                        size={18}
-                        color={Colors.background.red}
-                      />
-                    </Pressable>
-                  ) : (
+              <View pointerEvents="none">
+                <TextInputComponent
+                  value={value}
+                  onChangeText={onChangeText}
+                  placeholder={placeholder}
+                  placeholderTextColor={disabled ? Colors.text.placeholder : Colors.text.placeholder}
+                  textColor={disabled ? Colors.text.secondary : Colors.text.primary}
+                  borderColor={disabled ? Colors.neutral[200] : Colors.neutral[300]}
+                  editable={false}
+                  iconRight={
                     <View style={styles.dateIconPressable}>
                       <Ionicons
-                        name="lock-closed-outline"
+                        name={disabled ? "lock-closed-outline" : "calendar-outline"}
                         size={18}
-                        color={Colors.text.placeholder}
+                        color={disabled ? Colors.text.placeholder : Colors.background.red}
                       />
                     </View>
-                  )
-                }
-              />
+                  }
+                />
+              </View>
             </Pressable>
           </View>
         </View>
@@ -124,8 +140,8 @@ const DateInput: React.FC<DateInputProps> = ({
         mode="date"
         onConfirm={handleConfirm}
         onCancel={handleCancel}
-        minimumDate={new Date()}
-        maximumDate={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
+        minimumDate={minimumDate}
+        maximumDate={maximumDate}
         title="Chọn ngày"
         confirmText="Xác nhận"
         cancelText="Hủy"

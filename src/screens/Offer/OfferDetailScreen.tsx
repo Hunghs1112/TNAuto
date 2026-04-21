@@ -15,6 +15,7 @@ import {
 import Screen from "../../components/layout/Screen/Screen";
 import { Colors } from "../../constants/colors";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { useGetOfferByIdQuery, useGetOfferImagesQuery } from "../../services/offerApi";
 import { QueryWrapper, ScreenLoader } from "../../components/Loading";
@@ -23,8 +24,10 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ConfirmButton from "../../components/ConfirmButton";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { offerApi } from "../../services/offerApi";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type OfferDetailRouteProp = RouteProp<AppStackParamList, "OfferDetail">;
+type OfferDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, "OfferDetail">;
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -33,17 +36,18 @@ const PLACEHOLDER_IMAGE = "https://via.placeholder.com/400x400/cccccc/666666?tex
 
 const OfferDetailScreen = () => {
   const route = useRoute<OfferDetailRouteProp>();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<OfferDetailNavigationProp>();
   const dispatch = useAppDispatch();
   const { offerId } = route.params;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const currentGarageCode = useAppSelector((s) => s.garageContext.garageCode);
 
   // Fetch offer details from API
-  const offerQuery = useGetOfferByIdQuery(offerId);
-  const offerImagesQuery = useGetOfferImagesQuery(offerId);
+  const offerQuery = useGetOfferByIdQuery({ garageCode: currentGarageCode, id: offerId });
+  const offerImagesQuery = useGetOfferImagesQuery({ garageCode: currentGarageCode, offerId });
 
   const offer = offerQuery.data?.data;
 
@@ -282,7 +286,7 @@ const OfferDetailScreen = () => {
                 <ConfirmButton
                   title="Áp dụng ưu đãi"
                   onPress={() => {
-                    navigation.navigate("Booking" as never);
+                    navigation.navigate("Booking");
                   }}
                   buttonColor={Colors.primary}
                   textColor={Colors.text.inverted}

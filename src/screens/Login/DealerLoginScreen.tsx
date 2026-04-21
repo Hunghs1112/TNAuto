@@ -11,6 +11,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useDealerLoginMutation } from "../../services/authApi";
 import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { setLoggedIn } from "../../redux/slices/authSlice";
+import { setGarageContext } from "../../redux/slices/garageContextSlice";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { AuthStackParamList } from "../../navigation/AuthNavigator";
 import { registerFCMTokenAfterLogin } from "../../utils/fcmTokenManager";
 
@@ -21,14 +23,21 @@ export default function DealerLoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<DealerLoginRouteProp>();
   const dispatch = useAppDispatch();
+  const currentGarageCode = useAppSelector((state) => state.garageContext.garageCode || '');
   
-  const { phone } = route.params;
+  const { phone, garageCode: garageCodeFromRoute } = route.params;
+  const [garageCode, setGarageCode] = useState(garageCodeFromRoute || currentGarageCode);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [dealerLogin] = useDealerLoginMutation();
 
   const handleLogin = async () => {
+    if (!garageCode.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập mã gara!");
+      return;
+    }
+
     if (!password.trim()) {
       Alert.alert("Lỗi", "Vui lòng nhập mật khẩu!");
       return;
@@ -37,13 +46,15 @@ export default function DealerLoginScreen() {
     setIsLoading(true);
     try {
       const result = await dealerLogin({ 
+        garage_code: garageCode.trim(),
         phone: phone.trim(), 
         password: password.trim() 
       }).unwrap();
       
-      if (result.success && result.data) {
-        const dealer = result.data;
-        const userId = dealer.id.toString();
+      const dealer = result.dealer || result.data;
+
+      if (result.success && dealer) {
+        const userId = String(result.dealer_id || dealer.id || '');
         
         dispatch(setLoggedIn({ 
           isLoggedIn: true, 
@@ -53,11 +64,22 @@ export default function DealerLoginScreen() {
           userPhone: dealer.phone || '',
           userLicensePlate: '',
           avatarUrl: dealer.avatar_url || '',
-          userEmail: dealer.email || ''
+          userEmail: dealer.email || '',
+          token: result.token || '',
+          expiresAt: result.expires_at || '',
+        }));
+        dispatch(setGarageContext({
+          garageId: result.garage?.id ?? result.garage_id,
+          garageCode: result.garage?.code || garageCode.trim(),
+          garageName: result.garage?.name,
+          address: result.garage?.address,
+          avatarUrl: result.garage?.avatar_url,
+          status: result.garage?.status,
+          resolved: true,
         }));
 
         // Register FCM token in background
-        registerFCMTokenAfterLogin(userId, 'dealer' as any).catch(error => {
+        registerFCMTokenAfterLogin(userId, 'dealer').catch(error => {
           console.error('Failed to register FCM token:', error);
         });
 
@@ -107,6 +129,14 @@ export default function DealerLoginScreen() {
 
         <View style={styles.inputContainer}>
           <TextInputComponent
+            value={garageCode}
+            onChangeText={setGarageCode}
+            placeholder="Mã gara"
+            autoCapitalize="characters"
+            focusBorderColor={Colors.accent.yellow}
+          />
+
+          <TextInputComponent
             value={phone}
             editable={false}
             placeholder="Số điện thoại"
@@ -119,6 +149,7 @@ export default function DealerLoginScreen() {
             placeholder="Mật khẩu"
             secureTextEntry={true}
             autoFocus={true}
+            focusBorderColor={Colors.accent.yellow}
           />
         </View>
 

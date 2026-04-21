@@ -21,6 +21,62 @@ export const selectUserPhone = createSelector(
   [selectAuth],
   (auth) => auth.userPhone || ''
 );
+export const selectAuthToken = createSelector(
+  [selectAuth],
+  (auth) => auth.token || ''
+);
+export const selectAuthMode = createSelector(
+  [selectAuth],
+  (auth) => auth.authMode || ''
+);
+
+// Garage selectors
+export const selectGarageContext = (state: RootState) => state.garageContext;
+export const selectGarageCode = createSelector(
+  [selectGarageContext],
+  (garageContext) => garageContext.activeGarageCode || garageContext.garageCode || ''
+);
+export const selectGarageName = createSelector(
+  [selectGarageContext],
+  (garageContext) => garageContext.garageName || ''
+);
+export const selectSavedGarages = createSelector(
+  [selectGarageContext],
+  (garageContext) => garageContext.savedGarages || []
+);
+export const selectActiveGarage = createSelector(
+  [selectGarageContext, selectGarageCode],
+  (garageContext, garageCode) => {
+    if (!garageCode) {
+      return null;
+    }
+
+    const savedGarage = (garageContext.savedGarages || []).find((garage) => garage.garageCode === garageCode);
+
+    if (savedGarage) {
+      return savedGarage;
+    }
+
+    return {
+      garageId: garageContext.garageId,
+      garageCode: garageCode,
+      garageName: garageContext.garageName,
+      address: garageContext.address,
+      avatarUrl: garageContext.avatarUrl,
+      status: garageContext.status,
+      isLocked: false,
+      lockReason: '',
+    };
+  }
+);
+export const selectGarageResolved = createSelector(
+  [selectGarageContext],
+  (garageContext) => garageContext.resolved
+);
+export const selectHasGarageContext = createSelector(
+  [selectGarageCode, selectGarageResolved],
+  (garageCode, resolved) => Boolean(garageCode && resolved)
+);
 
 // Notification selectors
 export const selectNotification = (state: RootState) => state.notification;
@@ -56,12 +112,13 @@ export const selectOrdersList = createSelector(
 
 // Memoized complex selectors
 export const selectUserInfo = createSelector(
-  [selectUserType, selectUserId, selectUserName, selectUserPhone],
-  (userType, userId, userName, userPhone) => ({
+  [selectUserType, selectUserId, selectUserName, selectUserPhone, selectGarageCode, selectGarageName],
+  (userType, userId, userName, userPhone, garageCode, garageName) => ({
     userType,
     userId,
     userName,
     userPhone,
+    garageCode,
+    garageName,
   })
 );
-

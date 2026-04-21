@@ -1,6 +1,6 @@
 // src/components/GenericListScreen/GenericListScreen.tsx
 // Generic reusable component for list screens to reduce code duplication
-import React, { useMemo, useCallback } from 'react';
+import React, { ReactNode, useMemo, useCallback } from 'react';
 import { View, Text, StatusBar, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
 import { RootView } from '../components/layout';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
@@ -30,6 +30,7 @@ interface GenericListScreenProps {
   enableRefresh?: boolean;
   onRefresh?: () => void | Promise<void>;
   refreshing?: boolean;
+  topContent?: ReactNode;
 }
 
 const GenericListScreen: React.FC<GenericListScreenProps> = ({
@@ -43,6 +44,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
   enableRefresh = true,
   onRefresh: customOnRefresh,
   refreshing: customRefreshing,
+  topContent,
 }) => {
   const { refreshing: autoRefreshing, onRefresh: autoOnRefresh } = useAutoRefresh();
   
@@ -84,8 +86,11 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
         <RootView style={{ backgroundColor: Colors.background.light }} bottomColor={Colors.background.light}>
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
-          <View style={[sharedStyles.whiteSection, sharedStyles.centeredContent, { paddingHorizontal: 16 }]}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+          <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
+            {topContent}
+            <View style={sharedStyles.centeredContent}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
           </View>
         </RootView>
       </View>
@@ -100,6 +105,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
           <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
+            {topContent}
             <View style={sharedStyles.body}>
               <View style={sharedStyles.emptyContainer}>
                 <Ionicons name="alert-circle-outline" size={48} color={Colors.primary} />
@@ -120,6 +126,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
           <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
           <Header title={title} />
           <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
+            {topContent}
             <View style={sharedStyles.body}>
               <View style={sharedStyles.emptyContainer}>
                 <Ionicons name={emptyIcon} size={48} color={Colors.primary} />
@@ -140,6 +147,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
         <Header title={title} />
         
         <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
+          {topContent}
           <View style={sharedStyles.body}>
             <View style={sharedStyles.form}>
               <FlatList

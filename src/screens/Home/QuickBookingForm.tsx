@@ -17,8 +17,9 @@ import type { RootState } from "../../redux/types"
 import { setServices } from "../../redux/slices/servicesSlice"
 import { useGetServicesQuery, useCreateOrderMutation } from "../../services"
 import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
-import { getCurrentDate, formatDateForAPI, calculateReceiveDate, formatSecondsToDaysHours } from "../../utils/dateHelpers"
+import { getCurrentDate, formatDateForAPI, formatSecondsToDaysHours } from "../../utils/dateHelpers"
 import { AppStackParamList } from "../../navigation/AppNavigator"
+import { selectGarageCode } from "../../redux/selectors"
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -78,9 +79,16 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
 const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const dispatch = useDispatch()
   const navigation = useNavigation<NavigationProp>()
-  const { isLoggedIn, userName, userPhone, userLicensePlate, userId } = useSelector((state: RootState) => state.auth)
+  const { isLoggedIn, userName, userPhone, userLicensePlate } = useSelector((state: RootState) => state.auth)
+  const activeGarageCode = useSelector(selectGarageCode)
+  const hasGarageContext = useSelector(
+    (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  )
   const { services, isFetching: servicesLoading } = useSelector((state: RootState) => state.services)
-  const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery({ phone: userPhone }, { skip: !userPhone });
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery(
+    { phone: userPhone },
+    { skip: !userPhone || !hasGarageContext },
+  );
   const [licensePlate, setLicensePlate] = useState(userLicensePlate)
   const [vehicleType, setVehicleType] = useState("")
   const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
@@ -94,7 +102,7 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const hasVehicles = vehiclesData?.success && vehiclesData.data && vehiclesData.data.length > 0;
   const vehicles = vehiclesData?.data || [];
 
-  const { data: servicesData } = useGetServicesQuery()
+  const { data: servicesData } = useGetServicesQuery({ garageCode: activeGarageCode }, { skip: !hasGarageContext })
   const [createOrder] = useCreateOrderMutation()
 
   useEffect(() => {
@@ -149,11 +157,19 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
       Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc!")
       return
     }
+    if (!hasGarageContext) {
+      Alert.alert("Chưa chọn gara", "Vui lòng chọn gara trước khi đặt lịch.", [
+        { text: "Đóng", style: "cancel" },
+        { text: "Chọn gara", onPress: () => navigation.navigate("SelectGarage") },
+      ])
+      return
+    }
     setIsLoading(true)
     try {
       const formattedReceiveDate = formatDateForAPI(receiveDate)
       const formattedDeliveryDate = formatDateForAPI(deliveryDate)
       const body = {
+        garageCode: activeGarageCode,
         receiver_name: userName,
         receiver_phone: userPhone,
         license_plate: licensePlate,
@@ -192,7 +208,7 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
     } finally {
       setIsLoading(false)
     }
-  }, [isLoggedIn, navigation, licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, onConfirm])
+  }, [isLoggedIn, navigation, licensePlate, vehicleType, selectedService, receiveDate, deliveryDate, note, userName, userPhone, createOrder, onConfirm, hasGarageContext, userLicensePlate, hasVehicles])
 
   return (
     <View style={styles.container}>
@@ -333,7 +349,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primarySoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.primary + '20',
+    borderColor: Colors.alpha.primary12,
     gap: 8,
   },
   vehicleInfoRow: {
@@ -425,7 +441,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primarySoft,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.primary + '20',
+    borderColor: Colors.alpha.primary12,
   },
   estimatedTimeRow: {
     flexDirection: "row",

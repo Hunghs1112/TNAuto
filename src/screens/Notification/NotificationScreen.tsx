@@ -55,10 +55,13 @@ const NotificationScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { bottom: bottomInset } = useSafeAreaInsets();
   const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ['Notification'] });
+  const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const userType = useAppSelector((state: RootState) => state.auth.userType || 'customer');
-  const userId = useAppSelector((state: RootState) => state.auth.userId || '');
-  const recipientId = userId;
-  const recipientType = userType;
+  const customerId = useAppSelector((state: RootState) => state.auth.userId || '');
+  const recipientParams =
+    userType === 'customer'
+      ? { customer_id: customerId, user_type: 'customer' as const }
+      : { user_type: userType };
 
   const {
     data: notifications,
@@ -67,8 +70,8 @@ const NotificationScreen = () => {
     refetch: refetchNotifications,
     isFetching: isFetchingNotifications,
   } = useGetNotificationsQuery(
-    { recipient_id: recipientId, recipient_type: recipientType },
-    { skip: !recipientId },
+    recipientParams,
+    { skip: !isLoggedIn || (userType === 'customer' && !customerId) },
   );
 
   const {
@@ -76,13 +79,13 @@ const NotificationScreen = () => {
     refetch: refetchUnreadCount,
     isFetching: isFetchingUnreadCount,
   } = useGetUnreadCountQuery(
-    { recipient_id: recipientId, recipient_type: recipientType },
-    { skip: !recipientId },
+    recipientParams,
+    { skip: !isLoggedIn || (userType === 'customer' && !customerId) },
   );
 
   const actualRefreshing = refreshing || isFetchingNotifications || isFetchingUnreadCount;
 
-  const handleRefresh = useCallback(async () => {
+  const handleRefresh = async () => {
     baseOnRefresh();
     const refetchPromises: Promise<any>[] = [];
 
@@ -99,7 +102,7 @@ const NotificationScreen = () => {
     } catch (refreshError) {
       console.error('NotificationScreen: Error during refetch:', refreshError);
     }
-  }, [baseOnRefresh, refetchNotifications, refetchUnreadCount]);
+  };
 
   const [deleteNotificationApi] = useDeleteNotificationMutation();
   const [markNotificationReadApi] = useMarkNotificationReadMutation();
@@ -116,10 +119,10 @@ const NotificationScreen = () => {
     }
   }, [unreadCount, dispatch]);
 
-  const handlePress = useCallback(async (item: any) => {
+  const handlePress = async (item: any) => {
     try {
       if (item?.id) {
-        await markNotificationReadApi(String(item.id)).unwrap();
+        await markNotificationReadApi({ id: String(item.id), user_type: userType }).unwrap();
       }
     } catch (markReadError) {
       console.error('NotificationScreen: Failed to mark notification as read:', markReadError);
@@ -129,6 +132,11 @@ const NotificationScreen = () => {
     const orderId = getNotificationOrderId(item);
 
     if (dataType === 'service_reminder' && item?.ref_id) {
+      if (userType === 'dealer') {
+        navigation.navigate('Category');
+        return;
+      }
+
       navigation.navigate('ServiceDetail', { serviceId: Number(item.ref_id) });
       return;
     }
@@ -137,6 +145,8 @@ const NotificationScreen = () => {
       if (orderId) {
         if (userType === 'employee') {
           navigation.navigate('EmployeeOrderDetail', { id: orderId });
+        } else if (userType === 'dealer') {
+          navigation.navigate('Category');
         } else {
           navigation.navigate('OrderDetail', { id: orderId });
         }
@@ -158,6 +168,8 @@ const NotificationScreen = () => {
       if (orderId) {
         if (userType === 'employee') {
           navigation.navigate('EmployeeOrderDetail', { id: orderId });
+        } else if (userType === 'dealer') {
+          navigation.navigate('Category');
         } else {
           navigation.navigate('OrderDetail', { id: orderId });
         }
@@ -171,13 +183,15 @@ const NotificationScreen = () => {
     if (orderId) {
       if (userType === 'employee') {
         navigation.navigate('EmployeeOrderDetail', { id: orderId });
+      } else if (userType === 'dealer') {
+        navigation.navigate('Category');
       } else {
         navigation.navigate('OrderDetail', { id: orderId });
       }
     }
-  }, [markNotificationReadApi, navigation, userType]);
+  };
 
-  const handleDelete = useCallback(async (notificationId: string) => {
+  const handleDelete = async (notificationId: string) => {
     Alert.alert(
       'Xác nhận',
       'Bạn có chắc chắn muốn xóa thông báo này?',
@@ -188,7 +202,7 @@ const NotificationScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteNotificationApi(notificationId).unwrap();
+              await deleteNotificationApi({ id: notificationId, user_type: userType }).unwrap();
               dispatch(deleteNotificationAction(notificationId));
             } catch (deleteError) {
               Alert.alert('Lỗi', 'Không thể xóa thông báo');
@@ -198,7 +212,73 @@ const NotificationScreen = () => {
         },
       ],
     );
-  }, [deleteNotificationApi, dispatch]);
+  };
+
+  const TAB_BAR_HEIGHT = 76;
+
+  const renderItem = ({ item }: { item: any }) => {
+    const rawTitle = item?.title ?? null;
+    const rawBody = item?.body ?? null;
+    const rawMessage = String(item?.message || '').replace(/ bởi \d+/, '');
+
+    const title = (rawTitle && String(rawTitle).trim().length > 0)
+      ? String(rawTitle)
+      : (rawMessage.split(':')[0].trim() || (item?.type ? String(item.type) : 'Thông báo'));
+
+    const body = (rawBody && String(rawBody).trim().length > 0)
+      ? String(rawBody)
+      : (rawMessage ? rawMessage.replace(title + ':', '').trim() : '');
+
+    const time = (item?.created_at || item?.sent_at)
+      ? new Date(item?.sent_at || item?.created_at).toLocaleString('vi-VN', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : 'Vừa xong';
+
+    return (
+      <View style={{ position: 'relative', opacity: item.read ? 0.6 : 1 }}>
+        <Item
+          title={title}
+          description={`${body} • ${time}`}
+          imageUri={item.image_url}
+          onPress={() => handlePress(item)}
+          isPressable={true}
+        />
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: Colors.alpha.slate15,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10,
+          }}
+          onPress={() => handleDelete(String(item.id))}
+        >
+          <Ionicons name="close-outline" size={16} color={Colors.status.error} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const keyExtractor = (item: { id: string }) => item.id;
+
+  const getItemLayout = (_: any, index: number) => ({
+    length: 110 + 12,
+    offset: (110 + 12) * index,
+    index,
+  });
+
+  const renderSeparator = () => <View style={{ height: 12 }} />;
+
+  const headerTitle = `Thông báo${unreadCount && unreadCount > 0 ? ` (${unreadCount})` : ''}`;
 
   if (isLoading && !notifications) {
     return (
@@ -249,78 +329,6 @@ const NotificationScreen = () => {
       </Screen>
     );
   }
-
-  const TAB_BAR_HEIGHT = 76;
-
-  const renderItem = useCallback(({ item }: { item: any }) => {
-    const rawTitle = item?.title ?? null;
-    const rawBody = item?.body ?? null;
-    const rawMessage = String(item?.message || '').replace(/ bởi \d+/, '');
-
-    const title = (rawTitle && String(rawTitle).trim().length > 0)
-      ? String(rawTitle)
-      : (rawMessage.split(':')[0].trim() || (item?.type ? String(item.type) : 'Thông báo'));
-
-    const body = (rawBody && String(rawBody).trim().length > 0)
-      ? String(rawBody)
-      : (rawMessage ? rawMessage.replace(title + ':', '').trim() : '');
-
-    const time = (item?.created_at || item?.sent_at)
-      ? new Date(item?.sent_at || item?.created_at).toLocaleString('vi-VN', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : 'Vừa xong';
-
-    return (
-      <View style={{ position: 'relative', opacity: item.read ? 0.6 : 1 }}>
-        <Item
-          title={title}
-          description={`${body} • ${time}`}
-          imageUri={item.image_url}
-          onPress={() => handlePress(item)}
-          isPressable={true}
-        />
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            width: 24,
-            height: 24,
-            borderRadius: 12,
-            backgroundColor: 'rgba(128, 128, 128, 0.15)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10,
-          }}
-          onPress={() => handleDelete(String(item.id))}
-        >
-          <Ionicons name="close-outline" size={16} color="#ef4444" />
-        </TouchableOpacity>
-      </View>
-    );
-  }, [handleDelete, handlePress]);
-
-  const keyExtractor = useCallback((item: { id: string }) => item.id, []);
-
-  const getItemLayout = useCallback(
-    (_: any, index: number) => ({
-      length: 110 + 12,
-      offset: (110 + 12) * index,
-      index,
-    }),
-    [],
-  );
-
-  const renderSeparator = useCallback(() => <View style={{ height: 12 }} />, []);
-
-  const headerTitle = useMemo(
-    () => `Thông báo${unreadCount && unreadCount > 0 ? ` (${unreadCount})` : ''}`,
-    [unreadCount],
-  );
 
   return (
     <Screen

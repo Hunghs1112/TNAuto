@@ -1,11 +1,10 @@
 // src/screens/Service/ServiceDetailScreen.tsx
-import React, { useState, useRef, useCallback, useEffect as useReactEffect } from "react";
+import React, { useState, useCallback, useEffect as useReactEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
   Image,
-  Dimensions,
   TouchableOpacity,
   Modal,
   RefreshControl,
@@ -22,6 +21,8 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ConfirmButton from "../../components/ConfirmButton";
 import { formatSecondsToDaysHours, secondsToMonths } from "../../utils/dateHelpers";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { selectGarageCode, selectGarageName } from "../../redux/selectors";
+import GarageBadge from "../../components/GarageBadge";
 
 type ServiceDetailRouteProp = RouteProp<AppStackParamList, "ServiceDetail">;
 type ServiceDetailNavigationProp = NativeStackNavigationProp<AppStackParamList, "ServiceDetail">;
@@ -34,12 +35,14 @@ const ServiceDetailScreen = () => {
   const navigation = useNavigation<ServiceDetailNavigationProp>();
   const { serviceId } = route.params;
   const userType = useAppSelector((s) => s.auth.userType);
+  const currentGarageCode = useAppSelector(selectGarageCode);
+  const currentGarageName = useAppSelector(selectGarageName);
   const isDealer = userType === "dealer";
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Fetch service details from API (rely on global refetch config)
-  const serviceQuery = useGetServiceByIdQuery(serviceId, { skip: isDealer });
+  const serviceQuery = useGetServiceByIdQuery({ id: serviceId, garageCode: currentGarageCode }, { skip: isDealer });
 
   const service = serviceQuery.data?.data;
 
@@ -59,7 +62,7 @@ const ServiceDetailScreen = () => {
   useReactEffect(() => {
     if (isDealer) {
       // Dealer không được phép đặt lịch dịch vụ.
-      navigation.replace("Category" as never);
+      navigation.replace("Category");
     }
   }, [isDealer, navigation]);
 
@@ -95,10 +98,9 @@ const ServiceDetailScreen = () => {
             <ScreenLoader />
           </View>
         }
-      >
-        {(response: any) => {
-          const service = response?.data;
-          if (!service) return null;
+        children={(response: any) => {
+          const serviceDetail = response?.data;
+          if (!serviceDetail) return null;
 
           return (
             <View style={styles.container}>
@@ -124,31 +126,32 @@ const ServiceDetailScreen = () => {
 
                   {/* Service Info */}
                   <View style={styles.infoSection}>
-                    <Text style={styles.serviceName}>{service.name}</Text>
+                    <Text style={styles.serviceName}>{serviceDetail.name}</Text>
+                    {!isDealer && <GarageBadge garageName={currentGarageName} />}
 
                     {/* Service Description */}
-                    {service.description && (
+                    {serviceDetail.description && (
                       <View style={styles.contentSection}>
                         <Text style={styles.sectionTitle}>Mô tả dịch vụ</Text>
-                        <Text style={styles.contentText}>{service.description}</Text>
+                        <Text style={styles.contentText}>{serviceDetail.description}</Text>
                       </View>
                     )}
 
                     {/* Service Metadata */}
                     <View style={styles.metadataSection}>
-                      {service.estimated_time && (
+                      {serviceDetail.estimated_time && (
                         <View style={styles.metadataRow}>
                           <Ionicons name="time-outline" size={20} color={Colors.text.secondary} />
                           <Text style={styles.metadataText}>
-                            Thời gian ước tính: {formatSecondsToDaysHours(Number(service.estimated_time))}
+                            Thời gian ước tính: {formatSecondsToDaysHours(Number(serviceDetail.estimated_time))}
                           </Text>
                         </View>
                       )}
 
-                      {service.warranty_period && (
+                      {serviceDetail.warranty_period && (
                         <View style={styles.metadataRow}>
                           <Ionicons name="shield-checkmark-outline" size={20} color={Colors.text.secondary} />
-                          <Text style={styles.metadataText}>Thời gian bảo hành: {secondsToMonths(service.warranty_period)} tháng</Text>
+                          <Text style={styles.metadataText}>Thời gian bảo hành: {secondsToMonths(serviceDetail.warranty_period)} tháng</Text>
                         </View>
                       )}
 
@@ -168,7 +171,7 @@ const ServiceDetailScreen = () => {
                 <ConfirmButton
                   title="Đặt lịch dịch vụ"
                   onPress={() => {
-                    navigation.navigate("Booking" as never, { serviceId: Number(service.id) } as never);
+                    navigation.navigate("Booking", { serviceId: Number(serviceDetail.id) });
                   }}
                   buttonColor={Colors.primary}
                   textColor={Colors.text.inverted}
@@ -177,7 +180,7 @@ const ServiceDetailScreen = () => {
             </View>
           );
         }}
-      </QueryWrapper>
+      />
 
       {/* Full Screen Image Modal */}
       <Modal visible={!!selectedImage} transparent={true} animationType="fade" onRequestClose={() => setSelectedImage(null)}>

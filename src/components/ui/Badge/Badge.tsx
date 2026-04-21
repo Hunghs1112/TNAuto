@@ -50,15 +50,15 @@ const Badge: React.FC<BadgeProps> = ({
 
     switch (variant) {
       case 'success':
-        return { bg: Colors.status.success + '20', text: Colors.status.success };
+        return { bg: Colors.alpha.success12, text: Colors.status.success };
       case 'error':
-        return { bg: Colors.status.error + '20', text: Colors.status.error };
+        return { bg: Colors.alpha.error12, text: Colors.status.error };
       case 'warning':
-        return { bg: Colors.status.warning + '20', text: Colors.status.warning };
+        return { bg: Colors.alpha.warning12, text: Colors.status.warning };
       case 'info':
-        return { bg: Colors.status.info + '20', text: Colors.status.info };
+        return { bg: Colors.alpha.info12, text: Colors.status.info };
       case 'primary':
-        return { bg: Colors.primary + '20', text: Colors.primary };
+        return { bg: Colors.alpha.primary12, text: Colors.primary };
       case 'neutral':
       default:
         return { bg: Colors.neutral[200], text: Colors.text.secondary };

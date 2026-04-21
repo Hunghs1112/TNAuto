@@ -10,10 +10,11 @@ import { Typography } from '../../constants/typo';
 import Header from '../../components/Header';
 import { useGetVehicleByIdQuery } from '../../services/vehicleApi';
 import { useGetCustomerOrdersQuery, useGetServicesQuery } from '../../services/customerApi';
-import { ServiceOrder } from '../../types/api.types';
+import { ServiceOrder, VehicleDocumentStatus } from '../../types/api.types';
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
+import { selectGarageCode } from '../../redux/selectors';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -31,19 +32,31 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
   const navigation = useNavigation<NavigationProp>();
   const { refreshing, onRefresh } = useAutoRefresh();
   const userPhone = useAppSelector((state) => state.auth.userPhone);
-  const { data: vehicle, isLoading: vehicleLoading, refetch: refetchVehicle } = useGetVehicleByIdQuery(vehicleId);
+  const activeGarageCode = useAppSelector(selectGarageCode);
+  const hasGarageContext = useAppSelector(
+    (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
+  const { data: vehicle, isLoading: vehicleLoading, refetch: refetchVehicle } = useGetVehicleByIdQuery(vehicleId, {
+    skip: !hasGarageContext,
+  });
   
   // Fetch all customer orders
   const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetCustomerOrdersQuery(
     userPhone || '',
-    { skip: !userPhone }
+    { skip: !userPhone || !hasGarageContext }
   );
   
   // Fetch services to get service names
-  const { data: servicesData } = useGetServicesQuery();
+  const { data: servicesData } = useGetServicesQuery({ garageCode: activeGarageCode }, { skip: !hasGarageContext });
   
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!hasGarageContext) {
+      navigation.replace('SelectGarage');
+    }
+  }, [hasGarageContext, navigation]);
 
   // Create service map: service_id -> service_name
   const serviceMap = useMemo(() => {
@@ -59,11 +72,11 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
   // Filter orders by vehicle license plate and enrich with service names
   const vehicleOrders = useMemo(() => {
     if (!ordersData?.data || !licensePlate) return [];
-    return ordersData.data
-      .filter((order: ServiceOrder) => 
+    return (ordersData.data as ServiceOrder[])
+      .filter((order) =>
         order.license_plate?.toUpperCase() === licensePlate.toUpperCase()
       )
-      .map((order: ServiceOrder) => {
+      .map((order) => {
         // If service_name is missing, get it from serviceMap
         if (!order.service_name && order.service_id && serviceMap.has(order.service_id)) {
           return {
@@ -137,6 +150,130 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
     }
   };
 
+  const formatDisplayDate = (value?: string | null) => {
+    if (!value) return 'Chưa cập nhật';
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [year, month, day] = value.split('-');
+      return `${day}/${month}/${year}`;
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleDateString('vi-VN');
+  };
+
+  const getDocumentStatusMeta = (status?: VehicleDocumentStatus | null) => {
+    switch (status) {
+      case 'valid':
+        return {
+          label: 'Còn hiệu lực',
+          backgroundColor: Colors.alpha.success12,
+          borderColor: Colors.alpha.success12,
+          color: Colors.status.success,
+        };
+      case 'expiring':
+        return {
+          label: 'Sắp hết hạn',
+          backgroundColor: Colors.alpha.warning12,
+          borderColor: Colors.alpha.warning12,
+          color: Colors.secondary,
+        };
+      case 'expired':
+        return {
+          label: 'Hết hạn',
+          backgroundColor: Colors.alpha.error12,
+          borderColor: Colors.alpha.error12,
+          color: Colors.status.error,
+        };
+      default:
+        return {
+          label: 'Chưa cập nhật',
+          backgroundColor: Colors.neutral[100],
+          borderColor: Colors.neutral[200],
+          color: Colors.text.secondary,
+        };
+    }
+  };
+
+  const renderDocumentField = (label: string, value?: string | null, highlighted = false) => (
+    <View key={label} style={styles.documentField}>
+      <Text style={styles.documentFieldLabel}>{label}</Text>
+      <Text
+        style={[
+          styles.documentFieldValue,
+          highlighted && value ? styles.documentFieldValueHighlighted : null,
+        ]}
+        numberOfLines={2}
+      >
+        {value || 'Chưa cập nhật'}
+      </Text>
+    </View>
+  );
+
+  const renderDocumentCard = ({
+    title,
+    icon,
+    status,
+    fields,
+    imageUrl,
+  }: {
+    title: string;
+    icon: string;
+    status?: VehicleDocumentStatus | null;
+    fields: Array<{ label: string; value?: string | null; highlighted?: boolean }>;
+    imageUrl?: string | null;
+  }) => {
+    const statusMeta = getDocumentStatusMeta(status);
+
+    return (
+      <View style={styles.documentCard}>
+        <View style={styles.documentCardHeader}>
+          <View style={styles.documentTitleWrap}>
+            <View style={styles.documentIconWrap}>
+              <Ionicons name={icon as any} size={18} color={Colors.primary} />
+            </View>
+            <Text style={styles.documentTitle}>{title}</Text>
+          </View>
+
+          {status !== undefined && (
+            <View
+              style={[
+                styles.documentStatusBadge,
+                {
+                  backgroundColor: statusMeta.backgroundColor,
+                  borderColor: statusMeta.borderColor,
+                },
+              ]}
+            >
+              <Text style={[styles.documentStatusText, { color: statusMeta.color }]}>
+                {statusMeta.label}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.documentFieldsGrid}>
+          {fields.map((field) => renderDocumentField(field.label, field.value, field.highlighted))}
+        </View>
+
+        {!!imageUrl && (
+          <TouchableOpacity
+            style={styles.documentImageButton}
+            onPress={() => setSelectedImage(imageUrl)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="image-outline" size={16} color={Colors.primary} />
+            <Text style={styles.documentImageButtonText}>Xem ảnh giấy tờ</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   const renderOrderCard = (order: ServiceOrder) => {
     return (
       <TouchableOpacity
@@ -192,6 +329,10 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
 
   const isLoading = vehicleLoading || ordersLoading;
 
+  if (!hasGarageContext) {
+    return null;
+  }
+
   if (isLoading && !vehicle) {
     return (
       <RootView style={styles.root}>
@@ -226,7 +367,7 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
 
       <ScrollView
         style={styles.body}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing || isLoading} onRefresh={handleRefresh} />}
       >
@@ -288,6 +429,59 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
               </View>
             )}
           </View>
+        </View>
+
+        <View style={styles.documentsSection}>
+          <TouchableOpacity
+            style={styles.editVehicleButton}
+            onPress={() =>
+              navigation.navigate('VehicleEdit', {
+                vehicleId: vehicle.id.toString(),
+                licensePlate: vehicle.license_plate,
+              })
+            }
+            activeOpacity={0.85}
+          >
+            <View style={styles.editVehicleButtonIcon}>
+              <Ionicons name="create-outline" size={18} color={Colors.background.light} />
+            </View>
+            <Text style={styles.editVehicleButtonText}>Cập nhật thông tin xe</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.background.light} />
+          </TouchableOpacity>
+
+          {renderDocumentCard({
+            title: 'Bằng lái xe',
+            icon: 'document-text-outline',
+            fields: [
+              { label: 'Số bằng lái xe', value: vehicle.license_number },
+              { label: 'Ngày hết hạn bằng lái', value: formatDisplayDate(vehicle.license_expiry_date), highlighted: true },
+            ],
+            imageUrl: vehicle.inspection_image_url,
+          })}
+
+          {renderDocumentCard({
+            title: 'Đăng kiểm',
+            icon: 'shield-checkmark-outline',
+            status: vehicle.inspection_status,
+            fields: [
+              { label: 'Số chứng nhận đăng kiểm', value: vehicle.inspection_certificate_number, highlighted: true },
+              { label: 'Ngày đăng kiểm', value: formatDisplayDate(vehicle.inspection_date) },
+              { label: 'Ngày hết hạn đăng kiểm', value: formatDisplayDate(vehicle.inspection_expiry_date) },
+            ],
+            imageUrl: vehicle.inspection_image_url,
+          })}
+
+          {renderDocumentCard({
+            title: 'Bảo hiểm',
+            icon: 'card-outline',
+            status: vehicle.insurance_status,
+            fields: [
+              { label: 'Đơn vị bảo hiểm', value: vehicle.insurance_company, highlighted: true },
+              { label: 'Ngày bắt đầu bảo hiểm', value: formatDisplayDate(vehicle.insurance_start_date) },
+              { label: 'Ngày hết hạn bảo hiểm', value: formatDisplayDate(vehicle.insurance_expiry_date) },
+            ],
+            imageUrl: vehicle.insurance_image_url,
+          })}
         </View>
 
         {/* Orders Section */}
@@ -400,6 +594,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.neutral[50],
   },
+  scrollContent: {
+    paddingBottom: 20,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -418,7 +615,8 @@ const styles = StyleSheet.create({
   },
   vehicleCard: {
     backgroundColor: Colors.background.light,
-    margin: 16,
+    marginTop: 16,
+    marginHorizontal: 16,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: Colors.neutral[400],
@@ -460,6 +658,148 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontFamily: Typography.fontFamily.bold,
     flex: 1,
+  },
+  documentsSection: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  editVehicleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  editVehicleButtonIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alpha.white18,
+    marginRight: 12,
+  },
+  editVehicleButtonText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.background.light,
+    fontFamily: Typography.fontFamily.semibold,
+    fontWeight: '700',
+  },
+  documentCard: {
+    backgroundColor: Colors.background.light,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.alpha.primary12,
+    shadowColor: Colors.shadow.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  documentCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 14,
+  },
+  documentTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  documentIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primarySoft,
+    borderWidth: 1,
+    borderColor: Colors.alpha.primary12,
+    marginRight: 10,
+  },
+  documentTitle: {
+    fontSize: 16,
+    lineHeight: 20,
+    color: Colors.text.primary,
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: '700',
+    flex: 1,
+  },
+  documentStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  documentStatusText: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: '700',
+  },
+  documentFieldsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  documentField: {
+    width: '48%',
+    minHeight: 72,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: Colors.neutral[50],
+  },
+  documentFieldLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.text.secondary,
+    marginBottom: 6,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: '600',
+  },
+  documentFieldValue: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.text.primary,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: '600',
+  },
+  documentFieldValueHighlighted: {
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: '700',
+  },
+  documentImageButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: Colors.primarySoft,
+    borderWidth: 1,
+    borderColor: Colors.alpha.primary12,
+  },
+  documentImageButtonText: {
+    fontSize: 13,
+    lineHeight: 16,
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.medium,
+    fontWeight: '600',
   },
   ordersSection: {
     flex: 1,
@@ -533,7 +873,7 @@ const styles = StyleSheet.create({
   orderTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.text.primary,
     marginLeft: 8,
     flex: 1,
   },
@@ -545,7 +885,7 @@ const styles = StyleSheet.create({
   orderStatusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.text.inverted,
   },
   orderInfo: {
     gap: 8,
@@ -584,7 +924,7 @@ const styles = StyleSheet.create({
   // Modal styles for full screen image
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: Colors.alpha.black90,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -593,7 +933,7 @@ const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -602,7 +942,7 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -614,4 +954,3 @@ const styles = StyleSheet.create({
 });
 
 export default VehicleDetailScreen;
-

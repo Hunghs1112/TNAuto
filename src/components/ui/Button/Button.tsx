@@ -117,7 +117,7 @@ const Button: React.FC<ButtonProps> = ({
           borderRadius: baseBorderRadius,
           shadow: {},
           useGradient: false,
-          backgroundColor: 'transparent',
+          backgroundColor: Colors.transparent,
           borderWidth: 2,
           borderColor: Colors.primary,
         };
@@ -126,7 +126,7 @@ const Button: React.FC<ButtonProps> = ({
           borderRadius: baseBorderRadius,
           shadow: {},
           useGradient: false,
-          backgroundColor: 'transparent',
+          backgroundColor: Colors.transparent,
         };
       default:
         return {
@@ -148,7 +148,7 @@ const Button: React.FC<ButtonProps> = ({
       case 'ghost':
         return Colors.primary;
       case 'secondary':
-        return Colors.text.inverted;
+        return Colors.primary;
       case 'primary':
       default:
         return Colors.text.inverted;
@@ -316,4 +316,3 @@ const styles = StyleSheet.create({
 Button.displayName = 'Button';
 
 export default React.memo(Button);
-

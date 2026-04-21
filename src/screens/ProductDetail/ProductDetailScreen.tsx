@@ -23,6 +23,8 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ProductVideo from "../../components/ProductVideo/ProductVideo";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { getCatalogProductImageUrls } from "../../utils/catalog";
+import { selectGarageCode, selectGarageName } from "../../redux/selectors";
+import GarageBadge from "../../components/GarageBadge";
 
 type ProductDetailRouteProp = RouteProp<AppStackParamList, "ProductDetail">;
 
@@ -32,17 +34,19 @@ const ProductDetailScreen = () => {
   const route = useRoute<ProductDetailRouteProp>();
   const { productId } = route.params;
   const userType = useAppSelector((state) => state.auth.userType);
+  const currentGarageCode = useAppSelector(selectGarageCode);
+  const currentGarageName = useAppSelector(selectGarageName);
   const isDealer = userType === "dealer";
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null as string | null);
   const [refreshing, setRefreshing] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
 
-  const productQuery = useGetProductByIdQuery(productId, { skip: isDealer });
-  const productImagesQuery = useGetProductImagesQuery(productId, { skip: isDealer });
+  const productQuery = useGetProductByIdQuery({ id: productId, garageCode: currentGarageCode }, { skip: isDealer });
+  const productImagesQuery = useGetProductImagesQuery({ id: productId, garageCode: currentGarageCode }, { skip: isDealer });
   const dealerProductQuery = useGetDealerProductByIdQuery(productId, { skip: !isDealer });
   const dealerProductImagesQuery = useGetDealerProductImagesQuery(productId, { skip: !isDealer });
-  const { data: categories = [] } = useGetCategoriesQuery(undefined, { skip: isDealer });
+  const { data: categories = [] } = useGetCategoriesQuery({ garageCode: currentGarageCode }, { skip: isDealer });
 
   const activeProductQuery = isDealer ? dealerProductQuery : productQuery;
   const activeProductImagesQuery = isDealer ? dealerProductImagesQuery : productImagesQuery;
@@ -155,6 +159,7 @@ const ProductDetailScreen = () => {
 
                 <View style={styles.infoSection}>
                   <Text style={styles.productName}>{product.name}</Text>
+                  {!isDealer && <GarageBadge garageName={currentGarageName} />}
 
                   {images.length > 1 && (
                     <View style={styles.thumbnailSection}>

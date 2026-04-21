@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -68,7 +68,7 @@ export const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: Colors.alpha.white50,
   },
   indicatorActive: {
     backgroundColor: Colors.background.light,
@@ -132,7 +132,7 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: Colors.transparent,
     overflow: 'hidden',
   },
   thumbnailActive: {
@@ -189,7 +189,7 @@ export const styles = StyleSheet.create({
   // Modal styles for full screen image
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: Colors.alpha.black90,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -198,7 +198,7 @@ export const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -207,7 +207,7 @@ export const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },
@@ -217,4 +217,3 @@ export const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 });
-

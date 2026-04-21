@@ -56,6 +56,9 @@ export interface ServiceOrder {
   id: number | string;
   customer_id: number;
   employee_id?: number | string | null;
+  garage_id?: string | number | null;
+  garage_code?: string | null;
+  garage_name?: string | null;
   service_id: number;
   license_plate: string;
   vehicle_type?: string | null;
@@ -98,7 +101,24 @@ export interface ServiceOrderImage {
 
 // ==================== Vehicle Types ====================
 
-export interface Vehicle {
+export type VehicleDocumentStatus = 'valid' | 'expiring' | 'expired';
+
+export interface VehicleDocumentFields {
+  license_number?: string | null;
+  license_expiry_date?: string | null;
+  inspection_certificate_number?: string | null;
+  inspection_date?: string | null;
+  inspection_expiry_date?: string | null;
+  inspection_image_url?: string | null;
+  inspection_status?: VehicleDocumentStatus | null;
+  insurance_company?: string | null;
+  insurance_start_date?: string | null;
+  insurance_expiry_date?: string | null;
+  insurance_image_url?: string | null;
+  insurance_status?: VehicleDocumentStatus | null;
+}
+
+export interface Vehicle extends VehicleDocumentFields {
   id: number;
   customer_id: number;
   license_plate: string;
@@ -253,6 +273,7 @@ export interface LoginCustomerResponse {
   success: boolean;
   customer_id: number;
   customer: Customer;
+  auth_mode?: 'identity_lookup';
   error?: string;
 }
 
@@ -260,6 +281,17 @@ export interface LoginEmployeeResponse {
   success: boolean;
   employee_id: string;
   employee: Employee;
+  token?: string;
+  expires_at?: string;
+  garage_id?: string | number;
+  garage?: {
+    id?: string | number;
+    code?: string;
+    name?: string;
+    address?: string | null;
+    avatar_url?: string | null;
+    status?: string | null;
+  };
   error?: string;
 }
 
@@ -343,4 +375,3 @@ export interface ReviewListResponse extends PaginatedResponse<ProductReview> {
     '1': number;
   };
 }
-

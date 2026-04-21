@@ -12,6 +12,8 @@ import { textStyles } from "../../design-system/typography";
 import { useGetServiceCategoriesQuery, useGetServiceCategoryByIdQuery, ServiceCategory, Service } from "../../services/serviceCategoryApi";
 import { formatSecondsToDaysHours } from "../../utils/dateHelpers";
 import { API_BASE_URL } from "../../constants/config";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { selectGarageCode } from "../../redux/selectors";
 
 interface Option {
   id: number;
@@ -48,15 +50,16 @@ const SelectInput: React.FC<SelectInputProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'categories' | 'services'>('categories');
+  const activeGarageCode = useAppSelector(selectGarageCode);
   const selectedOption = options.find(opt => opt.name === value);
 
   // Fetch service categories
-  const { data: categories, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useGetServiceCategoriesQuery(undefined, {
+  const { data: categories, isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useGetServiceCategoriesQuery({ garageCode: activeGarageCode }, {
     skip: !showModal || !useCategories,
   });
 
   // Fetch services for selected category
-  const { data: categoryDetail, isLoading: servicesLoading, error: servicesError } = useGetServiceCategoryByIdQuery(selectedCategoryId!, {
+  const { data: categoryDetail, isLoading: servicesLoading, error: servicesError } = useGetServiceCategoryByIdQuery({ id: selectedCategoryId!, garageCode: activeGarageCode }, {
     skip: !selectedCategoryId || !useCategories || viewMode !== 'services',
   });
 
@@ -500,7 +503,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Colors.alpha.black50,
   },
   modalContent: {
     backgroundColor: Colors.background.light,

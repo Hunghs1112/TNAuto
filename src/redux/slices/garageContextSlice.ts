@@ -1,0 +1,301 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+export interface SavedGarage {
+  garageId: string;
+  garageCode: string;
+  garageName: string;
+  address: string;
+  avatarUrl: string;
+  status: string;
+  isLocked: boolean;
+  lockReason: string;
+}
+
+export interface GarageContextState {
+  garageId: string;
+  garageCode: string;
+  activeGarageCode: string;
+  garageName: string;
+  address: string;
+  avatarUrl: string;
+  status: string;
+  resolved: boolean;
+  savedGarages: SavedGarage[];
+}
+
+export interface GaragePayload {
+  garageId?: string | number | null;
+  garageCode?: string | null;
+  garageName?: string | null;
+  address?: string | null;
+  avatarUrl?: string | null;
+  status?: string | null;
+  resolved?: boolean;
+  isLocked?: boolean;
+  lockReason?: string | null;
+}
+
+const EMPTY_GARAGE_CONTEXT: GarageContextState = {
+  garageId: '',
+  garageCode: '',
+  activeGarageCode: '',
+  garageName: '',
+  address: '',
+  avatarUrl: '',
+  status: '',
+  resolved: false,
+  savedGarages: [],
+};
+
+const normalizeGarageCode = (value?: string | null) => value?.trim().toUpperCase() || '';
+
+// NOTE:
+// Previously we treated "DEFAULT" as a legacy placeholder and filtered it out.
+// New backend contract can return real garage code "DEFAULT", so we must accept it.
+const isLegacyDefaultGarage = () => false;
+
+const buildSavedGarage = (payload: GaragePayload, existing?: SavedGarage): SavedGarage | null => {
+  const garageCode = normalizeGarageCode(payload.garageCode || existing?.garageCode || '');
+
+  if (!garageCode || isLegacyDefaultGarage(garageCode, payload.garageName || existing?.garageName)) {
+    return null;
+  }
+
+  return {
+    garageId: payload.garageId !== undefined && payload.garageId !== null
+      ? String(payload.garageId)
+      : existing?.garageId || '',
+    garageCode,
+    garageName: payload.garageName?.trim() || existing?.garageName || garageCode,
+    address: payload.address || existing?.address || '',
+    avatarUrl: payload.avatarUrl || existing?.avatarUrl || '',
+    status: payload.status || existing?.status || '',
+    isLocked: payload.isLocked ?? existing?.isLocked ?? false,
+    lockReason: payload.lockReason || existing?.lockReason || '',
+  };
+};
+
+const setActiveGarageState = (state: GarageContextState, payload: GaragePayload) => {
+  const normalizedCode = normalizeGarageCode(payload.garageCode);
+
+  if (!normalizedCode || isLegacyDefaultGarage(normalizedCode, payload.garageName)) {
+    state.garageId = '';
+    state.garageCode = '';
+    state.activeGarageCode = '';
+    state.garageName = '';
+    state.address = '';
+    state.avatarUrl = '';
+    state.status = '';
+    state.resolved = false;
+    return;
+  }
+
+  state.garageId = payload.garageId ? String(payload.garageId) : '';
+  state.garageCode = normalizedCode;
+  state.activeGarageCode = normalizedCode;
+  state.garageName = payload.garageName || normalizedCode;
+  state.address = payload.address || '';
+  state.avatarUrl = payload.avatarUrl || '';
+  state.status = payload.status || '';
+  state.resolved = payload.resolved ?? true;
+};
+
+const syncSavedGarageDetails = (state: GarageContextState, payload: GaragePayload) => {
+  const garageCode = normalizeGarageCode(payload.garageCode);
+
+  if (!garageCode) {
+    return;
+  }
+
+  const existingIndex = state.savedGarages.findIndex((garage) => garage.garageCode === garageCode);
+
+  if (existingIndex === -1) {
+    return;
+  }
+
+  const updatedGarage = buildSavedGarage(payload, state.savedGarages[existingIndex]);
+  if (updatedGarage) {
+    state.savedGarages[existingIndex] = updatedGarage;
+  }
+};
+
+const upsertSavedGarageState = (state: GarageContextState, payload: GaragePayload) => {
+  const garageCode = normalizeGarageCode(payload.garageCode);
+
+  if (!garageCode) {
+    return null;
+  }
+
+  const existingIndex = state.savedGarages.findIndex((garage) => garage.garageCode === garageCode);
+  const updatedGarage = buildSavedGarage(payload, existingIndex >= 0 ? state.savedGarages[existingIndex] : undefined);
+
+  if (!updatedGarage) {
+    return null;
+  }
+
+  if (existingIndex >= 0) {
+    state.savedGarages[existingIndex] = updatedGarage;
+  } else {
+    state.savedGarages.push(updatedGarage);
+  }
+
+  return updatedGarage;
+};
+
+export const sanitizeGarageContextState = (state: Partial<GarageContextState> | null | undefined): GarageContextState => {
+  const garageCode = normalizeGarageCode(state?.activeGarageCode || state?.garageCode);
+  const garageName = state?.garageName || '';
+
+  const savedGarages = Array.isArray(state?.savedGarages)
+    ? state.savedGarages
+        .map((garage) =>
+          buildSavedGarage({
+            garageId: garage.garageId,
+            garageCode: garage.garageCode,
+            garageName: garage.garageName,
+            address: garage.address,
+            avatarUrl: garage.avatarUrl,
+            status: garage.status,
+            isLocked: garage.isLocked,
+            lockReason: garage.lockReason,
+          }),
+        )
+        .filter((garage): garage is SavedGarage => Boolean(garage))
+    : [];
+
+  const activeGarage =
+    savedGarages.find((garage) => garage.garageCode === garageCode) ||
+    buildSavedGarage({
+      garageId: state?.garageId,
+      garageCode,
+      garageName,
+      address: state?.address,
+      avatarUrl: state?.avatarUrl,
+      status: state?.status,
+    });
+
+  if (!activeGarage) {
+    return {
+      ...EMPTY_GARAGE_CONTEXT,
+      savedGarages,
+    };
+  }
+
+  const hasActiveInSaved = savedGarages.some((garage) => garage.garageCode === activeGarage.garageCode);
+
+  return {
+    garageId: activeGarage.garageId,
+    garageCode: activeGarage.garageCode,
+    activeGarageCode: activeGarage.garageCode,
+    garageName: activeGarage.garageName,
+    address: activeGarage.address,
+    avatarUrl: activeGarage.avatarUrl,
+    status: activeGarage.status,
+    resolved: Boolean(activeGarage.garageCode),
+    savedGarages: hasActiveInSaved ? savedGarages : [...savedGarages, activeGarage],
+  };
+};
+
+const garageContextSlice = createSlice({
+  name: 'garageContext',
+  initialState: EMPTY_GARAGE_CONTEXT,
+  reducers: {
+    setGarageContext: (state, action: PayloadAction<GaragePayload>) => {
+      setActiveGarageState(state, action.payload);
+      syncSavedGarageDetails(state, action.payload);
+    },
+    upsertSavedGarage: (state, action: PayloadAction<GaragePayload>) => {
+      upsertSavedGarageState(state, action.payload);
+    },
+    saveAndSetActiveGarage: (state, action: PayloadAction<GaragePayload>) => {
+      const savedGarage = upsertSavedGarageState(state, action.payload);
+
+      if (savedGarage) {
+        setActiveGarageState(state, {
+          garageId: savedGarage.garageId,
+          garageCode: savedGarage.garageCode,
+          garageName: savedGarage.garageName,
+          address: savedGarage.address,
+          avatarUrl: savedGarage.avatarUrl,
+          status: savedGarage.status,
+          resolved: true,
+        });
+      }
+    },
+    setActiveGarageByCode: (state, action: PayloadAction<string>) => {
+      const garageCode = normalizeGarageCode(action.payload);
+      const savedGarage = state.savedGarages.find((garage) => garage.garageCode === garageCode);
+
+      if (!savedGarage) {
+        return;
+      }
+
+      setActiveGarageState(state, {
+        garageId: savedGarage.garageId,
+        garageCode: savedGarage.garageCode,
+        garageName: savedGarage.garageName,
+        address: savedGarage.address,
+        avatarUrl: savedGarage.avatarUrl,
+        status: savedGarage.status,
+        resolved: true,
+      });
+    },
+    clearGarageContext: (state) => {
+      state.garageId = '';
+      state.garageCode = '';
+      state.activeGarageCode = '';
+      state.garageName = '';
+      state.address = '';
+      state.avatarUrl = '';
+      state.status = '';
+      state.resolved = false;
+      state.savedGarages = [];
+    },
+    removeSavedGarage: (state, action: PayloadAction<string>) => {
+      const garageCode = normalizeGarageCode(action.payload);
+      const garage = state.savedGarages.find((item) => item.garageCode === garageCode);
+
+      if (!garage || garage.isLocked) {
+        return;
+      }
+
+      state.savedGarages = state.savedGarages.filter((item) => item.garageCode !== garageCode);
+
+      if (state.activeGarageCode === garageCode) {
+        const nextGarage = state.savedGarages[0];
+
+        if (nextGarage) {
+          setActiveGarageState(state, {
+            garageId: nextGarage.garageId,
+            garageCode: nextGarage.garageCode,
+            garageName: nextGarage.garageName,
+            address: nextGarage.address,
+            avatarUrl: nextGarage.avatarUrl,
+            status: nextGarage.status,
+            resolved: true,
+          });
+        } else {
+          state.garageId = '';
+          state.garageCode = '';
+          state.activeGarageCode = '';
+          state.garageName = '';
+          state.address = '';
+          state.avatarUrl = '';
+          state.status = '';
+          state.resolved = false;
+        }
+      }
+    },
+  },
+});
+
+export const {
+  setGarageContext,
+  upsertSavedGarage,
+  saveAndSetActiveGarage,
+  setActiveGarageByCode,
+  clearGarageContext,
+  removeSavedGarage,
+} = garageContextSlice.actions;
+
+export default garageContextSlice.reducer;

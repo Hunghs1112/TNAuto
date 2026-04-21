@@ -10,7 +10,7 @@ import AccountInfoScreen from "../screens/AccountInfo/AccountInfoScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
 
 export type TabParamList = {
-  Home: undefined;
+  HomeTab: undefined;
   Category: undefined;
   Booking: undefined;
   ServiceCategory: undefined;
@@ -26,7 +26,7 @@ export default function MainTabs() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <Navbar {...props} />}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="HomeTab" component={HomeScreen} />
       <Tab.Screen name="Category" component={CategoryScreen} />
       <Tab.Screen name="Booking" component={BookingScreen} />
       <Tab.Screen name="ServiceCategory" component={ServiceCategoryScreen} />

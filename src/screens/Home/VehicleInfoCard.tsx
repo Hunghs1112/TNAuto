@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions } from "react-native";
+import React, { useCallback, useMemo, useRef } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions, Image } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
@@ -10,6 +10,7 @@ import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { VehicleCardSkeleton } from "../../components/SkeletonLoader";
 import { OptimizedImage } from "../../components/OptimizedImage";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 interface VehicleInfoCardProps {
   userId: string;
@@ -20,12 +21,28 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) => {
   const navigation = useNavigation<NavigationProp>();
-  const { data: vehiclesData, isLoading, error, refetch } = useGetCustomerVehiclesQuery(
-    { phone: userPhone },
+  const hasGarageContext = useAppSelector(
+    (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
+  const queryParams = useMemo(() => {
+    if (userId) {
+      return { customer_id: userId };
+    }
+
+    if (userPhone) {
+      return { phone: userPhone } as any;
+    }
+
+    return undefined;
+  }, [userId, userPhone]);
+
+  const { data: vehiclesData, isLoading, error } = useGetCustomerVehiclesQuery(
+    queryParams,
     {
-      refetchOnMountOrArgChange: false,
-      refetchOnFocus: false,
-      refetchOnReconnect: false,
+      skip: !hasGarageContext || !queryParams,
+      refetchOnMountOrArgChange: 30,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
     },
   );
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
@@ -38,8 +55,12 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
   );
 
   const handleViewAllVehicles = useCallback(() => {
+    if (!hasGarageContext) {
+      navigation.navigate("SelectGarage");
+      return;
+    }
     navigation.navigate("VehicleList", { userId, userPhone });
-  }, [navigation, userId, userPhone]);
+  }, [hasGarageContext, navigation, userId, userPhone]);
 
   const handleViewVehicleDetail = useCallback(() => {
     if (firstVehicle) {
@@ -59,8 +80,20 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
   }, []);
 
   // Early returns after all hooks
+  if (!hasGarageContext) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Thông tin xe</Text>
+        </View>
+        <View style={styles.grid}>
+          <Text style={styles.stateText}>Hãy chọn gara để xem danh sách xe của bạn.</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (error && (error as any)?.status === 429) {
-    // Too many requests - show graceful fallback
     return (
       <View style={styles.card}>
         <View style={styles.headerRow}>
@@ -68,6 +101,28 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
         </View>
         <View style={styles.grid}>
           <Text style={styles.stateText}>Đang tải quá nhanh. Vui lòng thử lại sau.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error && (error as any)?.status === 'TIMEOUT_ERROR') {
+    return (
+      <View style={styles.card}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Thông tin xe</Text>
+        </View>
+        <View style={styles.grid}>
+          <View style={styles.statePill}>
+            <Ionicons name="time-outline" size={18} color={Colors.primary} />
+            <Text style={styles.statePillText}>Quá thời gian</Text>
+          </View>
+          <Text style={styles.stateText} numberOfLines={2}>
+            Hệ thống phản hồi chậm, vui lòng thử lại.
+          </Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+            <Text style={styles.retryButtonText}>Tải lại</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -164,9 +219,9 @@ const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) 
             {firstVehicle.image_url ? (
               <OptimizedImage
                 source={{ uri: firstVehicle.image_url }}
-                width={styles.imageTileInner.width as number}
-                height={styles.imageTileInner.height as number}
-                borderRadius={styles.imageTileInner.borderRadius as number}
+                width={92}
+                height={92}
+                borderRadius={16}
               />
             ) : (
               <View style={styles.imagePlaceholder}>
@@ -266,14 +321,19 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(34, 197, 94, 0.16)",
+    backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: Colors.secondaryLight,
   },
   countBadgeText: {
     fontSize: 12,
     lineHeight: 14,
-    color: "#16a34a",
+    color: Colors.secondaryLight,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: "800",
+    textShadowColor: Colors.background.light,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 1.2,
   },
 
   grid: {
@@ -307,7 +367,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.03)",
+    backgroundColor: Colors.alpha.black03,
   },
   label: {
     fontSize: 11,
@@ -339,7 +399,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 16,
-    backgroundColor: "rgba(12, 119, 121, 0.08)",
+    backgroundColor: Colors.alpha.primary08,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -359,7 +419,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: "rgba(12, 119, 121, 0.08)",
+    backgroundColor: Colors.alpha.primary08,
   },
   statePillText: {
     fontSize: 13,
@@ -383,11 +443,26 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontFamily: Typography.fontFamily.regular,
   },
+  retryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: Colors.alpha.primary12,
+    alignSelf: 'center',
+    marginTop: 4,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    lineHeight: 16,
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: '700',
+  },
 
   // Modal styles for full screen image
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    backgroundColor: Colors.alpha.black90,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -396,7 +471,7 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Colors.alpha.black50,
     borderRadius: 20,
     padding: 10,
   },

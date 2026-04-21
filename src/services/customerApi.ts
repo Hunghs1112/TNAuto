@@ -31,11 +31,23 @@ export interface DriverLicense {
   updated_at?: string;
 }
 
+interface LinkedGarage {
+  id: number | string;
+  code: string;
+  name: string;
+  address?: string | null;
+  avatar_url?: string | null;
+  status?: string | null;
+}
+
 interface LoginCustomerResponse {
   error: string;
   success: boolean;
   customer_id: number;
   customer: Customer;
+  linked_garages?: LinkedGarage[];
+  linked_garage_count?: number;
+  auth_mode?: 'identity_lookup';
 }
 
 interface Service {
@@ -60,6 +72,9 @@ interface BaseServiceOrder {
   created_at: string;
   employee_name?: string | null;
   service_name?: string;
+  garage_id?: number | string | null;
+  garage_code?: string | null;
+  garage_name?: string | null;
 }
 
 interface ServiceOrderImage {
@@ -86,17 +101,41 @@ interface DetailedServiceOrder extends BaseServiceOrder {
   estimated_time?: number;
   images: ServiceOrderImage[];
   warranty?: Warranty;
+  garage_id?: number | string | null;
+  garage_code?: string | null;
+  garage_name?: string | null;
+}
+
+interface CustomerOverview {
+  customer?: Customer;
+  garages?: Array<{
+    id: number | string;
+    code: string;
+    name: string;
+    address?: string | null;
+    avatar_url?: string | null;
+    status?: string | null;
+  }>;
+  stats?: Record<string, number | string | null>;
+  recent_orders?: BaseServiceOrder[];
 }
 
 interface GetCustomerOrdersResponse {
-  length: number | undefined;
+  length?: number;
   success: boolean;
   data: BaseServiceOrder[];
   count: number;
   customer?: Customer;
 }
 
+interface GetCustomerOrdersApiResponse extends ApiResponse<BaseServiceOrder[]> {
+  customer?: Customer;
+  count?: number;
+}
+
 interface CreateOrderRequest {
+  garageCode: string;
+  customer_id: number | string;
   receiver_name: string;
   receiver_phone: string;
   license_plate: string;
@@ -188,20 +227,40 @@ export const customerApi = createApi({
         return response; // Return direct response since backend returns flat object
       },
     }),
-    getServices: builder.query<{ success: boolean; data: Service[]; count: number }, void>({
-      query: () => ENDPOINTS.getServices.path,
+    getServices: builder.query<{ success: boolean; data: Service[]; count: number }, { garageCode: string }>({
+      query: ({ garageCode }) =>
+        ENDPOINTS.getServices.path.replace(':garageCode', encodeURIComponent(garageCode)),
       providesTags: ['Service'],
       transformResponse: (response: ApiResponse<Service[]>) => {
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch services');
         return { success: true, data: response.data, count: response.count || response.data.length };
       },
     }),
-    getCustomerOrders: builder.query<GetCustomerOrdersResponse, string>({
-      query: (phone) => ({ url: `${ENDPOINTS.getCustomerOrders.path}?phone=${phone}` }),
+    getCustomerOverview: builder.query<CustomerOverview, { customer_id?: string | number } | void>({
+      query: (params) => ({
+        url: ENDPOINTS.getCustomerOverview.path,
+        params,
+      }),
+      providesTags: ['Customer', 'ServiceOrder'],
+      transformResponse: (response: ApiResponse<CustomerOverview>) => {
+        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch customer overview');
+        return response.data;
+      },
+    }),
+    getCustomerOrders: builder.query<GetCustomerOrdersResponse, { customer_id?: string | number } | void>({
+      query: (params) => ({
+        url: ENDPOINTS.getCustomerOrders.path,
+        params,
+      }),
       providesTags: ['ServiceOrder'],
-      transformResponse: (response: ApiResponse<GetCustomerOrdersResponse>) => {
+      transformResponse: (response: GetCustomerOrdersApiResponse) => {
         if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch customer orders');
-        return { success: true, data: response.data, count: response.count || response.data.length, customer: response.customer };
+        return {
+          success: true,
+          data: response.data,
+          count: response.count || response.data.length,
+          customer: response.customer,
+        };
       },
     }),
     getOrderDetails: builder.query<DetailedServiceOrder, string>({
@@ -216,19 +275,33 @@ export const customerApi = createApi({
         };
       },
     }),
+    getCustomerOrderImages: builder.query<ServiceOrderImage[], string>({
+      query: (id) => buildEndpointUrl('getCustomerOrderImages', { id }),
+      providesTags: (result, error, id) => [{ type: 'ServiceOrder' as const, id }],
+      transformResponse: (response: ApiResponse<ServiceOrderImage[]>) => {
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to fetch order images');
+        }
+        return response.data;
+      },
+    }),
     createOrder: builder.mutation<CreateOrderResponse, CreateOrderRequest>({
-      query: (body) => ({ url: ENDPOINTS.createOrder.path, method: 'POST', body }),
+      query: ({ garageCode, ...body }) => ({
+        url: ENDPOINTS.createOrder.path.replace(':garageCode', encodeURIComponent(garageCode)),
+        method: 'POST',
+        body,
+      }),
       invalidatesTags: ['ServiceOrder'],
       transformResponse: (response: ApiResponse<CreateOrderResponse>) => {
         if (!response.success) throw new Error(response.error || 'Failed to create order');
         return { success: true };
       },
     }),
-    updateProfile: builder.mutation<UpdateProfileResponse, { phone: string } & UpdateProfileRequest>({
-      query: ({ phone, ...body }) => ({ 
-        url: `${ENDPOINTS.updateProfile.path}?phone=${phone}`, 
-        method: 'PUT', 
-        body 
+    updateProfile: builder.mutation<UpdateProfileResponse, UpdateProfileRequest>({
+      query: (body) => ({
+        url: ENDPOINTS.updateProfile.path,
+        method: 'PUT',
+        body,
       }),
       invalidatesTags: ['Customer'],
       transformResponse: (response: UpdateProfileResponse) => {
@@ -236,11 +309,11 @@ export const customerApi = createApi({
         return response;
       },
     }),
-    deleteAccount: builder.mutation<DeleteAccountResponse, { phone: string } & DeleteAccountRequest>({
-      query: ({ phone, confirm }) => ({ 
-        url: `${ENDPOINTS.deleteAccount.path}?phone=${phone}`, 
-        method: 'DELETE', 
-        body: { confirm } 
+    deleteAccount: builder.mutation<DeleteAccountResponse, DeleteAccountRequest>({
+      query: ({ confirm }) => ({
+        url: ENDPOINTS.deleteAccount.path,
+        method: 'DELETE',
+        body: { confirm },
       }),
       invalidatesTags: ['Customer', 'ServiceOrder'],
       transformResponse: (response: DeleteAccountResponse) => {
@@ -256,9 +329,9 @@ export const customerApi = createApi({
         return response.data ?? null;
       },
     }),
-    getCustomerDriverLicense: builder.query<DriverLicense | null, string>({
-      query: (customerId) => ({
-        url: ENDPOINTS.getCustomerDriverLicense.path.replace(':id', customerId),
+    getCustomerDriverLicense: builder.query<DriverLicense | null, void>({
+      query: () => ({
+        url: ENDPOINTS.getCustomerDriverLicense.path,
         method: ENDPOINTS.getCustomerDriverLicense.method,
       }),
       providesTags: ['Customer'],
@@ -301,10 +374,10 @@ export const customerApi = createApi({
     }),
     upsertCustomerDriverLicense: builder.mutation<
       { success: boolean; message?: string; driver_license_id?: number },
-      { customerId: string; license_no: string; registered_at?: string | null; expires_at?: string | null }
+      { license_no: string; registered_at?: string | null; expires_at?: string | null }
     >({
-      query: ({ customerId, ...body }) => ({
-        url: ENDPOINTS.upsertCustomerDriverLicense.path.replace(':id', customerId),
+      query: (body) => ({
+        url: ENDPOINTS.upsertCustomerDriverLicense.path,
         method: ENDPOINTS.upsertCustomerDriverLicense.method,
         body,
       }),
@@ -325,10 +398,10 @@ export const customerApi = createApi({
     }),
     deleteCustomerDriverLicense: builder.mutation<
       { success: boolean; message?: string },
-      { customerId: string }
+      void
     >({
-      query: ({ customerId }) => ({
-        url: ENDPOINTS.deleteCustomerDriverLicense.path.replace(':id', customerId),
+      query: () => ({
+        url: ENDPOINTS.deleteCustomerDriverLicense.path,
         method: ENDPOINTS.deleteCustomerDriverLicense.method,
       }),
       invalidatesTags: ['Customer'],
@@ -350,8 +423,10 @@ export const {
   useRegisterCustomerMutation,
   useLoginCustomerMutation,
   useGetServicesQuery,
+  useGetCustomerOverviewQuery,
   useGetCustomerOrdersQuery,
   useGetOrderDetailsQuery,
+  useGetCustomerOrderImagesQuery,
   useCreateOrderMutation,
   useUpdateProfileMutation,
   useDeleteAccountMutation,

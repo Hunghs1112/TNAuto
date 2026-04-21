@@ -1,10 +1,9 @@
 // src/screens/Booking/BookingScreen.tsx
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, Alert, ActivityIndicator, RefreshControl } from "react-native";
 import { Screen, FormContainer } from "../../components/layout";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../../constants/colors";
-import { Typography } from "../../constants/typo";
 import ErrorView from "../../components/Loading/ErrorView";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import DateInput from "../../components/TextInput/DateInput";
@@ -23,6 +22,8 @@ import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
 import { getCurrentDate, formatDateForAPI, formatSecondsToDaysHours } from "../../utils/dateHelpers";
 import { styles } from "./styles";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { selectGarageCode, selectGarageName } from "../../redux/selectors";
+import GarageBadge from "../../components/GarageBadge";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type BookingScreenRouteProp = RouteProp<AppStackParamList, 'Booking'>;
@@ -87,14 +88,19 @@ const BookingScreen: React.FC = () => {
   const route = useRoute<BookingScreenRouteProp>();
   const dispatch = useAppDispatch();
   const { refreshing, onRefresh } = useAutoRefresh();
-  const { isLoggedIn, userName, userPhone, userLicensePlate, userId, userType } = useAppSelector((state: RootState) => state.auth);
+  const { isLoggedIn, userName, userPhone, userLicensePlate, userType, userId } = useAppSelector((state: RootState) => state.auth);
+  const activeGarageCode = useAppSelector(selectGarageCode);
+  const activeGarageName = useAppSelector(selectGarageName);
+  const hasGarageContext = useAppSelector(
+    (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
+  );
   const { services, isFetching: servicesLoading } = useAppSelector((state: RootState) => state.services);
-  const { data: servicesData, isLoading: servicesIsLoading, error: servicesError, refetch: refetchServices } = useGetServicesQuery(undefined, {
-    skip: userType === "dealer",
+  const { data: servicesData, isLoading: servicesIsLoading, error: servicesError, refetch: refetchServices } = useGetServicesQuery({ garageCode: activeGarageCode }, {
+    skip: userType === "dealer" || !hasGarageContext,
   });
   const { data: vehiclesData, isLoading: vehiclesLoading } = useGetCustomerVehiclesQuery(
-    { phone: userPhone },
-    { skip: !userPhone || userType === "dealer" },
+    { customer_id: userId },
+    { skip: !userId || userType === "dealer" || !hasGarageContext },
   );
   const [createOrder] = useCreateOrderMutation();
 
@@ -125,9 +131,15 @@ const BookingScreen: React.FC = () => {
   useEffect(() => {
     if (userType === "dealer") {
       // Dealer không được phép đặt lịch dịch vụ.
-      navigation.replace("Category" as never);
+      navigation.replace("Category");
     }
   }, [userType, navigation]);
+
+  useEffect(() => {
+    if (isLoggedIn && userType === "customer" && !hasGarageContext) {
+      navigation.replace("SelectGarage");
+    }
+  }, [hasGarageContext, isLoggedIn, navigation, userType]);
 
   useEffect(() => {
     if (servicesData?.success && servicesData.data) {
@@ -170,10 +182,17 @@ const BookingScreen: React.FC = () => {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin bắt buộc!');
       return;
     }
+    if (!hasGarageContext) {
+      Alert.alert('Chưa chọn gara', 'Vui lòng chọn gara trước khi đặt lịch.');
+      navigation.navigate('SelectGarage');
+      return;
+    }
     setIsLoading(true);
     try {
       const formattedDeliveryDate = formatDateForAPI(deliveryDate);
       const body = {
+        garageCode: activeGarageCode,
+        customer_id: userId,
         receiver_name: userName,
         receiver_phone: userPhone,
         license_plate: licensePlate,
@@ -210,7 +229,21 @@ const BookingScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [licensePlate, vehicleType, selectedService, deliveryDate, note, userName, userPhone, createOrder, navigation, userLicensePlate]);
+  }, [
+    licensePlate,
+    vehicleType,
+    selectedService,
+    deliveryDate,
+    note,
+    userName,
+    userPhone,
+    createOrder,
+    navigation,
+    userLicensePlate,
+    hasGarageContext,
+    activeGarageCode,
+    userId,
+  ]);
 
   // Don't render if not logged in (will redirect)
   if (userType === "dealer") {
@@ -218,6 +251,10 @@ const BookingScreen: React.FC = () => {
   }
 
   if (!isLoggedIn) {
+    return null;
+  }
+
+  if (userType === "customer" && !hasGarageContext) {
     return null;
   }
 
@@ -271,6 +308,10 @@ const BookingScreen: React.FC = () => {
           paddingBottom: 20,
         }}
       >
+        <View style={styles.activeGarageContainer}>
+          <Text style={styles.activeGarageLabel}>Đặt lịch tại</Text>
+          <GarageBadge garageName={activeGarageName} />
+        </View>
         <InputFieldWithLabel
           value={userName || ''}
           onChangeText={() => {}}

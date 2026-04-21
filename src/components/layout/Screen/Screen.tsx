@@ -67,7 +67,7 @@ const Screen = ({
       {insets.top > 0 && (
         <View style={styles.topSafeAreaContainer}>
           <LinearGradient
-            colors={[...Colors.gradients.primary, Colors.secondary]}
+            colors={Colors.gradients.brand}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ height: insets.top, width: '100%' }}

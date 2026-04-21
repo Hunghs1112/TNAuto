@@ -3,23 +3,22 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 
-interface Warranty {
+export interface Warranty {
   id: number;
   order_id: number;
-  customer_id: number;
-  service_id?: number | null; // ID dịch vụ (có thể null)
-  employee_id?: number | null; // ID nhân viên (có thể null)
-  warranty_period: number; // tháng
+  service_id?: number | null;
+  product_id?: number | null;
+  dealer_id?: number | null;
+  license_plate?: string | null;
+  service_name?: string | null;
+  product_name?: string | null;
+  dealer_name?: string | null;
+  warranty_period: number;
   start_date: string;
   end_date: string;
-  note?: string;
-  created_at: string;
-  updated_at: string;
-  // Populated fields from API
-  service_name?: string;
-  employee_name?: string;
-  license_plate?: string;
-  vehicle_type?: string;
+  warranty_type?: string | null;
+  warranty_status?: string | null;
+  days_remaining?: number | null;
 }
 
 interface CreateWarrantyRequest {
@@ -51,7 +50,20 @@ interface ApiResponse<T> {
   success: boolean;
   data?: T;
   count?: number;
+  filters?: Record<string, unknown>;
+  customer?: Record<string, unknown>;
+  garage?: Record<string, unknown>;
+  pagination?: Record<string, unknown>;
   error?: string;
+}
+
+interface CustomerWarrantiesQueryArgs {
+  userType: 'customer';
+  userId: string;
+  garageCode?: string;
+  status?: 'all' | 'active' | 'expired';
+  page?: number;
+  limit?: number;
 }
 
 export const warrantyApi = createApi({
@@ -60,28 +72,31 @@ export const warrantyApi = createApi({
   baseQuery: baseQueryWithRetry,
   tagTypes: ['Warranty'] as const,
   endpoints: (builder) => ({
-    // 1. GET /api/warranties - Lấy danh sách warranty
-    getWarranties: builder.query<Warranty[], { userType: 'customer' | 'dealer'; userId: string } | undefined>({
+    // 1. GET /api/customers/:id/warranties - Lấy danh sách warranty theo customer hiện tại
+    getWarranties: builder.query<Warranty[], CustomerWarrantiesQueryArgs | undefined>({
       query: (args) => {
-        const basePath = ENDPOINTS.getAllWarranties?.path || '/api/warranties';
-        if (!args?.userId) return basePath;
-
-        // Backend suggestion: FE filter by dealer_id. For customer flow, filter by customer_id.
-        const key = args.userType === 'dealer' ? 'dealer_id' : 'customer_id';
-        const separator = basePath.includes('?') ? '&' : '?';
-        return `${basePath}${separator}${key}=${encodeURIComponent(args.userId)}`;
+        return {
+          url: ENDPOINTS.getCustomerWarranties.path,
+          params: {
+            // customer context is provided via x-customer-id header in baseApi
+            garage_code: args?.garageCode,
+            status: args?.status,
+            page: args?.page,
+            limit: args?.limit,
+          },
+        };
       },
       providesTags: ['Warranty'],
       transformResponse: (response: ApiResponse<Warranty[]>) => {
-        if (!response.success || !response.data) throw new Error(response.error || 'Failed to fetch warranties');
-        return response.data;
+        if (!response.success) throw new Error(response.error || 'Failed to fetch warranties');
+        return response.data || [];
       },
     }),
 
     // 2. POST /api/warranties - Tạo warranty mới
     createWarranty: builder.mutation<Warranty, CreateWarrantyRequest>({
       query: (body) => ({ 
-        url: ENDPOINTS.createWarranty?.path || '/api/warranties', 
+        url: ENDPOINTS.createWarranty.path, 
         method: 'POST', 
         body 
       }),

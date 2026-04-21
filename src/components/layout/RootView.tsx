@@ -37,7 +37,7 @@ export default function RootView({
         <View style={{ position: 'relative', zIndex: 1001, elevation: 11 }}>
           {isGradientHeader ? (
             <LinearGradient
-              colors={[...Colors.gradients.primary, Colors.secondary]}
+              colors={Colors.gradients.brand}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{ height: insets.top, width: '100%' }}

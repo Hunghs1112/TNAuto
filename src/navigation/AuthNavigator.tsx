@@ -22,6 +22,7 @@ export type AuthStackParamList = {
   };
   DealerLogin: {
     phone: string;
+    garageCode?: string;
   };
   DealerRegister: undefined;
 };

@@ -1,185 +1,248 @@
 // src/constants/colors.ts
+
+const BrandPalette = {
+  goldDark: '#c37b1e',
+  gold: '#e0a02e',
+  mist: '#dfe1e3',
+  navy: '#112552',
+  sand: '#eecd7e',
+  slate: '#7a797c',
+  cobalt: '#1e406b',
+  bronze: '#b48242',
+} as const;
+
+const DerivedPalette = {
+  primarySoft: '#eef2f8',
+  secondarySoft: '#f8ecd6',
+  goldDeep: '#8f5f23',
+  neutral50: '#f8f9fa',
+  neutral100: '#f2f4f5',
+  neutral300: '#c4c7cc',
+  neutral400: '#a4a4aa',
+  neutral600: '#636267',
+  neutral700: '#4c4b50',
+  neutral800: '#2d3442',
+  neutral900: '#161d2c',
+  surfaceMuted: '#f6f7f8',
+} as const;
+
+const AlphaPalette = {
+  white12: 'rgba(255, 255, 255, 0.12)',
+  white14: 'rgba(255, 255, 255, 0.14)',
+  white18: 'rgba(255, 255, 255, 0.18)',
+  white20: 'rgba(255, 255, 255, 0.20)',
+  white25: 'rgba(255, 255, 255, 0.25)',
+  white30: 'rgba(255, 255, 255, 0.30)',
+  white40: 'rgba(255, 255, 255, 0.40)',
+  white50: 'rgba(255, 255, 255, 0.50)',
+  white65: 'rgba(255, 255, 255, 0.65)',
+  white78: 'rgba(255, 255, 255, 0.78)',
+  white85: 'rgba(255, 255, 255, 0.85)',
+  black03: 'rgba(0, 0, 0, 0.03)',
+  black50: 'rgba(0, 0, 0, 0.50)',
+  black60: 'rgba(0, 0, 0, 0.60)',
+  black90: 'rgba(0, 0, 0, 0.90)',
+  slate15: 'rgba(122, 121, 124, 0.15)',
+  primary08: 'rgba(17, 37, 82, 0.08)',
+  primary12: 'rgba(17, 37, 82, 0.125)',
+  primary20: 'rgba(17, 37, 82, 0.20)',
+  secondary13: 'rgba(195, 123, 30, 0.133)',
+  success12: 'rgba(143, 95, 35, 0.125)',
+  error06: 'rgba(180, 130, 66, 0.063)',
+  error12: 'rgba(180, 130, 66, 0.125)',
+  warning06: 'rgba(195, 123, 30, 0.063)',
+  warning12: 'rgba(195, 123, 30, 0.125)',
+  info12: 'rgba(30, 64, 107, 0.125)',
+  expired12: 'rgba(122, 121, 124, 0.125)',
+} as const;
+
 export const Colors = {
-  // 🎨 Brand Colors - Màu thương hiệu TN Gara (từ logo)
-  primary: '#0F3D5E',        // Xanh dương đậm (main brand)
-  primaryLight: '#2563EB',   // Xanh dương sáng hơn
-  primarySoft: '#EFF6FF',    // Xanh rất nhạt (background phụ)
-  
-  secondary: '#22C55E',      // Xanh lá (từ logo) - CTA chính
-  secondaryLight: '#4ADE80', // Xanh lá sáng
-  secondarySoft: '#F0FDF4',  // Xanh lá rất nhạt
-  
-  tertiary: '#F59E0B',       // Vàng/Cam (accent)
+  palette: BrandPalette,
+  transparent: 'transparent',
+  alpha: AlphaPalette,
 
-  // 🖼 Background Colors - Màu nền
+  // Brand colors
+  primary: BrandPalette.navy,
+  primaryLight: BrandPalette.cobalt,
+  primarySoft: DerivedPalette.primarySoft,
+
+  secondary: BrandPalette.goldDark,
+  secondaryLight: BrandPalette.gold,
+  secondarySoft: DerivedPalette.secondarySoft,
+
+  tertiary: BrandPalette.bronze,
+
+  // Background colors
   background: {
-    primary: '#FFFFFF',      // Nền chính
-    secondary: '#F8FAFC',    // Nền phụ (cards)
-    tertiary: '#F1F5F9',     // Nền input
-    light: '#FFFFFF',        // Trắng (giữ lại cho tương thích)
-    dark: '#0B1F2A',         // Xanh đen (dark mode)
-    muted: '#F8FAFC',        // Xám rất nhạt (surface)
-    overlay: 'rgba(15, 61, 94, 0.6)', // Overlay với primary
-    red: '#EF4444',
-    yellow: '#F59E0B',
-    orange: '#FB923C',
-    green: '#22C55E',
-    blue: '#0F3D5E',
-    indigo: '#1E40AF',
-    purple: '#7C3AED',
-    pink: '#EC4899',
-    gray: '#9CA3AF',
+    primary: '#FFFFFF',
+    secondary: DerivedPalette.surfaceMuted,
+    tertiary: '#eef1f3',
+    light: '#FFFFFF',
+    dark: BrandPalette.navy,
+    muted: DerivedPalette.surfaceMuted,
+    overlay: 'rgba(17, 37, 82, 0.6)',
+
+    // Legacy aliases kept for compatibility with older screens/components
+    red: BrandPalette.cobalt,
+    yellow: BrandPalette.bronze,
+    orange: BrandPalette.goldDark,
+    green: DerivedPalette.goldDeep,
+    blue: BrandPalette.navy,
+    indigo: BrandPalette.cobalt,
+    purple: BrandPalette.bronze,
+    pink: BrandPalette.gold,
+    gray: BrandPalette.slate,
   },
 
-  // 📝 Text Colors - Màu chữ
+  // Text colors
   text: {
-    primary: '#0F172A',      // Text chính (đậm hơn)
-    secondary: '#475569',    // Text phụ
-    tertiary: '#94A3B8',     // Text mờ
-    disabled: '#CBD5E1',     // Text disabled
-    inverted: '#FFFFFF',     // Trắng (text trên nền tối)
-    placeholder: '#94A3B8',  // Placeholder
-    link: '#2563EB',         // Link
+    primary: BrandPalette.navy,
+    secondary: BrandPalette.slate,
+    tertiary: DerivedPalette.neutral400,
+    disabled: DerivedPalette.neutral300,
+    inverted: '#FFFFFF',
+    placeholder: DerivedPalette.neutral400,
+    link: BrandPalette.cobalt,
   },
 
-  // 🎯 Status Colors - Màu trạng thái (RÕ - KHÔNG PASTEL)
+  // Status colors
   status: {
-    success: '#22C55E',      // Thành công (xanh lá brand)
-    error: '#EF4444',        // Lỗi
-    warning: '#F59E0B',      // Cảnh báo
-    info: '#3B82F6',         // Thông tin
-    pending: '#F59E0B',      // Đang chờ (vàng)
-    inProgress: '#3B82F6',   // Đang xử lý (xanh dương)
-    completed: '#22C55E',    // Hoàn thành (xanh lá)
-    cancelled: '#94A3B8',    // Hủy (xám)
+    success: DerivedPalette.goldDeep,
+    error: BrandPalette.bronze,
+    warning: BrandPalette.goldDark,
+    info: BrandPalette.cobalt,
+    pending: BrandPalette.bronze,
+    inProgress: BrandPalette.cobalt,
+    completed: DerivedPalette.goldDeep,
+    cancelled: BrandPalette.slate,
   },
 
-  // 🚗 Service Status - Cho garage app
+  // Service status
   service: {
-    pending: '#F59E0B',      // Chờ xử lý
-    inProgress: '#3B82F6',   // Đang sửa
-    completed: '#22C55E',    // Hoàn thành
-    cancelled: '#94A3B8',    // Hủy
-    warranty: '#8B5CF6',     // Bảo hành
+    pending: BrandPalette.goldDark,
+    inProgress: BrandPalette.cobalt,
+    completed: DerivedPalette.goldDeep,
+    cancelled: BrandPalette.slate,
+    warranty: BrandPalette.bronze,
   },
 
-  // 🟦 Neutral Scale - Slate (hiện đại hơn gray)
+  // Neutral scale
   neutral: {
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
-    500: '#64748B',
-    600: '#475569',
-    700: '#334155',
-    800: '#1E293B',
-    900: '#0F172A',
+    50: DerivedPalette.neutral50,
+    100: DerivedPalette.neutral100,
+    200: BrandPalette.mist,
+    300: DerivedPalette.neutral300,
+    400: DerivedPalette.neutral400,
+    500: BrandPalette.slate,
+    600: DerivedPalette.neutral600,
+    700: DerivedPalette.neutral700,
+    800: DerivedPalette.neutral800,
+    900: DerivedPalette.neutral900,
   },
 
-  // 🌈 Accent Colors - Màu nhấn
+  // Accent colors
   accent: {
-    green: '#22C55E',        // CTA chính (FAB, xác nhận)
-    blue: '#0F3D5E',         // Brand blue
-    yellow: '#FACC15',       // Vàng
-    orange: '#FB923C',       // Cam
-    purple: '#8B5CF6',       // Tím
-    pink: '#EC4899',         // Hồng
+    green: BrandPalette.goldDark,
+    blue: BrandPalette.cobalt,
+    yellow: BrandPalette.gold,
+    orange: BrandPalette.bronze,
+    purple: BrandPalette.bronze,
+    pink: BrandPalette.sand,
   },
 
-  // 📦 UI Elements - Phần tử giao diện
+  // UI elements
   border: {
-    light: '#E2E8F0',        // Border nhẹ
-    default: '#CBD5E1',      // Border mặc định
-    focus: '#0F3D5E',        // Border khi focus
-    error: '#EF4444',        // Border lỗi
+    light: BrandPalette.mist,
+    default: DerivedPalette.neutral300,
+    focus: BrandPalette.cobalt,
+    error: BrandPalette.bronze,
   },
-  
-  divider: '#E2E8F0',        // Divider
-  
+
+  divider: BrandPalette.mist,
+
   shadow: {
-    default: '#0000001A',    // Shadow nhẹ
-    primary: '#0F3D5E26',    // Shadow theo brand
-    red: '#EF44441A',        // Shadow đỏ (matching error)
+    default: '#11255214',
+    primary: '#11255226',
+    red: '#c37b1e24',
   },
-  
-  overlay: '#00000066',      // Overlay modal (giữ lại cho tương thích)
 
-  // 🎨 Surface Colors - Cho cards, modals
+  overlay: '#00000066',
+
+  // Surface colors
   surface: {
-    default: '#FFFFFF',      // Surface mặc định
-    elevated: '#FFFFFF',     // Card nổi (có shadow)
-    muted: '#F8FAFC',        // Background nhẹ
+    default: '#FFFFFF',
+    elevated: '#FFFFFF',
+    muted: DerivedPalette.surfaceMuted,
   },
 
-  // 💫 Interactive States
+  // Interactive states
   interactive: {
-    hover: 'rgba(15, 61, 94, 0.04)',   // Hover
-    pressed: 'rgba(15, 61, 94, 0.08)',  // Pressed
-    focus: 'rgba(15, 61, 94, 0.12)',    // Focus
-    disabled: '#F1F5F9',                 // Disabled
+    hover: 'rgba(17, 37, 82, 0.04)',
+    pressed: 'rgba(17, 37, 82, 0.08)',
+    focus: 'rgba(17, 37, 82, 0.12)',
+    disabled: DerivedPalette.neutral100,
   },
 
-  // 🔘 Button Colors - Màu nút (mở rộng)
+  // Button colors
   button: {
     primary: {
-      bg: '#0F3D5E',         // Nút chính
+      bg: BrandPalette.navy,
       text: '#FFFFFF',
-      hover: '#1E5A82',
-      disabled: '#CBD5E1',
+      hover: BrandPalette.cobalt,
+      disabled: DerivedPalette.neutral300,
     },
     secondary: {
-      bg: '#22C55E',         // Nút hành động (FAB)
-      text: '#FFFFFF',
-      hover: '#16A34A',
+      bg: BrandPalette.goldDark,
+      text: BrandPalette.navy,
+      hover: BrandPalette.gold,
     },
     ghost: {
       bg: 'transparent',
-      text: '#0F3D5E',
-      hover: '#EFF6FF',
+      text: BrandPalette.navy,
+      hover: DerivedPalette.primarySoft,
     },
     outline: {
       bg: 'transparent',
-      border: '#E2E8F0',
-      text: '#334155',
-      hover: '#F8FAFC',
+      border: BrandPalette.mist,
+      text: BrandPalette.navy,
+      hover: DerivedPalette.surfaceMuted,
     },
   },
 
-  // 🛡️ Warranty / Service Status - Màu bảo hành / dịch vụ
+  // Warranty / Service status
   warranty: {
-    active: '#22C55E',       // Còn hiệu lực
-    expiring: '#F59E0B',     // Sắp hết hạn
-    expired: '#64748B',      // Hết hạn (đổi sang xám thay vì đỏ)
+    active: BrandPalette.goldDark,
+    expiring: BrandPalette.gold,
+    expired: BrandPalette.slate,
   },
 
-  // 🎯 Priority Colors - Cho độ ưu tiên
+  // Priority colors
   priority: {
-    critical: '#EF4444',     // Nghiêm trọng
-    high: '#F59E0B',         // Cao
-    medium: '#3B82F6',       // Trung bình
-    low: '#94A3B8',          // Thấp
+    critical: BrandPalette.bronze,
+    high: BrandPalette.goldDark,
+    medium: BrandPalette.cobalt,
+    low: BrandPalette.slate,
   },
 
-  // 🌈 Gradients - Gradient (TIẾT CHẾ)
+  // Gradients
   gradients: {
-    primary: ['#0F3D5E', '#1E5A82'],           // Xanh dương
-    primaryReverse: ['#1E5A82', '#0F3D5E'],   
-    secondary: ['#22C55E', '#16A34A'],         // Xanh lá
-    brand: ['#0F3D5E', '#22C55E'],             // Brand mix (xanh dương → xanh lá)
-    light: ['#FFFFFF', '#F8FAFC'],             // Light
-    dark: ['#1F2933', '#111827'],              // Dark
-    shimmer: ['#F8FAFC', '#F1F5F9', '#F8FAFC'], // Shimmer
-    overlay: ['rgba(15,61,94,0)', 'rgba(15,61,94,0.8)'], // Overlay gradient
+    primary: [BrandPalette.navy, BrandPalette.cobalt],
+    primaryReverse: [BrandPalette.cobalt, BrandPalette.navy],
+    secondary: [BrandPalette.goldDark, BrandPalette.gold],
+    brand: [BrandPalette.navy, BrandPalette.cobalt, BrandPalette.gold],
+    light: ['#FFFFFF', DerivedPalette.surfaceMuted],
+    dark: [BrandPalette.cobalt, BrandPalette.navy],
+    shimmer: [DerivedPalette.surfaceMuted, BrandPalette.mist, DerivedPalette.surfaceMuted],
+    overlay: ['rgba(17,37,82,0)', 'rgba(17,37,82,0.82)'],
   },
 
-  // 🎨 Chart Colors - Nếu có biểu đồ
+  // Chart colors
   chart: [
-    '#0F3D5E',  // Primary (xanh dương)
-    '#22C55E',  // Secondary (xanh lá)
-    '#3B82F6',  // Blue
-    '#F59E0B',  // Orange
-    '#8B5CF6',  // Purple
-    '#EC4899',  // Pink
+    BrandPalette.navy,
+    BrandPalette.cobalt,
+    BrandPalette.goldDark,
+    BrandPalette.gold,
+    BrandPalette.bronze,
+    BrandPalette.slate,
   ],
 };

@@ -31,6 +31,11 @@ interface GetServiceResponse {
   data: Service;
 }
 
+interface GarageScopedServiceArg {
+  id: number | string;
+  garageCode?: string;
+}
+
 export const serviceApi = createApi({
   ...API_CONFIG,
   reducerPath: 'serviceApi' as const,
@@ -45,9 +50,19 @@ export const serviceApi = createApi({
         return response.data;
       },
     }),
-    getServiceById: builder.query<GetServiceResponse, number | string>({
-      query: (id) => buildEndpointUrl('getServiceById', { id: id.toString() }),
-      providesTags: (result, error, id) => [{ type: 'Service' as const, id: id.toString() }],
+    getServiceById: builder.query<GetServiceResponse, GarageScopedServiceArg>({
+      query: ({ id, garageCode }) => {
+        const normalizedGarageCode = (garageCode || '').trim();
+        if (!normalizedGarageCode) {
+          throw new Error('Missing garageCode for getServiceById');
+        }
+
+        return buildEndpointUrl('getServiceById', {
+          garageCode: encodeURIComponent(normalizedGarageCode),
+          id: id.toString(),
+        });
+      },
+      providesTags: (result, error, { id }) => [{ type: 'Service' as const, id: id.toString() }],
       transformResponse: (response: GetServiceResponse) => {
         if (!response.success || !response.data) throw new Error('Failed to fetch service');
         return response;

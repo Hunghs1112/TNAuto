@@ -55,7 +55,7 @@ export const imageApi = createApi({
     // Upload single image file
     uploadSingleImage: builder.mutation<UploadImageResponse, FormData>({
       query: (formData) => ({
-        url: '/upload/single',
+        url: '/api/upload/single',
         method: 'POST',
         body: formData,
       }),
@@ -64,7 +64,7 @@ export const imageApi = createApi({
     // Upload multiple image files
     uploadMultipleImages: builder.mutation<UploadMultipleImagesResponse, FormData>({
       query: (formData) => ({
-        url: '/upload/multiple',
+        url: '/api/upload/multiple',
         method: 'POST',
         body: formData,
       }),
@@ -73,7 +73,7 @@ export const imageApi = createApi({
     // Delete uploaded image file
     deleteUploadedImage: builder.mutation<DeleteImageResponse, string>({
       query: (filename) => ({
-        url: `/upload/${filename}`,
+        url: `/api/upload/${filename}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['UploadedImage'],

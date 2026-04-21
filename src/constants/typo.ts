@@ -13,6 +13,11 @@ export const Typography = {
       android: 'sans-serif-medium',
       default: 'System',
     }),
+    semibold: Platform.select({
+      ios: 'System',
+      android: 'sans-serif-medium',
+      default: 'System',
+    }),
     bold: Platform.select({
       ios: 'System',
       android: 'sans-serif',  // Sẽ dùng với fontWeight '700'

@@ -7,6 +7,7 @@ interface UseOrdersDataProps {
   userType: 'customer' | 'employee' | 'dealer' | null;
   userPhone: string;
   currentEmployeeId?: string;
+  hasGarageContext?: boolean;
 }
 
 const extractOrdersFromResponse = (response?: ApiResponse<ServiceOrder[]> | ServiceOrder[]) => {
@@ -39,7 +40,7 @@ const isUnassignedAvailableOrder = (order: ServiceOrder) =>
   (order.employee_id === null || order.employee_id === undefined || order.employee_id === '') &&
   order.claimable !== false;
 
-export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrdersDataProps) => {
+export const useOrdersData = ({ userType, userPhone, currentEmployeeId, hasGarageContext = false }: UseOrdersDataProps) => {
   const {
     data: ordersResponse,
     isLoading: ordersLoading,
@@ -47,7 +48,7 @@ export const useOrdersData = ({ userType, userPhone, currentEmployeeId }: UseOrd
     refetch: refetchCustomerOrders,
     isFetching: isFetchingCustomerOrders,
   } = useGetCustomerOrdersQuery(userPhone, {
-    skip: userType !== 'customer' || !userPhone,
+    skip: userType !== 'customer' || !userPhone || !hasGarageContext,
   });
 
   const {

@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.alpha.white20,
   },
   header: {
     flexDirection: 'row',
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: Colors.alpha.white25,
     marginVertical: 16,
   },
   content: {
@@ -64,4 +64,3 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
 });
-
