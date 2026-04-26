@@ -40,6 +40,17 @@ export const selectGarageName = createSelector(
   [selectGarageContext],
   (garageContext) => garageContext.garageName || ''
 );
+export const selectGarageAvatarUrl = createSelector(
+  [selectGarageContext],
+  (garageContext) => {
+    const activeGarageCode = garageContext.activeGarageCode || garageContext.garageCode;
+    const activeGarage = (garageContext.savedGarages || []).find(
+      (garage) => garage.garageCode === activeGarageCode,
+    );
+
+    return garageContext.avatarUrl || activeGarage?.avatarUrl || '';
+  }
+);
 export const selectSavedGarages = createSelector(
   [selectGarageContext],
   (garageContext) => garageContext.savedGarages || []

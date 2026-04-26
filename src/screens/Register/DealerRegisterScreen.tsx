@@ -5,6 +5,7 @@ import { Screen, FormContainer } from "../../components/layout";
 import { Button } from "../../components/ui";
 import TextInputComponent from "../../components/TextInput/TextInput";
 import { styles } from "../Login/styles";
+import { Colors } from "../../constants/colors";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useDealerRegisterMutation, useLazyResolveGarageByCodeQuery } from "../../services/authApi";

@@ -10,9 +10,11 @@ import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 import {
   selectCurrentEmployee,
+  selectGarageAvatarUrl,
   selectGarageCode,
   selectGarageName,
   selectHasGarageContext,
+  selectSavedGarages,
   selectServicesList,
   selectUnreadCount,
   selectUserId,
@@ -85,6 +87,9 @@ export const useHomeScreen = () => {
   const garageContext = useAppSelector((state: RootState) => state.garageContext);
   const currentGarageCode = useAppSelector(selectGarageCode);
   const currentGarageName = useAppSelector(selectGarageName);
+  const currentGarageAvatarUrl = useAppSelector(selectGarageAvatarUrl);
+  const savedGarages = useAppSelector(selectSavedGarages);
+  const savedGarageCount = savedGarages.filter((garage) => Boolean(garage.garageCode)).length;
   const hasGarageContext = useAppSelector(selectHasGarageContext);
   const services = useAppSelector(selectServicesList);
   const unreadCount = useAppSelector(selectUnreadCount);
@@ -268,6 +273,20 @@ export const useHomeScreen = () => {
     [navigation, userType],
   );
 
+  const handleProductPress = useCallback(
+    (id: string) => {
+      navigation.navigate("ProductDetail", { productId: id });
+    },
+    [navigation],
+  );
+
+  const handleServicePress = useCallback(
+    (id: string) => {
+      navigation.navigate("ServiceDetail", { serviceId: id });
+    },
+    [navigation],
+  );
+
   const handleClaimOrder = useCallback(
     async (id: string) => {
       if (!employeeId) {
@@ -357,8 +376,6 @@ export const useHomeScreen = () => {
     navigation.navigate("VehicleList", { userId, userPhone });
   }, [navigation, userId, userPhone]);
 
-  const headerUserName = isLoggedIn ? userName : "Khách";
-  const headerNotificationCount = isLoggedIn ? unreadCount : undefined;
   const headerGarageName = useMemo(() => {
     if (resolvedGarageByCode?.name?.trim()) {
       return resolvedGarageByCode.name.trim();
@@ -371,6 +388,10 @@ export const useHomeScreen = () => {
     return "";
   }, [currentGarageCode, currentGarageName, resolvedGarageByCode?.name]);
 
+  const headerGarageAvatarUrl = useMemo(() => {
+    return resolvedGarageByCode?.avatar_url ?? currentGarageAvatarUrl ?? garageContext.avatarUrl ?? undefined;
+  }, [currentGarageAvatarUrl, garageContext.avatarUrl, resolvedGarageByCode?.avatar_url]);
+
   const banner = useMemo<HomeBanner | null>(() => {
     if (bannerDismissedThisSession || !isLoggedIn || userType !== "customer") {
       return null;
@@ -378,21 +399,11 @@ export const useHomeScreen = () => {
 
     const missingFields: string[] = [];
 
-    if (!customerVehicle?.license_expiry_date) {
-      missingFields.push("Bằng lái");
-    }
+    if (!customerVehicle?.license_expiry_date) missingFields.push("Bằng lái");
+    if (!customerVehicle?.inspection_expiry_date) missingFields.push("Đăng kiểm");
+    if (!customerVehicle?.insurance_expiry_date) missingFields.push("Bảo hiểm");
 
-    if (!customerVehicle?.inspection_expiry_date) {
-      missingFields.push("Đăng kiểm");
-    }
-
-    if (!customerVehicle?.insurance_expiry_date) {
-      missingFields.push("Bảo hiểm");
-    }
-
-    if (missingFields.length === 0) {
-      return null;
-    }
+    if (missingFields.length === 0) return null;
 
     return {
       variant: "info",
@@ -401,40 +412,7 @@ export const useHomeScreen = () => {
       nextRoute: "VehicleList",
       nextParams: { userId, userPhone },
     };
-  }, [
-    bannerDismissedThisSession,
-    customerVehicle?.insurance_expiry_date,
-    customerVehicle?.inspection_expiry_date,
-    customerVehicle?.license_expiry_date,
-    isLoggedIn,
-    userId,
-    userPhone,
-    userType,
-  ]);
-
-  const sections = useMemo(() => {
-    return {
-      headerUserName,
-      headerGarageName,
-      headerNotificationCount,
-      showNotificationButton: isLoggedIn,
-      showEmployeeSections: isLoggedIn && userType === "employee",
-      showCustomerVehicle: isLoggedIn && userType === "customer",
-      showCustomerOrders: isLoggedIn && userType === "customer",
-      showCustomerBooking: isLoggedIn && userType === "customer",
-      showLoginPrompt: !isLoggedIn,
-      showViewMoreOrders: sortedOrders.length > 2,
-      showPromoHome: shouldShowPromoHome,
-    };
-  }, [
-    headerGarageName,
-    headerUserName,
-    headerNotificationCount,
-    isLoggedIn,
-    userType,
-    sortedOrders.length,
-    shouldShowPromoHome,
-  ]);
+  }, [bannerDismissedThisSession, customerVehicle?.insurance_expiry_date, customerVehicle?.inspection_expiry_date, customerVehicle?.license_expiry_date, isLoggedIn, userId, userPhone, userType]);
 
   return {
     navbarHeight,
@@ -444,12 +422,11 @@ export const useHomeScreen = () => {
     userType,
     userId,
     userName,
-    unreadCount,
-    offerCount,
-    insuranceCount,
     userPhone,
     services,
     currentGarageName: headerGarageName,
+    currentGarageAvatarUrl: headerGarageAvatarUrl,
+    savedGarageCount,
     hasGarageContext,
     customerVehicle,
 
@@ -468,12 +445,12 @@ export const useHomeScreen = () => {
     sortedAssignedOrders,
     assignedLoading,
 
-    sections,
-
     handleNotificationPress,
     handleOfferPress,
     handleWarrantyPress,
     handleOrderPress,
+    handleProductPress,
+    handleServicePress,
     handleClaimOrder,
     handleViewMore,
     handleLoginPress,

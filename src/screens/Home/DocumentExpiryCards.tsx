@@ -169,9 +169,9 @@ const DocumentExpiryCards = ({ vehicle }: DocumentExpiryCardsProps) => {
 
 const styles = StyleSheet.create({
   wrapper: {
-    flexDirection: "row",
-    gap: 12,
-    paddingRight: 4,
+    flexDirection: 'row',
+    gap: 16,
+    paddingRight: 0,
   },
   card: {
     width: 108,

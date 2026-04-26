@@ -1,4 +1,3 @@
-// src/screens/Home/components/OrdersList.tsx
 import React, { memo, useCallback } from 'react';
 import { View, Text, ActivityIndicator, FlatList } from 'react-native';
 
@@ -7,26 +6,21 @@ import { Colors } from '../../../constants/colors';
 import { PerformanceConfig } from '../../../config/performance';
 import ServiceOrderCard from '../../../components/ServiceOrderCard';
 import { styles } from '../styles';
+import { getServiceImageUrl, getServiceName, type OrderLike, type ServiceSummary } from './orderHelpers';
 
-interface Order {
+interface Order extends OrderLike {
   id: number | string;
-  service_id?: number;
-  service_name?: string;
-  garage_code?: string | null;
-  garage_name?: string | null;
-  employee_name?: string | null;
-  customer_name?: string | null;
   receive_date: string;
   delivery_date?: string | null;
   status: string;
-  license_plate?: string;
-  vehicle_type?: string;
+  garage_name?: string | null;
+  garage_code?: string | null;
 }
 
 interface OrdersListProps {
   orders: Order[];
   isLoading: boolean;
-  services: Array<{ id: number; name: string; image_url?: string | null }>;
+  services: ServiceSummary[];
   userType: 'customer' | 'employee';
   onOrderPress: (id: string) => void;
   emptyMessage?: string;
@@ -34,62 +28,28 @@ interface OrdersListProps {
 
 const ORDER_ITEM_SPACING = 10;
 
-const OrdersList: React.FC<OrdersListProps> = memo(({
-  orders,
-  isLoading,
-  services,
-  userType,
-  onOrderPress,
-  emptyMessage = 'Chưa có đơn hàng nào',
-}) => {
-  const getServiceName = useCallback((item: Order) => {
-    if (item.service_name) return item.service_name;
-    
-    if (item.service_id && services) {
-      const service = services.find(s => s.id === Number(item.service_id));
-      if (service) return service.name;
-    }
-    
-    return 'Dịch vụ không xác định';
-  }, [services]);
-
-  const getSecondaryName = useCallback((item: Order) => {
-    if (userType === 'customer') {
-      return `Nhân viên: ${item.employee_name || 'Chưa giao'}`;
-    }
-    return `Khách hàng: ${item.customer_name || 'Không xác định'}`;
-  }, [userType]);
-
-  const getServiceImageUrl = useCallback((item: Order) => {
-    if (item.service_id && services) {
-      const service = services.find(s => s.id === Number(item.service_id));
-      return service?.image_url || null;
-    }
-    return null;
-  }, [services]);
-
-  const renderOrderItem = useCallback(({ item }: { item: Order }) => (
-    <ServiceOrderCard
-      serviceName={getServiceName(item)}
-      secondaryName={getSecondaryName(item)}
-      receiveDate={item.receive_date}
-      scheduleDate={item.delivery_date || 'Chưa xác định'}
-      status={item.status}
-      garageName={item.garage_name || item.garage_code || null}
-      serviceImageUrl={getServiceImageUrl(item)}
-      onPress={() => onOrderPress(item.id.toString())}
-    />
-  ), [getServiceName, getSecondaryName, getServiceImageUrl, onOrderPress]);
-
-  const keyExtractor = useCallback((item: Order) => item.id.toString(), []);
+const OrdersList: React.FC<OrdersListProps> = memo(({ orders, isLoading, services, userType, onOrderPress, emptyMessage = 'Chưa có đơn hàng nào' }) => {
+  const renderOrderItem = useCallback(
+    ({ item }: { item: Order }) => (
+      <ServiceOrderCard
+        serviceName={getServiceName(item, services)}
+        secondaryName={userType === 'customer' ? `Nhân viên: ${item.employee_name || 'Chưa giao'}` : `Khách hàng: ${item.customer_name || 'Không xác định'}`}
+        receiveDate={item.receive_date}
+        scheduleDate={item.delivery_date || 'Chưa xác định'}
+        status={item.status}
+        garageName={item.garage_name || item.garage_code || null}
+        serviceImageUrl={getServiceImageUrl(item, services)}
+        onPress={() => onOrderPress(item.id.toString())}
+      />
+    ),
+    [onOrderPress, services, userType],
+  );
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.text.primary} />
-        <Text style={styles.loadingText}>
-          {userType === 'customer' ? 'Đang tải đơn hàng...' : 'Đang tải đơn giao...'}
-        </Text>
+        <Text style={styles.loadingText}>{userType === 'customer' ? 'Đang tải đơn hàng...' : 'Đang tải đơn giao...'}</Text>
       </View>
     );
   }
@@ -105,10 +65,10 @@ const OrdersList: React.FC<OrdersListProps> = memo(({
 
   return (
     <FlatList
-      alwaysBounceVertical={true}
+      alwaysBounceVertical
       contentContainerStyle={{ flexGrow: 1 }}
       data={orders}
-      keyExtractor={keyExtractor}
+      keyExtractor={(item) => item.id.toString()}
       renderItem={renderOrderItem}
       ItemSeparatorComponent={() => <View style={{ height: ORDER_ITEM_SPACING }} />}
       showsVerticalScrollIndicator={false}
