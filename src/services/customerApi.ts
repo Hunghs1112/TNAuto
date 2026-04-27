@@ -37,6 +37,7 @@ interface LinkedGarage {
   name: string;
   address?: string | null;
   avatar_url?: string | null;
+  banner_url?: string | null;
   status?: string | null;
 }
 
@@ -114,6 +115,7 @@ interface CustomerOverview {
     name: string;
     address?: string | null;
     avatar_url?: string | null;
+    banner_url?: string | null;
     status?: string | null;
   }>;
   stats?: Record<string, number | string | null>;

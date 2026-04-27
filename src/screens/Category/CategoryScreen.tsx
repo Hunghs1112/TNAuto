@@ -29,7 +29,7 @@ const CategoryScreen = () => {
   const currentGarageCode = useAppSelector(selectGarageCode);
   const hasGarageContext = useAppSelector(selectHasGarageContext);
   const savedGarages = useAppSelector(selectSavedGarages);
-  const isDealer = userType === "dealer";
+  const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
   const { refreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ["Category"] });
   const categoryQuery = useGetCategoriesQuery({ garageCode: currentGarageCode }, { skip: isDealer || !hasGarageContext });
   const dealerCategoryQuery = useGetDealerCategoriesQuery(undefined, { skip: !isDealer });
@@ -184,3 +184,4 @@ const CategoryScreen = () => {
 CategoryScreen.displayName = "CategoryScreen";
 
 export default React.memo(CategoryScreen);
+

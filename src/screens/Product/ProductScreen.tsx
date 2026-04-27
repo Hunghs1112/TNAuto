@@ -34,7 +34,7 @@ const ProductScreen = () => {
   const currentGarageCode = useAppSelector(selectGarageCode);
   const hasGarageContext = useAppSelector(selectHasGarageContext);
   const savedGarages = useAppSelector(selectSavedGarages);
-  const isDealer = userType === "dealer";
+  const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
   const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ["Product", "Category"] });
 
   const categoryId = route.params?.categoryId;
@@ -263,3 +263,4 @@ const ProductScreen = () => {
 ProductScreen.displayName = "ProductScreen";
 
 export default React.memo(ProductScreen);
+

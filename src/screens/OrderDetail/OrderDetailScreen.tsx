@@ -28,7 +28,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
-  const isDealer = userType === 'dealer';
+  const isDealer = (userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin');
 
   useEffect(() => {
     if (isDealer) {
@@ -352,3 +352,4 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
 };
 
 export default OrderDetailScreen;
+

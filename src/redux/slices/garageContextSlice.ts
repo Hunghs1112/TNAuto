@@ -6,6 +6,7 @@ export interface SavedGarage {
   garageName: string;
   address: string;
   avatarUrl: string;
+  bannerUrl: string;
   status: string;
   isLocked: boolean;
   lockReason: string;
@@ -18,6 +19,7 @@ export interface GarageContextState {
   garageName: string;
   address: string;
   avatarUrl: string;
+  bannerUrl: string;
   status: string;
   resolved: boolean;
   savedGarages: SavedGarage[];
@@ -29,6 +31,7 @@ export interface GaragePayload {
   garageName?: string | null;
   address?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
   status?: string | null;
   resolved?: boolean;
   isLocked?: boolean;
@@ -42,6 +45,7 @@ const EMPTY_GARAGE_CONTEXT: GarageContextState = {
   garageName: '',
   address: '',
   avatarUrl: '',
+  bannerUrl: '',
   status: '',
   resolved: false,
   savedGarages: [],
@@ -52,7 +56,7 @@ const normalizeGarageCode = (value?: string | null) => value?.trim().toUpperCase
 // NOTE:
 // Previously we treated "DEFAULT" as a legacy placeholder and filtered it out.
 // New backend contract can return real garage code "DEFAULT", so we must accept it.
-const isLegacyDefaultGarage = () => false;
+const isLegacyDefaultGarage = (_garageCode?: string, _garageName?: string | null) => false;
 
 const buildSavedGarage = (payload: GaragePayload, existing?: SavedGarage): SavedGarage | null => {
   const garageCode = normalizeGarageCode(payload.garageCode || existing?.garageCode || '');
@@ -69,6 +73,7 @@ const buildSavedGarage = (payload: GaragePayload, existing?: SavedGarage): Saved
     garageName: payload.garageName?.trim() || existing?.garageName || garageCode,
     address: payload.address || existing?.address || '',
     avatarUrl: payload.avatarUrl || existing?.avatarUrl || '',
+    bannerUrl: payload.bannerUrl || existing?.bannerUrl || '',
     status: payload.status || existing?.status || '',
     isLocked: payload.isLocked ?? existing?.isLocked ?? false,
     lockReason: payload.lockReason || existing?.lockReason || '',
@@ -85,6 +90,7 @@ const setActiveGarageState = (state: GarageContextState, payload: GaragePayload)
     state.garageName = '';
     state.address = '';
     state.avatarUrl = '';
+    state.bannerUrl = '';
     state.status = '';
     state.resolved = false;
     return;
@@ -96,6 +102,7 @@ const setActiveGarageState = (state: GarageContextState, payload: GaragePayload)
   state.garageName = payload.garageName || normalizedCode;
   state.address = payload.address || '';
   state.avatarUrl = payload.avatarUrl || '';
+  state.bannerUrl = payload.bannerUrl || '';
   state.status = payload.status || '';
   state.resolved = payload.resolved ?? true;
 };
@@ -155,6 +162,7 @@ export const sanitizeGarageContextState = (state: Partial<GarageContextState> | 
             garageName: garage.garageName,
             address: garage.address,
             avatarUrl: garage.avatarUrl,
+            bannerUrl: garage.bannerUrl,
             status: garage.status,
             isLocked: garage.isLocked,
             lockReason: garage.lockReason,
@@ -171,6 +179,7 @@ export const sanitizeGarageContextState = (state: Partial<GarageContextState> | 
       garageName,
       address: state?.address,
       avatarUrl: state?.avatarUrl,
+      bannerUrl: state?.bannerUrl,
       status: state?.status,
     });
 
@@ -190,6 +199,7 @@ export const sanitizeGarageContextState = (state: Partial<GarageContextState> | 
     garageName: activeGarage.garageName,
     address: activeGarage.address,
     avatarUrl: activeGarage.avatarUrl,
+    bannerUrl: activeGarage.bannerUrl,
     status: activeGarage.status,
     resolved: Boolean(activeGarage.garageCode),
     savedGarages: hasActiveInSaved ? savedGarages : [...savedGarages, activeGarage],
@@ -217,6 +227,7 @@ const garageContextSlice = createSlice({
           garageName: savedGarage.garageName,
           address: savedGarage.address,
           avatarUrl: savedGarage.avatarUrl,
+          bannerUrl: savedGarage.bannerUrl,
           status: savedGarage.status,
           resolved: true,
         });
@@ -236,6 +247,7 @@ const garageContextSlice = createSlice({
         garageName: savedGarage.garageName,
         address: savedGarage.address,
         avatarUrl: savedGarage.avatarUrl,
+        bannerUrl: savedGarage.bannerUrl,
         status: savedGarage.status,
         resolved: true,
       });
@@ -247,6 +259,7 @@ const garageContextSlice = createSlice({
       state.garageName = '';
       state.address = '';
       state.avatarUrl = '';
+      state.bannerUrl = '';
       state.status = '';
       state.resolved = false;
       state.savedGarages = [];
@@ -271,6 +284,7 @@ const garageContextSlice = createSlice({
             garageName: nextGarage.garageName,
             address: nextGarage.address,
             avatarUrl: nextGarage.avatarUrl,
+            bannerUrl: nextGarage.bannerUrl,
             status: nextGarage.status,
             resolved: true,
           });
@@ -281,6 +295,7 @@ const garageContextSlice = createSlice({
           state.garageName = '';
           state.address = '';
           state.avatarUrl = '';
+          state.bannerUrl = '';
           state.status = '';
           state.resolved = false;
         }

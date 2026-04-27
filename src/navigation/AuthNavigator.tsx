@@ -5,14 +5,17 @@ import LoginScreen from "../screens/Login/LoginScreen";
 import RegisterScreen from "../screens/Register/RegisterScreen";
 import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
 import DealerLoginScreen from "../screens/Login/DealerLoginScreen";
+import RoleSelectScreen from "../screens/Login/RoleSelectScreen";
+import ManagerPasswordScreen from "../screens/Login/ManagerPasswordScreen";
 import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
+import { CheckPhoneRole } from "../services/authApi";
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   EmployeePassword: {
     phone: string;
-    employeeData: {
+    employeeData?: {
       id: number;
       name: string;
       phone: string;
@@ -23,6 +26,15 @@ export type AuthStackParamList = {
   DealerLogin: {
     phone: string;
     garageCode?: string;
+  };
+  RoleSelect: {
+    phone: string;
+    roles: CheckPhoneRole[];
+    accounts?: Record<string, any>;
+  };
+  ManagerPassword: {
+    phone: string;
+    expectedRole: "garage_manager" | "garage_admin";
   };
   DealerRegister: undefined;
 };
@@ -46,6 +58,8 @@ export default function AuthNavigator() {
       <Stack.Screen name="DealerLogin" component={DealerLoginScreen} />
       <Stack.Screen name="DealerRegister" component={DealerRegisterScreen} />
       <Stack.Screen name="EmployeePassword" component={EmployeePasswordScreen} />
+      <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
+      <Stack.Screen name="ManagerPassword" component={ManagerPasswordScreen} />
     </Stack.Navigator>
   );
 }

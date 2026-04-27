@@ -12,19 +12,21 @@ import { spacing } from '../../../design-system/spacing';
 import { textStyles } from '../../../design-system/typography';
 import { ServiceOrder } from '../../../types/api.types';
 import { styles as homeStyles } from '../styles';
+import { useAppSelector } from '../../../redux/hooks/useAppSelector';
+import { selectServicesList } from '../../../redux/selectors';
 import { getServiceImageUrl, getServiceName, type ServiceSummary } from './orderHelpers';
 
 interface AvailableOrdersListProps {
   orders: ServiceOrder[];
   isLoading: boolean;
-  services: ServiceSummary[];
   onOrderPress: (id: string) => void;
   onClaimPress: (id: string) => void;
   claimingOrderId?: string | null;
   emptyMessage?: string;
 }
 
-const AvailableOrdersList = ({ orders, isLoading, services, onOrderPress, onClaimPress, claimingOrderId, emptyMessage = 'Chưa có đơn chờ nhận' }: AvailableOrdersListProps) => {
+const AvailableOrdersList = ({ orders, isLoading, onOrderPress, onClaimPress, claimingOrderId, emptyMessage = 'Chưa có đơn chờ nhận' }: AvailableOrdersListProps) => {
+  const services = useAppSelector(selectServicesList) as ServiceSummary[];
   const renderOrderItem = useCallback(
     ({ item }: { item: ServiceOrder }) => {
       const orderId = String(item.id);

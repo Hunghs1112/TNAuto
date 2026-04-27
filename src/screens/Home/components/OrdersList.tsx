@@ -6,6 +6,8 @@ import { Colors } from '../../../constants/colors';
 import { PerformanceConfig } from '../../../config/performance';
 import ServiceOrderCard from '../../../components/ServiceOrderCard';
 import { styles } from '../styles';
+import { useAppSelector } from '../../../redux/hooks/useAppSelector';
+import { selectServicesList } from '../../../redux/selectors';
 import { getServiceImageUrl, getServiceName, type OrderLike, type ServiceSummary } from './orderHelpers';
 
 interface Order extends OrderLike {
@@ -20,7 +22,6 @@ interface Order extends OrderLike {
 interface OrdersListProps {
   orders: Order[];
   isLoading: boolean;
-  services: ServiceSummary[];
   userType: 'customer' | 'employee';
   onOrderPress: (id: string) => void;
   emptyMessage?: string;
@@ -28,7 +29,8 @@ interface OrdersListProps {
 
 const ORDER_ITEM_SPACING = 10;
 
-const OrdersList: React.FC<OrdersListProps> = memo(({ orders, isLoading, services, userType, onOrderPress, emptyMessage = 'Chưa có đơn hàng nào' }) => {
+const OrdersList: React.FC<OrdersListProps> = memo(({ orders, isLoading, userType, onOrderPress, emptyMessage = 'Chưa có đơn hàng nào' }) => {
+  const services = useAppSelector(selectServicesList) as ServiceSummary[];
   const renderOrderItem = useCallback(
     ({ item }: { item: Order }) => (
       <ServiceOrderCard

@@ -51,6 +51,17 @@ export const selectGarageAvatarUrl = createSelector(
     return garageContext.avatarUrl || activeGarage?.avatarUrl || '';
   }
 );
+export const selectGarageBannerUrl = createSelector(
+  [selectGarageContext],
+  (garageContext) => {
+    const activeGarageCode = garageContext.activeGarageCode || garageContext.garageCode;
+    const activeGarage = (garageContext.savedGarages || []).find(
+      (garage) => garage.garageCode === activeGarageCode,
+    );
+
+    return garageContext.bannerUrl || activeGarage?.bannerUrl || '';
+  }
+);
 export const selectSavedGarages = createSelector(
   [selectGarageContext],
   (garageContext) => garageContext.savedGarages || []
@@ -74,6 +85,7 @@ export const selectActiveGarage = createSelector(
       garageName: garageContext.garageName,
       address: garageContext.address,
       avatarUrl: garageContext.avatarUrl,
+      bannerUrl: garageContext.bannerUrl,
       status: garageContext.status,
       isLocked: false,
       lockReason: '',

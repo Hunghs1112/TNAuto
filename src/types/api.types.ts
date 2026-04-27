@@ -288,8 +288,10 @@ export interface LoginEmployeeResponse {
     id?: string | number;
     code?: string;
     name?: string;
+    is_super_garage?: boolean;
     address?: string | null;
     avatar_url?: string | null;
+    banner_url?: string | null;
     status?: string | null;
   };
   error?: string;
@@ -301,7 +303,7 @@ export interface GetOrdersResponse extends PaginatedResponse<ServiceOrder> {
 
 // ==================== Utility Types ====================
 
-export type UserType = 'customer' | 'employee' | 'dealer';
+export type UserType = 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin';
 
 export type OrderStatus = 
   | 'pending' 
@@ -375,3 +377,4 @@ export interface ReviewListResponse extends PaginatedResponse<ProductReview> {
     '1': number;
   };
 }
+

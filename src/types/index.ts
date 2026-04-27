@@ -2,5 +2,5 @@
 // Central export point for all types
 
 export * from './api.types';
-export * from './env.d';
+export * from './managerHome';
 

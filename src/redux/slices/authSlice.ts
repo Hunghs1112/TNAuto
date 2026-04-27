@@ -1,7 +1,7 @@
 // src/redux/slices/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type AuthUserType = 'customer' | 'employee' | 'dealer';
+export type AuthUserType = 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin';
 export type CustomerAuthMode = 'identity_lookup' | '';
 
 interface AuthState {

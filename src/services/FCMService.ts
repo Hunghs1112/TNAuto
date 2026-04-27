@@ -134,7 +134,7 @@ class FCMService {
   /**
    * Register FCM token with backend
    */
-  async registerTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee' | 'dealer'): Promise<void> {
+  async registerTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin'): Promise<void> {
     try {
       console.log('📤 FCMService: Registering token with backend...', {
         userId,
@@ -172,7 +172,7 @@ class FCMService {
     }
   }
 
-  async refreshTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee' | 'dealer'): Promise<void> {
+  async refreshTokenWithBackend(token: string, userId: string, userType: 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin'): Promise<void> {
     try {
       const deviceInfo = `${Platform.OS} ${Platform.Version}`;
       const { notificationApi } = await import('./notificationApi');
@@ -380,3 +380,4 @@ class FCMService {
 }
 
 export const fcmService = new FCMService();
+

@@ -217,7 +217,7 @@ class NotificationService {
 
   private navigateToOrderDetail(
     orderId: string,
-    userType: 'customer' | 'employee' | 'dealer' | null,
+    userType: 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin' | null,
   ) {
     if (userType === 'employee') {
       RootNavigation.navigate('EmployeeOrderDetail', { id: orderId });

@@ -91,13 +91,13 @@ const WarrantyScreen: React.FC = () => {
   }, [warrantiesData, dispatch]);
 
   useEffect(() => {
-    if (userType === 'dealer') {
+    if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
       // Dealer không được phép xem/điều hướng các chức năng liên quan dịch vụ/bảo hành.
       navigation.replace('Category');
     }
   }, [userType, navigation]);
 
-  if (userType === 'dealer') {
+  if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
     return null;
   }
 
@@ -321,3 +321,4 @@ const WarrantyScreen: React.FC = () => {
 };
 
 export default WarrantyScreen;
+

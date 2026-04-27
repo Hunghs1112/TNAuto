@@ -15,11 +15,14 @@ export type GarageItem = {
   garageName: string;
   address?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
   status?: string | null;
 };
 
 const getGarageAvatarUri = (garage: { avatar_url?: string | null; avatarUrl?: string | null }) =>
   garage.avatar_url || garage.avatarUrl || null;
+const getGarageBannerUri = (garage: { banner_url?: string | null; bannerUrl?: string | null }) =>
+  garage.banner_url || garage.bannerUrl || null;
 
 export const useSelectGarageScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -38,6 +41,7 @@ export const useSelectGarageScreen = () => {
           garageName: currentGarage.garageName,
           address: currentGarage.address,
           avatarUrl: getGarageAvatarUri(currentGarage),
+          bannerUrl: getGarageBannerUri(currentGarage),
           status: currentGarage.status,
         }
       : null,
@@ -67,6 +71,7 @@ export const useSelectGarageScreen = () => {
         garageName: garage.name,
         address: garage.address,
         avatarUrl: getGarageAvatarUri(garage),
+        bannerUrl: getGarageBannerUri(garage),
         status: garage.status,
       });
     } catch (error: any) {
@@ -85,6 +90,7 @@ export const useSelectGarageScreen = () => {
         name: resolvedGarage.garageName,
         address: resolvedGarage.address,
         avatar_url: resolvedGarage.avatarUrl,
+        banner_url: resolvedGarage.bannerUrl,
         status: resolvedGarage.status,
       },
       { activate: !shouldAddWithoutSwitch, source: 'manual' },
@@ -108,6 +114,7 @@ export const useSelectGarageScreen = () => {
           garageName: garage.garageName,
           address: garage.address,
           avatarUrl: getGarageAvatarUri(garage),
+          bannerUrl: getGarageBannerUri(garage),
           status: garage.status,
         },
         'saved_list',

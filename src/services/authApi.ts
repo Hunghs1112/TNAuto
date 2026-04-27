@@ -8,8 +8,10 @@ export interface GarageSummary {
   id: number | string;
   code: string;
   name: string;
+  is_super_garage?: boolean;
   address?: string | null;
   avatar_url?: string | null;
+  banner_url?: string | null;
   status?: string | null;
   description?: string | null;
   phone?: string | null;
@@ -41,6 +43,24 @@ interface AddCustomerGarageResponse {
   success: boolean;
   data?: GarageSummary;
   garage?: GarageSummary;
+  error?: string;
+  message?: string;
+}
+
+export type CheckPhoneRole = 'garage_manager' | 'garage_admin' | 'dealer' | 'customer' | 'employee';
+
+type CheckPhoneAccount = {
+  id: number | string;
+  name?: string;
+  garage_id?: number | string;
+  garage_code?: string;
+};
+
+export interface CheckPhoneResponse {
+  success: boolean;
+  phone: string;
+  roles: CheckPhoneRole[];
+  accounts?: Partial<Record<CheckPhoneRole, CheckPhoneAccount>>;
   error?: string;
   message?: string;
 }
@@ -94,9 +114,23 @@ export const authApi = createApi({
         return garage;
       },
     }),
+    checkPhone: builder.mutation<CheckPhoneResponse, { phone: string }>({
+      query: (body) => ({
+        url: ENDPOINTS.checkPhone.path,
+        method: 'POST',
+        body,
+      }),
+    }),
     dealerLogin: builder.mutation<any, { garage_code: string; phone: string; password: string }>({
       query: (body) => ({
         url: '/api/app/dealer/auth/login',
+        method: 'POST',
+        body,
+      }),
+    }),
+    managerLogin: builder.mutation<any, { login: string; password: string }>({
+      query: (body) => ({
+        url: ENDPOINTS.managerLogin.path,
         method: 'POST',
         body,
       }),
@@ -113,7 +147,9 @@ export const authApi = createApi({
 
 export const {
   useAddCustomerGarageMutation,
+  useCheckPhoneMutation,
   useDealerLoginMutation,
+  useManagerLoginMutation,
   useDealerRegisterMutation,
   useGetPublicGaragesQuery,
   useLazyResolveGarageByCodeQuery,

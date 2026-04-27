@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
@@ -15,7 +14,7 @@ import { Colors } from "../constants/colors";
 import { Typography } from "../constants/typo";
 import { borderRadius } from "../design-system/borders";
 import { spacing } from "../design-system/spacing";
-import { useAppSelector } from "../redux/hooks/useAppSelector";
+import { NavbarTabItem, splitNavbarTabs } from "./navbarPolicy";
 
 function usePressActiveAnimation(isActive: boolean, pressedScale: number, activeScale: number) {
   const pressed = useSharedValue(0);
@@ -164,63 +163,15 @@ const CenterHomeButton = React.memo(function CenterHomeButton({
   );
 });
 
-const Navbar = (props: BottomTabBarProps) => {
-  const { navigation, state } = props;
+type NavbarProps = {
+  tabs: NavbarTabItem[];
+  activeTab: string;
+  onTabPress: (tab: NavbarTabItem) => void;
+};
+
+const Navbar = ({ tabs, activeTab, onTabPress }: NavbarProps) => {
   const insets = useSafeAreaInsets();
-
-  const isLoggedIn = useAppSelector((s) => s.auth.isLoggedIn);
-  const userType = useAppSelector((s) => s.auth.userType);
-
-  const currentRouteName = state?.routes?.[state.index]?.name;
-
-  const requireAuth = useCallback(
-    (action: () => void) => {
-      if (!isLoggedIn) {
-        Alert.alert("Cần đăng nhập", "Vui lòng đăng nhập để tiếp tục.", [
-          { text: "Hủy", style: "cancel" },
-          { text: "Đăng nhập", onPress: () => navigation.navigate("Login" as never) },
-        ]);
-        return;
-      }
-      action();
-    },
-    [isLoggedIn, navigation]
-  );
-
-  const tabs = useMemo(() => {
-    const isDealer = userType === "dealer";
-
-    // Dealer chỉ được phép đặt sản phẩm => bỏ các tab liên quan đến dịch vụ/đặt lịch.
-    // Các tab "đang bận" (Booking/ServiceCategory) sẽ được thay thế bằng các màn hình sản phẩm/ưu đãi.
-    const common = isDealer
-      ? [
-          { key: "offer", label: "Ưu đãi", icon: "pricetag-outline", routeName: "Offer" },
-          { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
-          { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
-          { key: "service", label: "Danh mục", icon: "grid-outline", routeName: "Category" },
-          { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
-        ]
-      : [
-          { key: "calendar", label: "Đặt lịch", icon: "calendar-outline", routeName: "Booking", requiresAuth: true },
-          { key: "product", label: "Sản phẩm", icon: "cube-outline", routeName: "Category" },
-          { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
-          { key: "service", label: "Dịch vụ", icon: "construct-outline", routeName: "ServiceCategory" },
-          { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
-        ];
-
-    return common;
-  }, [userType]);
-
-  const leftTabs = tabs.filter((t) => !t.isCenter).slice(0, 2);
-  const rightTabs = tabs.filter((t) => !t.isCenter).slice(2, 4);
-  const centerTab = tabs.find((t) => t.isCenter);
-
-  const navigateTo = (tab: (typeof tabs)[number]) => {
-    if (currentRouteName === tab.routeName) return;
-    const go = () => navigation.navigate(tab.routeName as never);
-    if (tab.requiresAuth) return requireAuth(go);
-    go();
-  };
+  const { leftTabs, rightTabs, centerTab } = splitNavbarTabs(tabs);
 
   return (
     <View style={[styles.wrapper, { paddingBottom: insets.bottom }]} pointerEvents="box-none">
@@ -229,33 +180,33 @@ const Navbar = (props: BottomTabBarProps) => {
         <View style={styles.borderTop} />
         <View style={styles.row}>
           <View style={styles.sideGroup}>
-            {leftTabs.map((t) => (
+            {leftTabs.map((t: NavbarTabItem) => (
               <TabButton
                 key={t.key}
                 label={t.label}
                 icon={t.icon}
-                isActive={currentRouteName === t.routeName}
-                onPress={() => navigateTo(t)}
+                isActive={activeTab === t.routeName}
+                onPress={() => onTabPress(t)}
               />
             ))}
           </View>
           <View style={styles.centerGap} />
           <View style={styles.sideGroup}>
-            {rightTabs.map((t) => (
+            {rightTabs.map((t: NavbarTabItem) => (
               <TabButton
                 key={t.key}
                 label={t.label}
                 icon={t.icon}
-                isActive={currentRouteName === t.routeName}
-                onPress={() => navigateTo(t)}
+                isActive={activeTab === t.routeName}
+                onPress={() => onTabPress(t)}
               />
             ))}
           </View>
         </View>
         {centerTab && (
           <CenterHomeButton
-            isActive={currentRouteName === centerTab.routeName}
-            onPress={() => navigateTo(centerTab)}
+            isActive={activeTab === centerTab.routeName}
+            onPress={() => onTabPress(centerTab)}
           />
         )}
       </View>

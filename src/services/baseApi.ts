@@ -7,52 +7,67 @@ import { API_BASE_URL } from '../constants/config';
  * Base query with retry logic for failed requests
  */
 export const baseQueryWithRetry = retry(
-  fetchBaseQuery({ 
-    fetchFn: limitedFetch,
+  async (args, api, extraOptions) => {
+    const result = await fetchBaseQuery({ 
+      fetchFn: limitedFetch,
 
-    baseUrl: API_BASE_URL,
-    timeout: 15000, // 15 seconds timeout
-    prepareHeaders: (headers, { getState, endpoint }) => {
-      // Set default headers for all requests
-      headers.set('Content-Type', 'application/json');
-      headers.set('Accept', 'application/json');
+      baseUrl: API_BASE_URL,
+      timeout: 15000, // 15 seconds timeout
+      prepareHeaders: (headers, { getState, endpoint }) => {
+        // Set default headers for all requests
+        headers.set('Content-Type', 'application/json');
+        headers.set('Accept', 'application/json');
 
-      const state = getState() as any;
-      const token = state?.auth?.token;
-      const customerId = state?.auth?.userId;
-      const userType = state?.auth?.userType;
+        const state = getState() as any;
+        const token = state?.auth?.token;
+        const customerId = state?.auth?.userId;
+        const userType = state?.auth?.userType;
 
-      const nonAuthEndpoints = new Set([
-        'addCustomerGarage',
-        'getPublicGarages',
-        'resolveGarageByCode',
-        'registerCustomer',
-        'loginCustomer',
-        'loginEmployee',
-        'dealerLogin',
-        'dealerRegister',
-      ]);
+        const nonAuthEndpoints = new Set([
+          'addCustomerGarage',
+          'getPublicGarages',
+          'resolveGarageByCode',
+          'registerCustomer',
+          'loginCustomer',
+          'checkPhone',
+          'loginEmployee',
+          'dealerLogin',
+          'managerLogin',
+          'dealerRegister',
+        ]);
 
-      if (token && !nonAuthEndpoints.has(endpoint)) {
-        headers.set('Authorization', `Bearer ${token}`);
-      } else {
-        headers.delete('Authorization');
-      }
+        if (token && !nonAuthEndpoints.has(endpoint)) {
+          headers.set('Authorization', `Bearer ${token}`);
+        } else {
+          headers.delete('Authorization');
+        }
 
-      // New contract: customer aggregate routes use customer context, not garage headers.
-      if (userType === 'customer' && customerId) {
-        headers.set('x-customer-id', String(customerId));
-      } else {
-        headers.delete('x-customer-id');
-      }
+        // New contract: customer aggregate routes use customer context, not garage headers.
+        if (userType === 'customer' && customerId) {
+          headers.set('x-customer-id', String(customerId));
+        } else {
+          headers.delete('x-customer-id');
+        }
 
-      headers.delete('x-garage-code');
+        headers.delete('x-garage-code');
 
-      return headers;
-    },
-  }),
+        return headers;
+      },
+    })(args, api, extraOptions);
+    
+    // Don't retry on 401 (auth errors)
+    if (result.error?.status === 401) {
+      retry.fail(result.error);
+    }
+    
+    return result;
+  },
   {
-    maxRetries: 2, // Retry failed requests up to 2 times
+    maxRetries: 3, // Retry failed requests up to 3 times (1s, 2s, 4s)
+    backoff: (attempt) => {
+      // Exponential backoff: 1s, 2s, 4s
+      return Math.min(1000 * Math.pow(2, attempt), 10000);
+    },
   }
 );
 

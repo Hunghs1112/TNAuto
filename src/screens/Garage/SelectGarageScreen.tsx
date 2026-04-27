@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 
 import Screen from '../../components/layout/Screen/Screen';
 import { FormContainer } from '../../components/layout/FormContainer';
@@ -40,6 +41,13 @@ const SelectGarageScreen = () => {
                 const isActive = garage.garageCode === activeGarageCode;
                 return (
                   <TouchableOpacity key={garage.garageCode} style={[styles.savedGarageCard, isActive && styles.savedGarageCardActive]} onPress={() => handleSelectSavedGarage(garage)} activeOpacity={0.85}>
+                    <View style={styles.savedGarageBannerWrap}>
+                      {garage.banner_url || garage.bannerUrl ? (
+                        <Image source={{ uri: garage.banner_url || garage.bannerUrl }} style={styles.savedGarageBanner} resizeMode="cover" />
+                      ) : (
+                        <LinearGradient colors={isActive ? [Colors.alpha.white40, Colors.alpha.white20] : Colors.gradients.primary} style={styles.savedGarageBanner} />
+                      )}
+                    </View>
                     <View style={styles.savedGarageHeader}>
                       <View style={styles.savedGarageIcon}>
                         {garage.avatar_url || garage.avatarUrl ? (
@@ -50,7 +58,6 @@ const SelectGarageScreen = () => {
                       </View>
                       <View style={styles.savedGarageContent}>
                         <Text style={[styles.savedGarageName, isActive && styles.savedGarageNameActive]} numberOfLines={1}>{garage.garageName || garage.garageCode}</Text>
-                        <Text style={[styles.savedGarageCode, isActive && styles.savedGarageCodeActive]}>Mã gara: {garage.garageCode}</Text>
                       </View>
                       {isActive && <View style={styles.activeBadge}><Text style={styles.activeBadgeText}>Đang dùng</Text></View>}
                     </View>
@@ -75,13 +82,19 @@ const SelectGarageScreen = () => {
 
           {hasResolvedGarage && resolvedGarage ? (
             <View style={styles.garagePreview}>
+              <View style={styles.savedGarageBannerWrap}>
+                {resolvedGarage.bannerUrl ? (
+                  <Image source={{ uri: resolvedGarage.bannerUrl }} style={styles.savedGarageBanner} resizeMode="cover" />
+                ) : (
+                  <LinearGradient colors={Colors.gradients.primary} style={styles.savedGarageBanner} />
+                )}
+              </View>
               <View style={styles.garagePreviewHeader}>
                 <View style={styles.savedGarageIcon}>
                   {resolvedGarage.avatarUrl ? <Image source={{ uri: resolvedGarage.avatarUrl }} style={styles.savedGarageAvatar} resizeMode="contain" /> : <Ionicons name="business-outline" size={18} color={Colors.primary} />}
                 </View>
                 <Text style={styles.garagePreviewTitle}>{resolvedGarage.garageName}</Text>
               </View>
-              <Text style={styles.garagePreviewMeta}>Mã gara: {resolvedGarage.garageCode}</Text>
               {!!resolvedGarage.address && <Text style={styles.garagePreviewMeta}>{resolvedGarage.address}</Text>}
             </View>
           ) : (
@@ -113,26 +126,26 @@ const styles = StyleSheet.create({
   introContent: { flex: 1, gap: 4 },
   introTitle: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
   introDescription: { fontSize: 13, lineHeight: 20, color: Colors.text.secondary },
-  savedGarageCard: { padding: 14, borderRadius: 18, backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.neutral[200], gap: 8 },
+  savedGarageCard: { borderRadius: 18, backgroundColor: Colors.surface.elevated, borderWidth: 1, borderColor: Colors.neutral[200], gap: 10, overflow: 'hidden' },
   savedGarageCardActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  savedGarageHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  savedGarageIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.primarySoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  savedGarageBannerWrap: { width: '100%', height: 88, backgroundColor: Colors.neutral[100] },
+  savedGarageBanner: { width: '100%', height: '100%' },
+  savedGarageHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, marginTop: -22 },
+  savedGarageIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.primarySoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2, borderColor: Colors.background.light },
   savedGarageAvatar: { width: '100%', height: '100%' },
   savedGarageContent: { flex: 1, gap: 2 },
-  savedGarageName: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
+  savedGarageName: { fontSize: 16, fontWeight: '700', color: Colors.text.primary },
   savedGarageNameActive: { color: Colors.background.light },
-  savedGarageCode: { fontSize: 12, color: Colors.primaryLight },
-  savedGarageCodeActive: { color: Colors.background.light, opacity: 0.9 },
-  savedGarageAddress: { fontSize: 13, lineHeight: 20, color: Colors.text.secondary },
+  savedGarageAddress: { fontSize: 14, lineHeight: 20, color: Colors.text.secondary, paddingHorizontal: 14, paddingBottom: 14 },
   savedGarageAddressActive: { color: Colors.background.light, opacity: 0.92 },
   activeBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.alpha.white20 },
   activeBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.background.light },
   helperBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingTop: 4 },
   helperText: { flex: 1, fontSize: 13, lineHeight: 20, color: Colors.text.secondary },
-  garagePreview: { padding: 14, borderRadius: 16, backgroundColor: Colors.neutral[50] },
-  garagePreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  garagePreview: { borderRadius: 16, backgroundColor: Colors.neutral[50], overflow: 'hidden' },
+  garagePreviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -16, marginBottom: 8, paddingHorizontal: 14 },
   garagePreviewTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: Colors.text.primary },
-  garagePreviewMeta: { fontSize: 13, lineHeight: 20, color: Colors.text.secondary },
+  garagePreviewMeta: { fontSize: 13, lineHeight: 20, color: Colors.text.secondary, paddingHorizontal: 14, paddingBottom: 10 },
   bottomActions: { marginTop: 8 },
   savedGaragesList: { gap: 10 },
 });

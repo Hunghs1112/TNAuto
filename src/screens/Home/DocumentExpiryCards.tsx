@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
@@ -8,6 +8,8 @@ import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import { Vehicle } from "../../types/api.types";
 import { AppStackParamList } from "../../navigation/AppNavigator";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -55,7 +57,7 @@ const getExpiryMeta = (expiryDate?: string | null) => {
 
   return {
     state: "valid" as ExpiryState,
-    label: "Còn",
+    label: "Còn hạn",
     daysLabel: `${diffDays} ngày`,
     color: Colors.status.success,
   };
@@ -91,13 +93,19 @@ const buildExpiryItems = (vehicle?: Vehicle | null): ExpiryItem[] => [
   },
 ];
 
-export type DocumentExpiryCardsProps = {
-  vehicle?: Vehicle | null;
-};
-
-const DocumentExpiryCards = ({ vehicle }: DocumentExpiryCardsProps) => {
-  const items = useMemo(() => buildExpiryItems(vehicle), [vehicle]);
+const DocumentExpiryCards: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const userId = useAppSelector((state) => state.auth.userId);
+  const userType = useAppSelector((state) => state.auth.userType);
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+
+  const { data: customerVehiclesData } = useGetCustomerVehiclesQuery(
+    userType === "customer" ? { customer_id: userId } : undefined,
+    { skip: !isLoggedIn || userType !== "customer" || !userId },
+  );
+
+  const vehicle: Vehicle | null = useMemo(() => customerVehiclesData?.data?.[0] ?? null, [customerVehiclesData?.data]);
+  const items = useMemo(() => buildExpiryItems(vehicle), [vehicle]);
 
   const handlePress = (item: ExpiryItem) => {
     if (!item.routeParams.vehicleId || !item.routeParams.licensePlate) return;
@@ -105,12 +113,8 @@ const DocumentExpiryCards = ({ vehicle }: DocumentExpiryCardsProps) => {
   };
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.wrapper}
-    >
-      {items.map((item) => {
+    <View style={styles.wrapper}>
+      {items.map((item: ExpiryItem) => {
         const expiryMeta = getExpiryMeta(item.expiryDate);
         const isMissing = expiryMeta.state === "missing";
 
@@ -163,19 +167,18 @@ const DocumentExpiryCards = ({ vehicle }: DocumentExpiryCardsProps) => {
           </TouchableOpacity>
         );
       })}
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingRight: 0,
+    flexDirection: "row",
+    gap: 18,
+    width: "100%",
   },
   card: {
-    width: 108,
-    aspectRatio: 1,
+    flex: 1,
     borderRadius: 18,
     paddingHorizontal: 10,
     paddingVertical: 10,

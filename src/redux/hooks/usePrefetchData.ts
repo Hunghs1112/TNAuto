@@ -33,9 +33,10 @@ export const usePrefetchData = () => {
     (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
   );
   const isDealer = userType === 'dealer';
+  const isManagerRole = userType === 'garage_manager' || userType === 'garage_admin';
   const hasGarageCode = Boolean(activeGarageCode);
   const canUseTenantCatalog =
-    (userType === 'employee' || userType === 'dealer' ? isLoggedIn : hasGarageContext) && hasGarageCode;
+    (userType === 'employee' || isDealer ? isLoggedIn : hasGarageContext) && hasGarageCode;
 
   // Prefetch services (critical for booking and home screens)
   const { data: servicesData, isSuccess: servicesSuccess } = useGetServicesQuery({ garageCode: activeGarageCode }, {
@@ -47,14 +48,14 @@ export const usePrefetchData = () => {
     skip: !canUseTenantCatalog || isDealer,
   });
   const { data: dealerCategoriesData, isSuccess: dealerCategoriesSuccess } = useGetDealerCategoriesQuery(undefined, {
-    skip: !isLoggedIn || !isDealer,
+    skip: !isLoggedIn || !isDealer || isManagerRole,
   });
 
   // Prefetch offers (critical for home screen badge)
   const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(
     { garageCode: activeGarageCode },
     {
-      skip: !canUseTenantCatalog, // Only fetch when tenant context is ready
+      skip: !canUseTenantCatalog || isManagerRole, // Manager/Admin home should stay lightweight
     },
   );
 
@@ -124,3 +125,4 @@ export const usePrefetchUserData = () => {
 
   console.log('usePrefetchUserData: User data ready for', userType, userPhone, userId);
 };
+

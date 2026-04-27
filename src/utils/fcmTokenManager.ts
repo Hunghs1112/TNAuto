@@ -1,6 +1,6 @@
 // src/utils/fcmTokenManager.ts - Utility to manage FCM token registration
 
-type SupportedUserType = 'customer' | 'employee' | 'dealer';
+type SupportedUserType = 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin';
 
 async function getFCMService() {
   const module = await import('../services/FCMService');
@@ -80,3 +80,4 @@ export async function refreshFCMTokenRegistration(
     return false;
   }
 }
+

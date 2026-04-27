@@ -40,7 +40,7 @@ const MyServiceScreen: React.FC = () => {
   }, [isLoggedIn, navigation]);
 
   useEffect(() => {
-    if (userType === 'dealer') {
+    if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
       // Dealer không được phép xem/điều hướng chức năng dịch vụ.
       navigation.replace('Category');
     }
@@ -53,7 +53,7 @@ const MyServiceScreen: React.FC = () => {
   }, [hasGarageContext, isLoggedIn, navigation, userType]);
 
   const { data: ordersResponse, isLoading, error, refetch, isFetching } = useGetCustomerOrdersQuery(userPhone, {
-    skip: !userPhone || userType === 'dealer' || !hasGarageContext,
+    skip: !userPhone || (userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin') || !hasGarageContext,
   });
 
   const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse?.data]);
@@ -128,7 +128,7 @@ const MyServiceScreen: React.FC = () => {
     return null;
   }
 
-  if (userType === 'dealer') {
+  if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
     return null;
   }
 
@@ -253,3 +253,4 @@ const MyServiceScreen: React.FC = () => {
 };
 
 export default React.memo(MyServiceScreen);
+

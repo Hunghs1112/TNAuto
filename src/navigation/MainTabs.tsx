@@ -1,7 +1,7 @@
 import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { AppStackParamList } from "./AppNavigator";
+import { BottomTabBarProps, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Navbar from "../components/Navbar";
+import { useNavbarPolicy } from "../components/useNavbarPolicy";
 import HomeScreen from "../screens/Home/HomeScreen";
 import CategoryScreen from "../screens/Category/CategoryScreen";
 import BookingScreen from "../screens/Booking/BookingScreen";
@@ -20,11 +20,17 @@ export type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
+function NavbarContainer(props: BottomTabBarProps) {
+  const policy = useNavbarPolicy(props);
+
+  return <Navbar tabs={policy.tabs} activeTab={policy.activeTab} onTabPress={policy.onTabPress} />;
+}
+
 export default function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
-      tabBar={(props) => <Navbar {...props} />}
+      tabBar={(props) => <NavbarContainer {...props} />}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} />
       <Tab.Screen name="Category" component={CategoryScreen} />
@@ -35,4 +41,3 @@ export default function MainTabs() {
     </Tab.Navigator>
   );
 }
-

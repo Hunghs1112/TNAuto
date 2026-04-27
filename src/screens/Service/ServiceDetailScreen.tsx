@@ -37,7 +37,7 @@ const ServiceDetailScreen = () => {
   const userType = useAppSelector((s) => s.auth.userType);
   const currentGarageCode = useAppSelector(selectGarageCode);
   const currentGarageName = useAppSelector(selectGarageName);
-  const isDealer = userType === "dealer";
+  const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -196,3 +196,4 @@ const ServiceDetailScreen = () => {
 };
 
 export default ServiceDetailScreen;
+

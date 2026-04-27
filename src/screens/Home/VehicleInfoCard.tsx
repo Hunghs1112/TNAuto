@@ -12,14 +12,11 @@ import { VehicleCardSkeleton } from "../../components/SkeletonLoader";
 import { OptimizedImage } from "../../components/OptimizedImage";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
-interface VehicleInfoCardProps {
-  userId: string;
-  userPhone: string;
-}
-
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-const VehicleInfoCard: React.FC<VehicleInfoCardProps> = ({ userId, userPhone }) => {
+const VehicleInfoCard: React.FC = () => {
+  const userId = useAppSelector((state) => state.auth.userId);
+  const userPhone = useAppSelector((state) => state.auth.userPhone);
   const navigation = useNavigation<NavigationProp>();
   const hasGarageContext = useAppSelector(
     (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),

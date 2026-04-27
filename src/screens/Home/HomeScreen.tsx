@@ -2,12 +2,17 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import LinearGradient from "react-native-linear-gradient";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import Screen from "../../components/layout/Screen/Screen";
 import Item from "../../components/Item";
 import FloatingNoticeBanner from "../../components/FloatingNoticeBanner";
 import { Colors } from "../../constants/colors";
 import { getPrimaryCatalogProductImageUrl } from "../../utils/catalog";
+import { AppStackParamList } from "../../navigation/AppNavigator";
+import { useAppSelector } from "../../redux/hooks/useAppSelector";
+import { selectActiveGarage, selectGarageAvatarUrl, selectGarageBannerUrl, selectGarageName, selectUserName, selectUserType } from "../../redux/selectors";
 import { styles } from "./styles";
 import UserHeader from "./UserHeader";
 import GarageSummaryCard from "./GarageSummaryCard";
@@ -21,43 +26,51 @@ import WarrantyInfo from "./components/WarrantyInfo";
 import ViewMoreButton from "./ViewMoreButton";
 import DocumentExpiryCards from "./DocumentExpiryCards";
 import { useHomeScreen } from "./useHomeScreen";
+import ManagerHomeScreen from "./ManagerHomeScreen";
 
 export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const storeUserType = useAppSelector(selectUserType);
+  const storeUserName = useAppSelector(selectUserName);
+  const storeGarageName = useAppSelector(selectGarageName);
+  const storeGarageAvatarUrl = useAppSelector(selectGarageAvatarUrl);
+  const storeGarageBannerUrl = useAppSelector(selectGarageBannerUrl);
+  const activeGarage = useAppSelector(selectActiveGarage);
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+
+  const isManagerRole = storeUserType === "garage_manager" || storeUserType === "garage_admin";
+
+  if (isManagerRole) {
+    return (
+      <ManagerHomeScreen
+        userName={storeUserName}
+        isLoggedIn={isLoggedIn}
+        garageSummary={{
+          name: storeGarageName,
+          address: activeGarage?.address || undefined,
+          avatarUrl: storeGarageAvatarUrl || undefined,
+          bannerUrl: storeGarageBannerUrl || undefined,
+          canChangeGarage: false,
+        }}
+        onGaragePress={() => navigation.navigate("Category")}
+      />
+    );
+  }
+
+  return <StandardHomeScreen />;
+}
+
+function StandardHomeScreen() {
   const {
     userType,
     userName,
-    userId,
-    userPhone,
-    currentGarageName,
-    currentGarageAvatarUrl,
-    hasGarageContext,
-    services,
-    homePreviewServices,
-    homePreviewProducts,
-    customerVehicle,
+    garageSummary,
+    homeContent,
     shouldShowPromoHome,
-    displayedOrders,
-    sortedOrders,
-    ordersLoading,
-    sortedAvailableOrders,
-    availableLoading,
-    claimingOrderId,
-    sortedAssignedOrders,
-    assignedLoading,
-    handleNotificationPress,
-    handleOfferPress,
-    handleWarrantyPress,
-    handleOrderPress,
-    handleProductPress,
-    handleServicePress,
-    handleClaimOrder,
-    handleViewMore,
-    handleLoginPress,
-    handleGaragePress,
-    banner,
-    dismissBanner,
+    ordersState,
+    actions,
+    promoBanner,
     isLoggedIn,
-    savedGarageCount,
   } = useHomeScreen();
 
   return (
@@ -77,39 +90,53 @@ export default function HomeScreen() {
         </LinearGradient>
 
         <View style={styles.headerBackground}>
-          <UserHeader
-            userName={isLoggedIn ? userName : "Khách"}
-            onNotificationPress={isLoggedIn ? handleNotificationPress : undefined}
-            onOfferPress={isLoggedIn ? handleOfferPress : undefined}
-            onInsurancePress={isLoggedIn ? handleWarrantyPress : undefined}
-            onLoginPress={handleLoginPress}
-            isLoggedIn={isLoggedIn}
-          />
-          {isLoggedIn && currentGarageName && (
+          {isLoggedIn && garageSummary.name && (
             <View style={styles.garageSummaryWrap}>
               <GarageSummaryCard
-                garageName={currentGarageName}
-                garageAvatarUrl={currentGarageAvatarUrl}
-                savedGarageCount={savedGarageCount}
-                canChangeGarage={Boolean(hasGarageContext && userType === "customer")}
-                onPress={handleGaragePress}
+                garageName={garageSummary.name}
+                garageAddress={garageSummary.address}
+                garageAvatarUrl={garageSummary.avatarUrl}
+                garageBannerUrl={garageSummary.bannerUrl}
+                canChangeGarage={garageSummary.canChangeGarage}
+                onPress={actions.onGaragePress}
               />
             </View>
           )}
+          {isLoggedIn && (
+            <View style={styles.heroActionsOverlay}>
+              <TouchableOpacity style={styles.heroActionButton} onPress={actions.onOfferPress}>
+                <Ionicons name="pricetag-outline" size={16} color={Colors.background.light} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.heroActionButton} onPress={actions.onWarrantyPress}>
+                <Ionicons name="shield-checkmark-outline" size={16} color={Colors.background.light} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.heroActionButton} onPress={actions.onNotificationPress}>
+                <Ionicons name="notifications-outline" size={16} color={Colors.background.light} />
+              </TouchableOpacity>
+            </View>
+          )}
+          <UserHeader
+            userName={userName}
+            garageName={garageSummary.name}
+            onLoginPress={actions.onLoginPress}
+            onGaragePress={actions.onGaragePress}
+            isLoggedIn={isLoggedIn}
+            canChangeGarage={garageSummary.canChangeGarage}
+          />
         </View>
 
         {!shouldShowPromoHome && isLoggedIn && userType === "customer" && (
           <View style={styles.documentExpiryOverlay}>
-            <DocumentExpiryCards vehicle={customerVehicle} />
+            <DocumentExpiryCards />
           </View>
         )}
 
-        {!shouldShowPromoHome && banner && (
+        {!shouldShowPromoHome && promoBanner && (
           <View style={styles.bannerInlineWrap}>
             <FloatingNoticeBanner
-              title={banner.title}
-              subtitle={banner.subtitle}
-              onDismiss={dismissBanner}
+              title={promoBanner.title}
+              subtitle={promoBanner.subtitle}
+              onDismiss={promoBanner.dismiss}
               onPress={undefined}
             />
           </View>
@@ -120,12 +147,12 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <View style={styles.loginPromptCard}>
                 <Ionicons name="business-outline" size={48} color={Colors.primary} />
-                <Text style={styles.loginPromptTitle}>Liên kết mã gara để sử dụng đầy đủ tính năng</Text>
+                <Text style={styles.loginPromptTitle}>Lien ket ma gara de su dung day du tinh nang</Text>
                 <Text style={styles.loginPromptDescription}>
-                  Tài khoản của bạn chưa được gắn với mã gara nào. Hãy nhập mã gara để kết nối tài khoản, đồng bộ dữ liệu và bắt đầu sử dụng dịch vụ.
+                  Tai khoan cua ban chua duoc gan voi ma gara nao. Hay nhap ma gara de ket noi tai khoan, dong bo du lieu va bat dau su dung dich vu.
                 </Text>
-                <TouchableOpacity style={styles.loginPromptButton} onPress={handleGaragePress}>
-                  <Text style={styles.loginPromptButtonText}>Nhập mã gara</Text>
+                <TouchableOpacity style={styles.loginPromptButton} onPress={actions.onGaragePress}>
+                  <Text style={styles.loginPromptButtonText}>Nhap ma gara</Text>
                   <Ionicons name="arrow-forward" size={20} color={Colors.background.light} />
                 </TouchableOpacity>
               </View>
@@ -133,34 +160,32 @@ export default function HomeScreen() {
           ) : isLoggedIn && userType === "employee" ? (
             <>
               <View style={styles.section}>
-                <SectionHeader title="Việc mới tạo chưa giao ai" />
+                <SectionHeader title="Viec moi tao chua giao ai" />
                 <AvailableOrdersList
-                  orders={sortedAvailableOrders}
-                  isLoading={availableLoading}
-                  services={services}
-                  onOrderPress={handleOrderPress}
-                  onClaimPress={handleClaimOrder}
-                  claimingOrderId={claimingOrderId}
-                  emptyMessage="Chưa có việc mới nào đang chờ nhận"
+                  orders={ordersState.sortedAvailableOrders}
+                  isLoading={ordersState.availableLoading}
+                  onOrderPress={actions.onOrderPress}
+                  onClaimPress={actions.onClaimOrder}
+                  claimingOrderId={ordersState.claimingOrderId}
+                  emptyMessage="Chua co viec moi nao dang cho nhan"
                 />
               </View>
 
               <View style={styles.section}>
-                <SectionHeader title="Việc đang đảm nhận" />
+                <SectionHeader title="Viec dang dam nhan" />
                 <EmployeeOrdersList
-                  orders={sortedAssignedOrders}
-                  isLoading={assignedLoading}
-                  services={services}
-                  onOrderPress={handleOrderPress}
-                  emptyMessage="Chưa có việc nào đang đảm nhận"
+                  orders={ordersState.sortedAssignedOrders}
+                  isLoading={ordersState.assignedLoading}
+                  onOrderPress={actions.onOrderPress}
+                  emptyMessage="Chua co viec nao dang dam nhan"
                 />
               </View>
 
               <View style={styles.section}>
-                <SectionHeader title="Thông tin bảo hành" />
+                <SectionHeader title="Thong tin bao hanh" />
                 <WarrantyInfo
-                  orders={sortedAssignedOrders}
-                  onWarrantyPress={(orderId: string) => handleOrderPress(orderId)}
+                  orders={ordersState.sortedAssignedOrders}
+                  onWarrantyPress={(orderId: string) => actions.onOrderPress(orderId)}
                 />
               </View>
             </>
@@ -168,22 +193,21 @@ export default function HomeScreen() {
             <>
               {isLoggedIn && userType === "customer" && (
                 <View style={styles.section}>
-                  <VehicleInfoCard userId={userId} userPhone={userPhone} />
+                  <VehicleInfoCard />
                 </View>
               )}
 
               {isLoggedIn && userType === "customer" && (
                 <View style={styles.section}>
-                  <SectionHeader title="Dịch vụ đang sử dụng" />
+                  <SectionHeader title="Dich vu dang su dung" />
                   <OrdersList
-                    orders={displayedOrders}
-                    isLoading={ordersLoading}
-                    services={services}
+                    orders={ordersState.displayedOrders}
+                    isLoading={ordersState.ordersLoading}
                     userType={userType}
-                    onOrderPress={handleOrderPress}
-                    emptyMessage="Chưa có đơn hàng nào"
+                    onOrderPress={actions.onOrderPress}
+                    emptyMessage="Chua co don hang nao"
                   />
-                  {sortedOrders.length > 2 && <ViewMoreButton onPress={handleViewMore} title="Xem tất cả đơn hàng" />}
+                  {ordersState.sortedOrders.length > 2 && <ViewMoreButton onPress={actions.onViewMore} title="Xem tat ca don hang" />}
                 </View>
               )}
 
@@ -193,63 +217,63 @@ export default function HomeScreen() {
                 </View>
               ) : isLoggedIn && userType === "dealer" ? (
                 <View style={styles.section}>
-                  <SectionHeader title="Sản phẩm nổi bật" />
+                  <SectionHeader title="San pham noi bat" />
                   <View style={styles.servicesContainer}>
-                    {homePreviewProducts.map((product: any) => (
+                    {homeContent.previewProducts.map((product: any) => (
                       <Item
                         key={product.id}
                         title={product.name}
-                        description={product.description || "Xem chi tiết sản phẩm"}
+                        description={product.description || "Xem chi tiet san pham"}
                         imageUri={getPrimaryCatalogProductImageUrl(product)}
-                        onPress={() => handleProductPress(String(product.id))}
+                        onPress={() => actions.onProductPress(String(product.id))}
                       />
                     ))}
                   </View>
-                  <ViewMoreButton onPress={handleViewMore} title="Xem thêm sản phẩm" />
+                  <ViewMoreButton onPress={actions.onViewMore} title="Xem them san pham" />
                 </View>
               ) : !isLoggedIn ? (
                 <>
                   <View style={styles.section}>
-                    <SectionHeader title="Dịch vụ của chúng tôi" />
+                    <SectionHeader title="Dich vu cua chung toi" />
                     <View style={styles.servicesContainer}>
-                      {homePreviewServices.map((service: any) => (
+                      {homeContent.previewServices.map((service: any) => (
                         <Item
                           key={service.id}
                           title={service.name}
                           description={service.description}
                           imageUri={service.image_url}
-                          onPress={() => handleServicePress(String(service.id))}
+                          onPress={() => actions.onServicePress(String(service.id))}
                         />
                       ))}
                     </View>
-                    <ViewMoreButton onPress={handleViewMore} title="Xem thêm dịch vụ" />
+                    <ViewMoreButton onPress={actions.onViewMore} title="Xem them dich vu" />
                   </View>
 
                   <View style={styles.section}>
-                    <SectionHeader title="Sản phẩm nổi bật" />
+                    <SectionHeader title="San pham noi bat" />
                     <View style={styles.servicesContainer}>
-                      {homePreviewProducts.map((product: any) => (
+                      {homeContent.previewProducts.map((product: any) => (
                         <Item
                           key={product.id}
                           title={product.name}
-                          description={product.description || "Xem chi tiết sản phẩm"}
+                          description={product.description || "Xem chi tiet san pham"}
                           imageUri={getPrimaryCatalogProductImageUrl(product)}
-                          onPress={() => handleProductPress(String(product.id))}
+                          onPress={() => actions.onProductPress(String(product.id))}
                         />
                       ))}
                     </View>
-                    <ViewMoreButton onPress={handleViewMore} title="Xem thêm sản phẩm" />
+                    <ViewMoreButton onPress={actions.onViewMore} title="Xem them san pham" />
                   </View>
 
                   <View style={styles.section}>
                     <View style={styles.loginPromptCard}>
                       <Ionicons name="calendar-outline" size={48} color={Colors.primary} />
-                      <Text style={styles.loginPromptTitle}>Đăng nhập để đặt lịch dịch vụ</Text>
+                      <Text style={styles.loginPromptTitle}>Dang nhap de dat lich dich vu</Text>
                       <Text style={styles.loginPromptDescription}>
-                        Đăng nhập để đặt lịch dịch vụ, xem lịch sử đơn hàng và quản lý thông tin xe của bạn
+                        Dang nhap de dat lich dich vu, xem lich su don hang va quan ly thong tin xe cua ban
                       </Text>
-                      <TouchableOpacity style={styles.loginPromptButton} onPress={handleLoginPress}>
-                        <Text style={styles.loginPromptButtonText}>Đăng nhập / Đăng ký</Text>
+                      <TouchableOpacity style={styles.loginPromptButton} onPress={actions.onLoginPress}>
+                        <Text style={styles.loginPromptButtonText}>Dang nhap / Dang ky</Text>
                         <Ionicons name="arrow-forward" size={20} color={Colors.background.light} />
                       </TouchableOpacity>
                     </View>

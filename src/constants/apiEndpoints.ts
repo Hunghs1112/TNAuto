@@ -35,16 +35,22 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Customer login in app namespace (required body: phone)',
     body: ['phone'],
   },
+  checkPhone: {
+    method: 'POST',
+    path: '/api/app/customer/auth/check-phone',
+    description: 'Check phone and return matched roles',
+    body: ['phone'],
+  },
   getPublicGarages: {
     method: 'GET',
     path: '/api/public/garages',
-    description: 'Get public list of active garages for discovery/deep-link',
+    description: 'Get public list of active garages for discovery/deep-link (includes is_super_garage)',
     params: ['search', 'city', 'limit'],
   },
   resolveGarageByCode: {
     method: 'GET',
     path: '/api/public/garages/by-code/:code',
-    description: 'Resolve one garage by code for tenant selection (required param: code; no body)',
+    description: 'Resolve one garage by code for tenant selection (includes is_super_garage; required param: code; no body)',
     params: ['code'],
   },
   addCustomerGarage: {
@@ -160,6 +166,27 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     path: '/api/app/employee/auth/login',
     description: 'Employee login in app namespace (token-based)',
     body: ['phone', 'password'],
+  },
+  managerLogin: {
+    method: 'POST',
+    path: '/api/app/manager/auth/login',
+    description: 'Garage manager/admin login in app namespace',
+    body: ['login', 'password'],
+  },
+  getManagerHomeSummary: {
+    method: 'GET',
+    path: '/api/app/manager/home/summary',
+    description: 'Get manager home summary (KPI overview)',
+  },
+  getManagerHomeOrders: {
+    method: 'GET',
+    path: '/api/app/manager/home/orders',
+    description: 'Get manager home orders for dashboard',
+  },
+  getManagerHomeNotifications: {
+    method: 'GET',
+    path: '/api/app/manager/home/notifications',
+    description: 'Get manager home notifications for dashboard',
   },
   getEmployeeOrders: {
     method: 'GET',

@@ -36,7 +36,7 @@ const ProductDetailScreen = () => {
   const userType = useAppSelector((state) => state.auth.userType);
   const currentGarageCode = useAppSelector(selectGarageCode);
   const currentGarageName = useAppSelector(selectGarageName);
-  const isDealer = userType === "dealer";
+  const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null as string | null);
   const [refreshing, setRefreshing] = useState(false);
@@ -252,3 +252,4 @@ const ProductDetailScreen = () => {
 };
 
 export default ProductDetailScreen;
+

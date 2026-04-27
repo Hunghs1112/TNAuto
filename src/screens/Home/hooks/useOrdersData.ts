@@ -4,7 +4,7 @@ import { useGetAssignedOrdersQuery, useGetAvailableOrdersQuery } from '../../../
 import { ApiResponse, ServiceOrder } from '../../../types/api.types';
 
 interface UseOrdersDataProps {
-  userType: 'customer' | 'employee' | 'dealer' | null;
+  userType: 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin' | null;
   userPhone: string;
   currentEmployeeId?: string;
   hasGarageContext?: boolean;

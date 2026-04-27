@@ -49,7 +49,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const navigation = useNavigation<any>();
   const currentEmployee = useAppSelector((state: RootState) => state.employee.currentEmployee);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
-  const isDealer = userType === 'dealer';
+  const isDealer = (userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin');
   const currentEmployeeId = currentEmployee?.id ? String(currentEmployee.id) : null;
 
   const [refreshing, setRefreshing] = useState(false);
@@ -551,3 +551,4 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
 };
 
 export default EmployeeOrderDetailScreen;
+

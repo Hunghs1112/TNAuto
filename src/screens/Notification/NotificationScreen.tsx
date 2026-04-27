@@ -132,7 +132,7 @@ const NotificationScreen = () => {
     const orderId = getNotificationOrderId(item);
 
     if (dataType === 'service_reminder' && item?.ref_id) {
-      if (userType === 'dealer') {
+      if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
         navigation.navigate('Category');
         return;
       }
@@ -145,7 +145,7 @@ const NotificationScreen = () => {
       if (orderId) {
         if (userType === 'employee') {
           navigation.navigate('EmployeeOrderDetail', { id: orderId });
-        } else if (userType === 'dealer') {
+        } else if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
           navigation.navigate('Category');
         } else {
           navigation.navigate('OrderDetail', { id: orderId });
@@ -168,7 +168,7 @@ const NotificationScreen = () => {
       if (orderId) {
         if (userType === 'employee') {
           navigation.navigate('EmployeeOrderDetail', { id: orderId });
-        } else if (userType === 'dealer') {
+        } else if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
           navigation.navigate('Category');
         } else {
           navigation.navigate('OrderDetail', { id: orderId });
@@ -183,7 +183,7 @@ const NotificationScreen = () => {
     if (orderId) {
       if (userType === 'employee') {
         navigation.navigate('EmployeeOrderDetail', { id: orderId });
-      } else if (userType === 'dealer') {
+      } else if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
         navigation.navigate('Category');
       } else {
         navigation.navigate('OrderDetail', { id: orderId });
@@ -366,3 +366,4 @@ const NotificationScreen = () => {
 };
 
 export default NotificationScreen;
+

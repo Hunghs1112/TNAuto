@@ -6,6 +6,8 @@ import ServiceOrderCard from '../../../components/ServiceOrderCard';
 import { Colors } from '../../../constants/colors';
 import { PerformanceConfig } from '../../../config/performance';
 import { styles } from '../styles';
+import { useAppSelector } from '../../../redux/hooks/useAppSelector';
+import { selectServicesList } from '../../../redux/selectors';
 import { getServiceImageUrl, getServiceName, type ServiceSummary } from './orderHelpers';
 
 interface Order {
@@ -22,7 +24,6 @@ interface Order {
 interface EmployeeOrdersListProps {
   orders: Order[];
   isLoading: boolean;
-  services: ServiceSummary[];
   onOrderPress: (id: string) => void;
   emptyMessage?: string;
 }
@@ -37,7 +38,8 @@ const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus; icon: string }>
   { label: 'Đã hủy', value: 'cancelled', icon: 'close-circle-outline' },
 ];
 
-const EmployeeOrdersList = ({ orders, isLoading, services, onOrderPress, emptyMessage = 'Chưa có đơn giao nào' }: EmployeeOrdersListProps) => {
+const EmployeeOrdersList = ({ orders, isLoading, onOrderPress, emptyMessage = 'Chưa có đơn giao nào' }: EmployeeOrdersListProps) => {
+  const services = useAppSelector(selectServicesList) as ServiceSummary[];
   const [selectedStatus, setSelectedStatus] = useState('all' as OrderStatus);
   const filteredOrders = useMemo(() => (selectedStatus === 'all' ? orders : orders.filter((order) => order.status === selectedStatus)), [orders, selectedStatus]);
 

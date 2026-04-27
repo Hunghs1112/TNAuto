@@ -16,6 +16,7 @@ type GarageInput = Partial<GarageSummary> & {
   garageCode?: string | null;
   garageName?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
 };
 
 interface AddGarageOptions {
@@ -37,6 +38,7 @@ const mapGarageInputToPayload = (garage: GarageInput): GaragePayload => ({
   garageName: garage.garageName ?? garage.name,
   address: garage.address,
   avatarUrl: garage.avatarUrl ?? garage.avatar_url,
+  bannerUrl: garage.bannerUrl ?? garage.banner_url,
   status: garage.status,
   resolved: true,
 });
@@ -48,6 +50,7 @@ const mergeGaragePayload = (payload: GaragePayload, garage?: GarageSummary): Gar
   garageName: garage?.name ?? payload.garageName,
   address: garage?.address ?? payload.address,
   avatarUrl: garage?.avatar_url ?? payload.avatarUrl,
+  bannerUrl: garage?.banner_url ?? payload.bannerUrl,
   status: garage?.status ?? payload.status,
   resolved: true,
 });

@@ -30,7 +30,7 @@ const ServiceScreen = () => {
   const currentGarageCode = useAppSelector(selectGarageCode);
   const hasGarageContext = useAppSelector(selectHasGarageContext);
   const savedGarages = useAppSelector(selectSavedGarages);
-  const isDealer = userType === "dealer";
+  const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
   const showGarageTabs = !isDealer && savedGarages.length > 1;
 
   
@@ -177,3 +177,4 @@ const ServiceScreen = () => {
 };
 
 export default ServiceScreen;
+

@@ -28,9 +28,15 @@ import LoginScreen from "../screens/Login/LoginScreen";
 import RegisterScreen from "../screens/Register/RegisterScreen";
 import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
 import DealerLoginScreen from "../screens/Login/DealerLoginScreen";
+import RoleSelectScreen from "../screens/Login/RoleSelectScreen";
+import ManagerPasswordScreen from "../screens/Login/ManagerPasswordScreen";
 import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
 import { usePrefetchData } from "../redux/hooks/usePrefetchData";
 import SelectGarageScreen from "../screens/Garage/SelectGarageScreen";
+import { CheckPhoneRole } from "../services/authApi";
+import { useAppSelector } from "../redux/hooks/useAppSelector";
+import { AuthUserType } from "../redux/slices/authSlice";
+import { MANAGER_ROLES } from "./rolePolicy";
 
 export type AppStackParamList = {
   Home: undefined;
@@ -59,7 +65,7 @@ export type AppStackParamList = {
   Register: undefined;
   EmployeePassword: {
     phone: string;
-    employeeData: {
+    employeeData?: {
       id: number;
       name: string;
       phone: string;
@@ -71,11 +77,57 @@ export type AppStackParamList = {
     phone: string;
     garageCode?: string;
   };
+  RoleSelect: {
+    phone: string;
+    roles: CheckPhoneRole[];
+    accounts?: Record<string, any>;
+  };
+  ManagerPassword: {
+    phone: string;
+    expectedRole: "garage_manager" | "garage_admin";
+  };
   DealerRegister: undefined;
   SelectGarage: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
+
+function withRoleGuard<T extends object>(
+  WrappedComponent: React.ComponentType<T>,
+  allowedRoles: AuthUserType[],
+) {
+  return function GuardedScreen(props: T & { navigation: any }) {
+    const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+    const userType = useAppSelector((state) => state.auth.userType);
+    const canAccess = Boolean(isLoggedIn && userType && allowedRoles.includes(userType));
+
+    React.useEffect(() => {
+      if (!isLoggedIn) {
+        props.navigation.replace("Login");
+        return;
+      }
+
+      if (!canAccess) {
+        props.navigation.navigate("Home");
+      }
+    }, [canAccess, isLoggedIn, props.navigation]);
+
+    if (!canAccess) return null;
+
+    return <WrappedComponent {...props} />;
+  };
+}
+
+const managerAllowedRoles: AuthUserType[] = ["dealer", ...MANAGER_ROLES];
+const employeeAllowedRoles: AuthUserType[] = ["employee"];
+const customerAllowedRoles: AuthUserType[] = ["customer"];
+
+const GuardedCustomersScreen = withRoleGuard(CustomersScreen, managerAllowedRoles);
+const GuardedCustomerDetailScreen = withRoleGuard(CustomerDetailScreen, managerAllowedRoles);
+const GuardedEmployeeOrderDetailScreen = withRoleGuard(EmployeeOrderDetailScreen, employeeAllowedRoles);
+const GuardedVehicleListScreen = withRoleGuard(VehicleListScreen, customerAllowedRoles);
+const GuardedVehicleDetailScreen = withRoleGuard(VehicleDetailScreen, customerAllowedRoles);
+const GuardedVehicleEditScreen = withRoleGuard(VehicleEditScreen, customerAllowedRoles);
 
 export default function AppNavigator() {
   // Prefetch critical data (services, categories, offers) when app loads
@@ -99,8 +151,8 @@ export default function AppNavigator() {
       {/* Fullscreen/detail screens (no Navbar) */}
       <Stack.Screen name="Service" component={ServiceScreen} />
       <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
-      <Stack.Screen name="Customers" component={CustomersScreen} />
-      <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} />
+      <Stack.Screen name="Customers" component={GuardedCustomersScreen} />
+      <Stack.Screen name="CustomerDetail" component={GuardedCustomerDetailScreen} />
       <Stack.Screen name="Offer" component={OfferScreen} />
       <Stack.Screen name="OfferDetail" component={OfferDetailScreen} />
       <Stack.Screen name="Category" component={CategoryScreen} />
@@ -111,17 +163,19 @@ export default function AppNavigator() {
       <Stack.Screen name="DealerLogin" component={DealerLoginScreen} />
       <Stack.Screen name="DealerRegister" component={DealerRegisterScreen} />
       <Stack.Screen name="EmployeePassword" component={EmployeePasswordScreen} />
+      <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
+      <Stack.Screen name="ManagerPassword" component={ManagerPasswordScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />
       <Stack.Screen name="MyService" component={MyServiceScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
       <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
-      <Stack.Screen name="EmployeeOrderDetail" component={EmployeeOrderDetailScreen} />
+      <Stack.Screen name="EmployeeOrderDetail" component={GuardedEmployeeOrderDetailScreen} />
       <Stack.Screen name="Notification" component={NotificationScreen} />
       <Stack.Screen name="Warranty" component={WarrantyScreen} />
-      <Stack.Screen name="VehicleList" component={VehicleListScreen} />
-      <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
-      <Stack.Screen name="VehicleEdit" component={VehicleEditScreen} />
+      <Stack.Screen name="VehicleList" component={GuardedVehicleListScreen} />
+      <Stack.Screen name="VehicleDetail" component={GuardedVehicleDetailScreen} />
+      <Stack.Screen name="VehicleEdit" component={GuardedVehicleEditScreen} />
     </Stack.Navigator>
   );
 }
