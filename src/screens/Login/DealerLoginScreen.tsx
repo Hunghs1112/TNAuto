@@ -38,17 +38,17 @@ export default function DealerLoginScreen() {
     const normalizedPassword = password.trim();
 
     if (!normalizedGarageCode) {
-      Alert.alert("Loi", "Vui long nhap ma gara.");
+      Alert.alert("Lỗi", "Vui lòng nhập mã gara.");
       return;
     }
 
     if (!normalizedPhone) {
-      Alert.alert("Loi", "Thieu so dien thoai dang nhap.");
+      Alert.alert("Lỗi", "Thiếu số điện thoại đăng nhập.");
       return;
     }
 
     if (!normalizedPassword) {
-      Alert.alert("Loi", "Vui long nhap mat khau.");
+      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu.");
       return;
     }
 
@@ -63,12 +63,12 @@ export default function DealerLoginScreen() {
       const contract = createDealerLoginContract(result, normalizedGarageCode);
 
       if (!contract) {
-        Alert.alert("Loi", result?.error || result?.message || "Dang nhap that bai. Vui long thu lai.");
+        Alert.alert("Lỗi", result?.error || result?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
         return;
       }
 
       if (!contract.state.isReady) {
-        Alert.alert("Loi", "Dang nhap that bai. Vui long thu lai.");
+        Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
         return;
       }
 
@@ -84,12 +84,12 @@ export default function DealerLoginScreen() {
   };
 
   return (
-    <AuthShell title="Chao mung Dai ly" subtitle="Vui long nhap mat khau de tiep tuc">
+    <AuthShell title="Chào mừng Đại lý" subtitle="Vui lòng nhập mật khẩu để tiếp tục">
       <View style={loginSharedStyles.inputContainer}>
         <TextInputComponent
           value={garageCode}
           onChangeText={setGarageCode}
-          placeholder="Ma gara"
+          placeholder="Mã gara"
           autoCapitalize="characters"
           focusBorderColor={Colors.accent.yellow}
         />
@@ -97,14 +97,14 @@ export default function DealerLoginScreen() {
         <TextInputComponent
           value={phone}
           editable={false}
-          placeholder="So dien thoai"
+          placeholder="Số điện thoại"
           style={loginSharedStyles.readOnlyInput}
         />
 
         <TextInputComponent
           value={password}
           onChangeText={setPassword}
-          placeholder="Mat khau"
+          placeholder="Mật khẩu"
           secureTextEntry
           autoFocus
           focusBorderColor={Colors.accent.yellow}
@@ -112,7 +112,7 @@ export default function DealerLoginScreen() {
       </View>
 
       <View style={loginSharedStyles.actions}>
-        <Button title="Dang nhap" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
+        <Button title="Đăng nhập" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
       </View>
     </AuthShell>
   );

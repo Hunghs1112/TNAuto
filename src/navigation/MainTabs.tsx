@@ -8,6 +8,10 @@ import BookingScreen from "../screens/Booking/BookingScreen";
 import ServiceCategoryScreen from "../screens/ServiceCategory/ServiceCategoryScreen";
 import AccountInfoScreen from "../screens/AccountInfo/AccountInfoScreen";
 import ProfileScreen from "../screens/Profile/ProfileScreen";
+import GarageManagementScreen from "../screens/GarageManagement/GarageManagementScreen";
+import GarageCustomersScreen from "../screens/GarageManagement/GarageCustomersScreen";
+import GarageOrdersScreen from "../screens/GarageManagement/GarageOrdersScreen";
+import SuperAdminGaragesScreen from "../screens/GarageManagement/SuperAdminGaragesScreen";
 
 export type TabParamList = {
   HomeTab: undefined;
@@ -16,6 +20,11 @@ export type TabParamList = {
   ServiceCategory: undefined;
   AccountInfo: undefined;
   Profile: undefined;
+  GarageManagement: undefined;
+  GarageCustomers: undefined;
+  GarageOrders: undefined;
+  /** Chỉ dành cho garage_admin (super admin) */
+  SuperAdminGarages: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -38,6 +47,11 @@ export default function MainTabs() {
       <Tab.Screen name="ServiceCategory" component={ServiceCategoryScreen} />
       <Tab.Screen name="AccountInfo" component={AccountInfoScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="GarageManagement" component={GarageManagementScreen} />
+      <Tab.Screen name="GarageCustomers" component={GarageCustomersScreen} />
+      <Tab.Screen name="GarageOrders" component={GarageOrdersScreen} />
+      {/* Super admin only — màn hình bị guard bên trong nếu không đủ quyền */}
+      <Tab.Screen name="SuperAdminGarages" component={SuperAdminGaragesScreen} />
     </Tab.Navigator>
   );
 }

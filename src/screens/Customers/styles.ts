@@ -174,5 +174,27 @@ export const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: spacing.md,
   },
+  vehicleCard: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 14,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.neutral[200],
+    gap: spacing.xs,
+  },
+  vehicleCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  vehiclePlate: {
+    fontSize: 16,
+    fontFamily: Typography.fontFamily.bold,
+    color: Colors.text.primary,
+  },
+  vehicleMeta: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.text.secondary,
+  },
 });
-

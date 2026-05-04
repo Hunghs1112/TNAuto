@@ -17,6 +17,9 @@ export const baseQueryWithRetry = retry(
         // Set default headers for all requests
         headers.set('Content-Type', 'application/json');
         headers.set('Accept', 'application/json');
+        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        headers.set('Pragma', 'no-cache');
+        headers.set('Expires', '0');
 
         const state = getState() as any;
         const token = state?.auth?.token;

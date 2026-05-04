@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
-import { CommonActions, useNavigation } from '@react-navigation/native';
+import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useLazyResolveGarageByCodeQuery } from '../../services/authApi';
+import { useAppDispatch } from '../../redux/hooks/useAppDispatch';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import useCustomerGarageSelection from '../../hooks/useCustomerGarageSelection';
 import { AppStackParamList } from '../../navigation/AppNavigator';
+import { saveAndSetActiveGarage, upsertSavedGarage } from '../../redux/slices/garageContextSlice';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -26,6 +28,7 @@ const getGarageBannerUri = (garage: { banner_url?: string | null; bannerUrl?: st
 
 export const useSelectGarageScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  const dispatch = useAppDispatch();
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   const userType = useAppSelector((state) => state.auth.userType);
   const currentGarage = useAppSelector((state) => state.garageContext);
@@ -47,6 +50,64 @@ export const useSelectGarageScreen = () => {
       : null,
   );
   const [resolveGarageByCode, { isFetching }] = useLazyResolveGarageByCodeQuery();
+  const lastRefreshedGarageCodeRef = useRef<string>('');
+
+  const syncGarageToRedux = useCallback(
+    (nextGarage: GarageItem) => {
+      dispatch(
+        saveAndSetActiveGarage({
+          ...nextGarage,
+          resolved: true,
+        }),
+      );
+      dispatch(
+        upsertSavedGarage({
+          ...nextGarage,
+          resolved: true,
+        }),
+      );
+    },
+    [dispatch],
+  );
+
+  const refreshGaragePreview = useCallback(
+    async (garageCodeToResolve?: string | null) => {
+      const normalizedGarageCode = (garageCodeToResolve || garageCode || currentGarage.garageCode || '').trim().toUpperCase();
+
+      if (!normalizedGarageCode) {
+        setResolvedGarage(null);
+        return null;
+      }
+
+      if (lastRefreshedGarageCodeRef.current === normalizedGarageCode) {
+        return resolvedGarage;
+      }
+
+      try {
+        const garage = await resolveGarageByCode(normalizedGarageCode, true).unwrap();
+        const nextGarage = {
+          garageId: String(garage.id),
+          garageCode: garage.code,
+          garageName: garage.name,
+          address: garage.address,
+          avatarUrl: getGarageAvatarUri(garage),
+          bannerUrl: getGarageBannerUri(garage),
+          status: garage.status,
+        };
+        lastRefreshedGarageCodeRef.current = normalizedGarageCode;
+        setResolvedGarage(nextGarage);
+        syncGarageToRedux(nextGarage);
+        return nextGarage;
+      } catch {
+        if (resolvedGarage?.garageCode) {
+          return resolvedGarage;
+        }
+        setResolvedGarage(null);
+        return null;
+      }
+    },
+    [currentGarage.garageCode, garageCode, resolveGarageByCode, resolvedGarage, syncGarageToRedux],
+  );
 
   const canChangeGarage = !isLoggedIn || userType === 'customer' || userType === null;
   const hasResolvedGarage = useMemo(() => Boolean(resolvedGarage?.garageCode), [resolvedGarage]);
@@ -64,16 +125,7 @@ export const useSelectGarageScreen = () => {
   const handleResolve = async () => {
     if (!garageCode.trim()) return Alert.alert('Lỗi', 'Vui lòng nhập mã gara.');
     try {
-      const garage = await resolveGarageByCode(garageCode.trim()).unwrap();
-      setResolvedGarage({
-        garageId: garage.id,
-        garageCode: garage.code,
-        garageName: garage.name,
-        address: garage.address,
-        avatarUrl: getGarageAvatarUri(garage),
-        bannerUrl: getGarageBannerUri(garage),
-        status: garage.status,
-      });
+      await refreshGaragePreview(garageCode.trim());
     } catch (error: any) {
       Alert.alert('Không tìm thấy gara', error?.data?.message || 'Mã gara không hợp lệ hoặc đã ngừng hoạt động.');
     }
@@ -107,29 +159,74 @@ export const useSelectGarageScreen = () => {
 
   const handleSelectSavedGarage = useCallback(
     async (garage: any) => {
+      const refreshedGarage = await refreshGaragePreview(garage.garageCode);
       const success = await activateGarage(
         {
-          garageId: garage.garageId,
-          garageCode: garage.garageCode,
-          garageName: garage.garageName,
-          address: garage.address,
-          avatarUrl: getGarageAvatarUri(garage),
-          bannerUrl: getGarageBannerUri(garage),
-          status: garage.status,
+          garageId: refreshedGarage?.garageId || garage.garageId,
+          garageCode: refreshedGarage?.garageCode || garage.garageCode,
+          garageName: refreshedGarage?.garageName || garage.garageName,
+          address: refreshedGarage?.address || garage.address,
+          avatarUrl: refreshedGarage?.avatarUrl || getGarageAvatarUri(garage),
+          bannerUrl: refreshedGarage?.bannerUrl || getGarageBannerUri(garage),
+          status: refreshedGarage?.status || garage.status,
         },
         'saved_list',
       );
       if (success) closeScreen();
     },
-    [activateGarage, closeScreen],
+    [activateGarage, closeScreen, refreshGaragePreview],
   );
 
   const confirmButtonTitle = useMemo(() => {
-    if (!hasResolvedGarage) return 'Tiếp tục';
+    if (!hasResolvedGarage) return 'Xác nhận mã gara';
     if (normalizedResolvedGarageCode === activeGarageCode && hasActiveGarageContext) return 'Đang dùng gara này';
-    if (shouldAddWithoutSwitch) return 'Thêm gara này';
-    return 'Dùng gara này';
+    if (shouldAddWithoutSwitch) return 'Thêm và sử dụng';
+    return 'Xác nhận và sử dụng';
   }, [activeGarageCode, hasActiveGarageContext, hasResolvedGarage, normalizedResolvedGarageCode, shouldAddWithoutSwitch]);
 
-  return { canChangeGarage, savedGarages, activeGarageCode, isFetching, garageCode, setGarageCode, resolvedGarage, setResolvedGarage, hasResolvedGarage, confirmButtonTitle, handleResolve, handleConfirm, handleSelectSavedGarage, normalizedResolvedGarageCode, hasActiveGarageContext };
+  const handlePrimaryAction = useCallback(async () => {
+    if (!hasResolvedGarage) {
+      await handleResolve();
+      return;
+    }
+
+    if (normalizedResolvedGarageCode === activeGarageCode && hasActiveGarageContext) {
+      closeScreen();
+      return;
+    }
+
+    await handleConfirm();
+  }, [activeGarageCode, closeScreen, hasActiveGarageContext, handleConfirm, handleResolve, hasResolvedGarage, normalizedResolvedGarageCode]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const codeToLoad = (currentGarage.garageCode || garageCode || '').trim().toUpperCase();
+      if (!codeToLoad) {
+        return () => {
+          isActive = false;
+        };
+      }
+
+      if (lastRefreshedGarageCodeRef.current !== codeToLoad) {
+        Promise.resolve(refreshGaragePreview(codeToLoad)).catch(() => {
+          if (isActive) {
+            // ignore background/foreground race conditions
+          }
+        });
+      }
+
+      return () => {
+        isActive = false;
+      };
+    }, [currentGarage.garageCode, garageCode, refreshGaragePreview]),
+  );
+
+  useEffect(() => {
+    if (currentGarage.garageCode) {
+      setGarageCode(currentGarage.garageCode.toUpperCase());
+    }
+  }, [currentGarage.garageCode]);
+
+  return { canChangeGarage, savedGarages, activeGarageCode, isFetching, garageCode, setGarageCode, resolvedGarage, setResolvedGarage, hasResolvedGarage, confirmButtonTitle, handleResolve, handleConfirm, handleSelectSavedGarage, handlePrimaryAction, normalizedResolvedGarageCode, hasActiveGarageContext };
 };

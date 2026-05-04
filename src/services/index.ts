@@ -15,4 +15,6 @@ export * from './offerApi';
 export * from './vehicleApi';
 export * from './productReviewApi';
 export * from './serviceCategoryApi';
+export * from './managerApi';
+export * from './adminGarageApi';
 export * from './dealerCatalog.types';

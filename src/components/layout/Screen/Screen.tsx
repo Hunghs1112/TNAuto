@@ -16,6 +16,7 @@ export interface ScreenProps {
   showBackButton?: boolean;
   hideHeader?: boolean;
   backgroundColor?: string;
+  safeAreaTopColor?: string;
   statusBarStyle?: 'light-content' | 'dark-content';
   /**
    * Disable built-in ScrollView to avoid nesting issues when the screen's
@@ -25,6 +26,9 @@ export interface ScreenProps {
   /**
    * Enable global pull-to-refresh for screens using the internal ScrollView
    */
+  enablePullToRefresh?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
   contentStyle?: any;
 }
 

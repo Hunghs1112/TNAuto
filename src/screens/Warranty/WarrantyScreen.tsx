@@ -151,21 +151,17 @@ const WarrantyScreen: React.FC = () => {
     
     // Fetch order details to enrich warranty data
     const { data: orderData } = useGetOrderDetailsQuery(item.order_id.toString(), {
-      skip: !item.order_id || !!item.service_name, // Skip if no order_id or already has service_name
+      skip: !item.order_id,
     });
-
-    // Merge order data into warranty item
-    const enrichedItem: WarrantyItem = {
-      ...item,
-      service_name: item.service_name || orderData?.service_name,
-      license_plate: item.license_plate || orderData?.license_plate,
-    };
+    const serviceName = item.service_name || orderData?.service_name;
+    const licensePlate = item.license_plate || orderData?.license_plate;
+    const orderNote = orderData?.note?.trim();
 
     return (
       <TouchableOpacity
         style={styles.warrantyCard}
         onPress={() => {
-          navigation.navigate('OrderDetail', { id: enrichedItem.order_id.toString() });
+          navigation.navigate('OrderDetail', { id: item.order_id.toString() });
         }}
         activeOpacity={0.7}
       >
@@ -175,17 +171,17 @@ const WarrantyScreen: React.FC = () => {
               <Ionicons name="shield-checkmark" size={24} color={Colors.background.red} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.warrantyTitle}>Bảo hành #{enrichedItem.id}</Text>
-              {enrichedItem.service_name ? (
-                <Text style={styles.serviceName}>{enrichedItem.service_name}</Text>
+              <Text style={styles.warrantyTitle}>Bảo hành #{item.id}</Text>
+              {serviceName ? (
+                <Text style={styles.serviceName}>{serviceName}</Text>
               ) : (
-                <Text style={styles.orderId}>Đơn hàng: #{enrichedItem.order_id}</Text>
+                <Text style={styles.orderId}>Đơn hàng: #{item.order_id}</Text>
               )}
-              {enrichedItem.license_plate && (
-                <Text style={styles.licensePlate}>Biển số: {enrichedItem.license_plate}</Text>
+              {licensePlate && (
+                <Text style={styles.licensePlate}>Biển số: {licensePlate}</Text>
               )}
-              {enrichedItem.product_name ? (
-                <Text style={styles.orderId}>Sản phẩm: {enrichedItem.product_name}</Text>
+              {item.product_name ? (
+                <Text style={styles.orderId}>Sản phẩm: {item.product_name}</Text>
               ) : null}
             </View>
           </View>
@@ -201,20 +197,20 @@ const WarrantyScreen: React.FC = () => {
             <View style={styles.dateItem}>
               <Ionicons name="calendar-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.dateLabel}>Bắt đầu:</Text>
-              <Text style={styles.dateValue}>{formatDate(enrichedItem.start_date)}</Text>
+              <Text style={styles.dateValue}>{formatDate(item.start_date)}</Text>
             </View>
             <View style={styles.dateItem}>
               <Ionicons name="calendar-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.dateLabel}>Kết thúc:</Text>
-              <Text style={styles.dateValue}>{formatDate(enrichedItem.end_date)}</Text>
+              <Text style={styles.dateValue}>{formatDate(item.end_date)}</Text>
             </View>
           </View>
 
-          {enrichedItem.dealer_name && (
+          {item.dealer_name && (
             <View style={styles.infoRow}>
               <Ionicons name="person-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.infoLabel}>Gara:</Text>
-              <Text style={styles.infoValue}>{enrichedItem.dealer_name}</Text>
+              <Text style={styles.infoValue}>{item.dealer_name}</Text>
             </View>
           )}
 
@@ -222,7 +218,7 @@ const WarrantyScreen: React.FC = () => {
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={16} color={Colors.text.secondary} />
               <Text style={styles.detailLabel}>Thời hạn:</Text>
-              <Text style={styles.detailValue}>{getWarrantyPeriodLabel(enrichedItem.warranty_period)}</Text>
+              <Text style={styles.detailValue}>{getWarrantyPeriodLabel(item.warranty_period)}</Text>
             </View>
             <View style={styles.detailItem}>
               <Ionicons name="hourglass-outline" size={16} color={Colors.text.secondary} />
@@ -232,6 +228,13 @@ const WarrantyScreen: React.FC = () => {
               </Text>
             </View>
           </View>
+
+          {orderNote ? (
+            <View style={styles.noteContainer}>
+              <Ionicons name="document-text-outline" size={16} color={Colors.text.secondary} />
+              <Text style={styles.noteText}>Ghi chú: {orderNote}</Text>
+            </View>
+          ) : null}
         </View>
       </TouchableOpacity>
     );
@@ -321,4 +324,3 @@ const WarrantyScreen: React.FC = () => {
 };
 
 export default WarrantyScreen;
-

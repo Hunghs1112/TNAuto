@@ -33,10 +33,19 @@ import ManagerPasswordScreen from "../screens/Login/ManagerPasswordScreen";
 import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
 import { usePrefetchData } from "../redux/hooks/usePrefetchData";
 import SelectGarageScreen from "../screens/Garage/SelectGarageScreen";
+import GarageManagementScreen from "../screens/GarageManagement/GarageManagementScreen";
+import GarageCustomersScreen from "../screens/GarageManagement/GarageCustomersScreen";
+import GarageOrdersScreen from "../screens/GarageManagement/GarageOrdersScreen";
+import GarageEmployeesScreen from "../screens/GarageManagement/GarageEmployeesScreen";
+import EmployeeDetailScreen from "../screens/GarageManagement/EmployeeDetailScreen";
+import AdminCatalogScreen from "../screens/GarageManagement/AdminCatalogScreen";
+import AdminOperationsScreen from "../screens/GarageManagement/AdminOperationsScreen";
+import AdminSettingsScreen from "../screens/GarageManagement/AdminSettingsScreen";
+import SuperAdminGaragesScreen from "../screens/GarageManagement/SuperAdminGaragesScreen";
 import { CheckPhoneRole } from "../services/authApi";
 import { useAppSelector } from "../redux/hooks/useAppSelector";
 import { AuthUserType } from "../redux/slices/authSlice";
-import { MANAGER_ROLES } from "./rolePolicy";
+import { MANAGER_ROLES, SUPER_ADMIN_ROLES } from "./rolePolicy";
 
 export type AppStackParamList = {
   Home: undefined;
@@ -88,6 +97,21 @@ export type AppStackParamList = {
   };
   DealerRegister: undefined;
   SelectGarage: undefined;
+  GarageManagement: undefined;
+  GarageCustomers: undefined;
+  GarageOrders: undefined;
+  /** Danh sách nhân viên — chỉ dành cho manager */
+  GarageEmployees: undefined;
+  /** Chi tiết nhân viên */
+  EmployeeDetail: { employeeId: string; employeeName: string };
+  /** Quản lý danh mục (services, products, offers...) */
+  AdminCatalog: undefined;
+  /** Quản lý vận hành (warranties, vehicles, inspection) */
+  AdminOperations: undefined;
+  /** Cài đặt hệ thống (reminder configs, UI visibility) */
+  AdminSettings: undefined;
+  /** Chỉ dành cho garage_admin (super admin) */
+  SuperAdminGarages: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -119,6 +143,7 @@ function withRoleGuard<T extends object>(
 }
 
 const managerAllowedRoles: AuthUserType[] = ["dealer", ...MANAGER_ROLES];
+const superAdminAllowedRoles: AuthUserType[] = [...SUPER_ADMIN_ROLES];
 const employeeAllowedRoles: AuthUserType[] = ["employee"];
 const customerAllowedRoles: AuthUserType[] = ["customer"];
 
@@ -128,6 +153,7 @@ const GuardedEmployeeOrderDetailScreen = withRoleGuard(EmployeeOrderDetailScreen
 const GuardedVehicleListScreen = withRoleGuard(VehicleListScreen, customerAllowedRoles);
 const GuardedVehicleDetailScreen = withRoleGuard(VehicleDetailScreen, customerAllowedRoles);
 const GuardedVehicleEditScreen = withRoleGuard(VehicleEditScreen, customerAllowedRoles);
+const GuardedSuperAdminGaragesScreen = withRoleGuard(SuperAdminGaragesScreen, superAdminAllowedRoles);
 
 export default function AppNavigator() {
   // Prefetch critical data (services, categories, offers) when app loads
@@ -145,6 +171,14 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
       <Stack.Screen name="SelectGarage" component={SelectGarageScreen} />
+      <Stack.Screen name="GarageManagement" component={GarageManagementScreen} />
+      <Stack.Screen name="GarageEmployees" component={GarageEmployeesScreen} />
+      <Stack.Screen name="EmployeeDetail" component={EmployeeDetailScreen} />
+      <Stack.Screen name="AdminCatalog" component={AdminCatalogScreen} />
+      <Stack.Screen name="AdminOperations" component={AdminOperationsScreen} />
+      <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
+      {/* Super admin only — redirect về Home nếu không đủ quyền */}
+      <Stack.Screen name="SuperAdminGarages" component={GuardedSuperAdminGaragesScreen} />
       {/* Tabs with Navbar (bottom tab visible) */}
       <Stack.Screen name="Home" component={MainTabs} />
 

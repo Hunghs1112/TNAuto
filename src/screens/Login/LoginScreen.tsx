@@ -43,7 +43,7 @@ export default function LoginScreen() {
     const contract = createCustomerLoginContract(loginResult, normalizedPhone);
 
     if (!contract || !contract.state.isReady) {
-      Alert.alert("Loi", "Dang nhap that bai. Vui long thu lai.");
+      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
       return;
     }
 
@@ -100,7 +100,7 @@ export default function LoginScreen() {
     const normalizedPhone = cleanPhone(phone || "");
 
     if (!normalizedPhone) {
-      Alert.alert("Loi", "Vui long nhap so dien thoai.");
+      Alert.alert("Lỗi", "Vui lòng nhập số điện thoại.");
       return;
     }
 
@@ -111,11 +111,11 @@ export default function LoginScreen() {
 
       if (roles.length === 0) {
         Alert.alert(
-          "Chua co tai khoan",
-          "So dien thoai nay chua co tai khoan. Ban co muon dang ky khach hang?",
+          "Chưa có tài khoản",
+          "Số điện thoại này chưa có tài khoản. Bạn có muốn đăng ký khách hàng?",
           [
-            { text: "Dong", style: "cancel" },
-            { text: "Dang ky", onPress: () => navigation.navigate("Register") },
+            { text: "Đóng", style: "cancel" },
+            { text: "Đăng ký", onPress: () => navigation.navigate("Register") },
           ]
         );
         return;
@@ -134,11 +134,11 @@ export default function LoginScreen() {
     } catch (error: any) {
       if (error?.status === 404) {
         Alert.alert(
-          "Chua co tai khoan",
-          "So dien thoai nay chua co tai khoan. Ban co muon dang ky khach hang?",
+          "Chưa có tài khoản",
+          "Số điện thoại này chưa có tài khoản. Bạn có muốn đăng ký khách hàng?",
           [
-            { text: "Dong", style: "cancel" },
-            { text: "Dang ky", onPress: () => navigation.navigate("Register") },
+            { text: "Đóng", style: "cancel" },
+            { text: "Đăng ký", onPress: () => navigation.navigate("Register") },
           ]
         );
       } else {
@@ -156,13 +156,13 @@ export default function LoginScreen() {
 
   return (
     <AuthShell
-      title="Chao mung tro lai"
-      subtitle="Nhap so dien thoai de tiep tuc"
+      title="Chào mừng trở lại"
+      subtitle="Nhập số điện thoại để tiếp tục"
       footer={
         <View style={loginSharedStyles.signup}>
-          <Text style={loginSharedStyles.registerPrompt}>Ban chua co tai khoan?</Text>
+          <Text style={loginSharedStyles.registerPrompt}>Bạn chưa có tài khoản?</Text>
           <TouchableOpacity onPress={handleRegister}>
-            <Text style={loginSharedStyles.registerLink}>Dang ky</Text>
+            <Text style={loginSharedStyles.registerLink}>Đăng ký</Text>
           </TouchableOpacity>
         </View>
       }
@@ -171,7 +171,7 @@ export default function LoginScreen() {
         <TextInputComponent
           value={phone}
           onChangeText={setPhone}
-          placeholder="So dien thoai"
+          placeholder="Số điện thoại"
           placeholderTextColor={Colors.text.placeholder}
           keyboardType="phone-pad"
           focusBorderColor={Colors.accent.yellow}
@@ -179,7 +179,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={loginSharedStyles.actions}>
-        <Button title="Tiep tuc" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
+        <Button title="Tiếp tục" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
       </View>
     </AuthShell>
   );

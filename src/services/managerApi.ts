@@ -14,7 +14,66 @@ type ManagerSummaryStats = {
 
 type ManagerHomeSummary = {
   stats?: ManagerSummaryStats;
+  summary?: ManagerSummaryStats;
+  statistics?: ManagerSummaryStats;
   [key: string]: unknown;
+};
+
+const STAT_KEYS: (keyof ManagerSummaryStats)[] = [
+  'pending_orders',
+  'processing_orders',
+  'completed_today',
+  'overdue_orders',
+  'alerts',
+];
+
+const pickStats = (source: Record<string, unknown> | undefined): ManagerSummaryStats | undefined => {
+  if (!source) {
+    return undefined;
+  }
+
+  const stats: ManagerSummaryStats = {};
+  let hasValue = false;
+
+  STAT_KEYS.forEach((key) => {
+    const value = source[key];
+    if (value !== undefined) {
+      stats[key] = value as number | string | null | undefined;
+      hasValue = true;
+    }
+  });
+
+  return hasValue ? stats : undefined;
+};
+
+const normalizeManagerHomeSummary = (payload: unknown): ManagerHomeSummary | null => {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const body = payload as Record<string, unknown>;
+  const nestedSources = [body.stats, body.summary, body.statistics, body.data]
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+
+  for (const source of nestedSources) {
+    const stats = pickStats(source);
+    if (stats) {
+      return {
+        ...body,
+        stats,
+      };
+    }
+  }
+
+  const directStats = pickStats(body);
+  if (directStats) {
+    return {
+      ...body,
+      stats: directStats,
+    };
+  }
+
+  return body as ManagerHomeSummary;
 };
 
 type ManagerNotification = {
@@ -73,7 +132,13 @@ export const managerApi = createApi({
           throw new Error(response?.error || 'Failed to fetch manager home summary');
         }
 
-        return response.data || null;
+        const normalized = normalizeManagerHomeSummary(response.data);
+
+        if (!normalized) {
+          return null;
+        }
+
+        return normalized;
       },
     }),
     getManagerHomeOrders: builder.query<ServiceOrder[], void>({

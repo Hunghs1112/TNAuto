@@ -17,11 +17,11 @@ type RoleSelectRouteProp = RouteProp<AuthStackParamList, "RoleSelect">;
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const roleTitles: Record<CheckPhoneRole, string> = {
-  garage_manager: "Quan ly gara",
+  garage_manager: "Quản lý gara",
   garage_admin: "Admin gara",
-  dealer: "Dai ly",
-  employee: "Nhan vien",
-  customer: "Khach hang",
+  dealer: "Đại lý",
+  employee: "Nhân viên",
+  customer: "Khách hàng",
 };
 
 const rolePriority: Record<CheckPhoneRole, number> = {
@@ -51,7 +51,7 @@ export default function RoleSelectScreen() {
     const contract = createCustomerLoginContract(loginResult, phone);
 
     if (!contract || !contract.state.isReady) {
-      Alert.alert("Loi", "Dang nhap that bai. Vui long thu lai.");
+      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
       return;
     }
 
@@ -74,7 +74,7 @@ export default function RoleSelectScreen() {
       try {
         await completeCustomerLogin();
       } catch (error: any) {
-        Alert.alert("Loi", error?.data?.error || error?.data?.message || "Dang nhap khach hang that bai.");
+        Alert.alert("Lỗi", error?.data?.error || error?.data?.message || "Đăng nhập khách hàng thất bại.");
       } finally {
         setIsLoading(false);
       }
@@ -114,8 +114,8 @@ export default function RoleSelectScreen() {
   };
 
   return (
-    <AuthShell title="Chon vai tro dang nhap" subtitle={`So ${phone} co nhieu vai tro. Hay chon vai tro de tiep tuc.`}>
-      <Text style={loginSharedStyles.roleIntroText}>Thong tin tai khoan:</Text>
+    <AuthShell title="Chọn vai trò đăng nhập" subtitle={`Số ${phone} có nhiều vai trò. Hãy chọn vai trò để tiếp tục.`}>
+      <Text style={loginSharedStyles.roleIntroText}>Thông tin tài khoản:</Text>
 
       <View style={loginSharedStyles.roleList}>
         {sortedRoles.map((role) => (
@@ -126,14 +126,14 @@ export default function RoleSelectScreen() {
             activeOpacity={0.8}
           >
             <Text style={loginSharedStyles.roleTitle}>{roleTitles[role]}</Text>
-            {!!accounts?.[role]?.name && <Text style={loginSharedStyles.roleMeta}>Ten: {accounts[role].name}</Text>}
+            {!!accounts?.[role]?.name && <Text style={loginSharedStyles.roleMeta}>Tên: {accounts[role].name}</Text>}
             {!!accounts?.[role]?.garage_id && <Text style={loginSharedStyles.roleMeta}>Garage ID: {accounts[role].garage_id}</Text>}
           </TouchableOpacity>
         ))}
       </View>
 
       <View style={loginSharedStyles.secondaryAction}>
-        <Button title="Quay lai" onPress={() => navigation.goBack()} variant="secondary" fullWidth disabled={isLoading} />
+        <Button title="Quay lại" onPress={() => navigation.goBack()} variant="secondary" fullWidth disabled={isLoading} />
       </View>
     </AuthShell>
   );

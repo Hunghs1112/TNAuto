@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -71,6 +72,7 @@ export const useHomeScreen = () => {
   const insets = useSafeAreaInsets();
   const [claimingOrderId, setClaimingOrderId] = useState(null as string | null);
   const [bannerDismissedThisSession, setBannerDismissedThisSession] = useState(false);
+  const isFocused = useIsFocused();
 
   const navbarHeight =
     spacing.md + (spacing.sm * 2) + 64 + insets.bottom + spacing.lg + spacing.md;
@@ -102,9 +104,12 @@ export const useHomeScreen = () => {
     !isLoggedIn || (userType === "customer" && !hasGarageContext);
 
   const [claimEmployeeOrder] = useClaimEmployeeOrderMutation();
-  const { data: resolvedGarageByCode } = useResolveGarageByCodeQuery(currentGarageCode, {
+  const { data: resolvedGarageByCode, refetch: refetchResolvedGarageByCode } = useResolveGarageByCodeQuery(currentGarageCode, {
     skip: !shouldResolveGarageName,
   });
+  const lastSyncedGarageSignatureRef = useRef<string>('');
+  const isRefreshingGarageRef = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const productsQuery = useGetProductsQuery({ garageCode: currentGarageCode }, { skip: isDealer || !canUseTenantCatalog });
   const dealerProductsQuery = useGetDealerProductsQuery(undefined, { skip: !isDealer });
@@ -189,8 +194,11 @@ export const useHomeScreen = () => {
 
   const handleRefresh = useCallback(async () => {
     baseOnRefresh();
-    await queryOnRefresh();
-  }, [baseOnRefresh, queryOnRefresh]);
+    await Promise.all([
+      queryOnRefresh(),
+      currentGarageCode ? refetchResolvedGarageByCode() : Promise.resolve(),
+    ]);
+  }, [baseOnRefresh, currentGarageCode, queryOnRefresh, refetchResolvedGarageByCode]);
 
   useEffect(() => {
     if (notifications) {
@@ -205,17 +213,29 @@ export const useHomeScreen = () => {
   }, [apiUnreadCount, dispatch]);
 
   useEffect(() => {
-    if (!resolvedGarageByCode?.name) {
+    if (!resolvedGarageByCode?.name || isRefreshingGarageRef.current) {
       return;
     }
 
-    if (
-      hasResolvedGarageName(currentGarageName, currentGarageCode) &&
-      normalizeGarageValue(currentGarageName) === normalizeGarageValue(resolvedGarageByCode.name)
-    ) {
+    if (!isFocused || appStateRef.current !== 'active') {
       return;
     }
 
+    const signature = [
+      resolvedGarageByCode.id ?? garageContext.garageId,
+      resolvedGarageByCode.code || currentGarageCode,
+      resolvedGarageByCode.name,
+      resolvedGarageByCode.address ?? garageContext.address,
+      resolvedGarageByCode.avatar_url ?? garageContext.avatarUrl,
+      resolvedGarageByCode.banner_url ?? garageContext.bannerUrl,
+      resolvedGarageByCode.status ?? garageContext.status,
+    ].join('|');
+
+    if (lastSyncedGarageSignatureRef.current === signature) {
+      return;
+    }
+
+    lastSyncedGarageSignatureRef.current = signature;
     dispatch(
       setGarageContext({
         garageId: resolvedGarageByCode.id ?? garageContext.garageId,
@@ -230,7 +250,6 @@ export const useHomeScreen = () => {
     );
   }, [
     currentGarageCode,
-    currentGarageName,
     dispatch,
     garageContext.address,
     garageContext.avatarUrl,
@@ -239,6 +258,30 @@ export const useHomeScreen = () => {
     garageContext.status,
     resolvedGarageByCode,
   ]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+
+      if (nextState !== 'active' || previousState === 'active' || !isFocused || !currentGarageCode || isRefreshingGarageRef.current) {
+        return;
+      }
+
+      isRefreshingGarageRef.current = true;
+      lastSyncedGarageSignatureRef.current = '';
+
+      Promise.resolve(refetchResolvedGarageByCode())
+        .catch((error) => {
+          console.warn('Failed to refetch garage after resume:', error);
+        })
+        .finally(() => {
+          isRefreshingGarageRef.current = false;
+        });
+    });
+
+    return () => subscription.remove();
+  }, [currentGarageCode, isFocused, refetchResolvedGarageByCode]);
 
   const handleNotificationPress = useCallback(() => {
     navigation.navigate("Notification");

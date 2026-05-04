@@ -35,32 +35,32 @@ function categorizeOrders(orders: ServiceOrder[]) {
 }
 
 function computeKPIs(summary: ManagerHomeSummary | null | undefined): KPI[] {
-  const stats = summary?.stats || {};
+  const stats = summary?.stats || summary?.summary || summary?.statistics || {};
 
   return [
     {
       key: 'pending',
-      label: 'Don cho xu ly',
+      label: 'Đơn chờ xử lý',
       value: Number(stats.pending_orders) || 0,
     },
     {
       key: 'processing',
-      label: 'Don dang xu ly',
+      label: 'Đơn đang xử lý',
       value: Number(stats.processing_orders) || 0,
     },
     {
       key: 'overdue',
-      label: 'Don qua han',
+      label: 'Đơn quá hạn',
       value: Number(stats.overdue_orders) || 0,
     },
     {
       key: 'completed_today',
-      label: 'Hoan thanh hom nay',
+      label: 'Hoàn thành hôm nay',
       value: Number(stats.completed_today) || 0,
     },
     {
       key: 'notifications',
-      label: 'Canh bao',
+      label: 'Cảnh báo',
       value: Number(stats.alerts) || 0,
     },
   ];
@@ -94,6 +94,12 @@ export function useManagerHomeScreen({
       clearInterval(summaryInterval);
     };
   }, [isEnabled, refetchSummary]);
+
+  useEffect(() => {
+    if (summaryData) {
+      console.log('[ManagerHome] summary payload', JSON.stringify(summaryData));
+    }
+  }, [summaryData]);
 
   return {
     kpis,

@@ -11,6 +11,7 @@ import FloatingNoticeBanner from "../../components/FloatingNoticeBanner";
 import { Colors } from "../../constants/colors";
 import { getPrimaryCatalogProductImageUrl } from "../../utils/catalog";
 import { AppStackParamList } from "../../navigation/AppNavigator";
+import { isManagerRole as isManagerUserRole } from "../../navigation/rolePolicy";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { selectActiveGarage, selectGarageAvatarUrl, selectGarageBannerUrl, selectGarageName, selectUserName, selectUserType } from "../../redux/selectors";
 import { styles } from "./styles";
@@ -38,9 +39,9 @@ export default function HomeScreen() {
   const activeGarage = useAppSelector(selectActiveGarage);
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  const isManagerRole = storeUserType === "garage_manager" || storeUserType === "garage_admin";
+  const isManager = isManagerUserRole(storeUserType as any);
 
-  if (isManagerRole) {
+  if (isManager) {
     return (
       <ManagerHomeScreen
         userName={storeUserName}
@@ -52,7 +53,7 @@ export default function HomeScreen() {
           bannerUrl: storeGarageBannerUrl || undefined,
           canChangeGarage: false,
         }}
-        onGaragePress={() => navigation.navigate("Category")}
+        onGaragePress={() => navigation.navigate("GarageManagement")}
       />
     );
   }
@@ -147,12 +148,12 @@ function StandardHomeScreen() {
             <View style={styles.section}>
               <View style={styles.loginPromptCard}>
                 <Ionicons name="business-outline" size={48} color={Colors.primary} />
-                <Text style={styles.loginPromptTitle}>Lien ket ma gara de su dung day du tinh nang</Text>
+                <Text style={styles.loginPromptTitle}>Liên kết mã gara để sử dụng đầy đủ tính năng</Text>
                 <Text style={styles.loginPromptDescription}>
-                  Tai khoan cua ban chua duoc gan voi ma gara nao. Hay nhap ma gara de ket noi tai khoan, dong bo du lieu va bat dau su dung dich vu.
+                  Tài khoản của bạn chưa được gắn với mã gara nào. Hãy nhập mã gara để kết nối tài khoản, đồng bộ dữ liệu và bắt đầu sử dụng dịch vụ.
                 </Text>
                 <TouchableOpacity style={styles.loginPromptButton} onPress={actions.onGaragePress}>
-                  <Text style={styles.loginPromptButtonText}>Nhap ma gara</Text>
+                  <Text style={styles.loginPromptButtonText}>Nhập mã gara</Text>
                   <Ionicons name="arrow-forward" size={20} color={Colors.background.light} />
                 </TouchableOpacity>
               </View>
@@ -160,29 +161,29 @@ function StandardHomeScreen() {
           ) : isLoggedIn && userType === "employee" ? (
             <>
               <View style={styles.section}>
-                <SectionHeader title="Viec moi tao chua giao ai" />
+                <SectionHeader title="Việc mới tạo chưa giao ai" />
                 <AvailableOrdersList
                   orders={ordersState.sortedAvailableOrders}
                   isLoading={ordersState.availableLoading}
                   onOrderPress={actions.onOrderPress}
                   onClaimPress={actions.onClaimOrder}
                   claimingOrderId={ordersState.claimingOrderId}
-                  emptyMessage="Chua co viec moi nao dang cho nhan"
+                  emptyMessage="Chưa có việc mới nào đang chờ nhận"
                 />
               </View>
 
               <View style={styles.section}>
-                <SectionHeader title="Viec dang dam nhan" />
+                <SectionHeader title="Việc đang đảm nhận" />
                 <EmployeeOrdersList
                   orders={ordersState.sortedAssignedOrders}
                   isLoading={ordersState.assignedLoading}
                   onOrderPress={actions.onOrderPress}
-                  emptyMessage="Chua co viec nao dang dam nhan"
+                  emptyMessage="Chưa có việc nào đang đảm nhận"
                 />
               </View>
 
               <View style={styles.section}>
-                <SectionHeader title="Thong tin bao hanh" />
+                <SectionHeader title="Thông tin bảo hành" />
                 <WarrantyInfo
                   orders={ordersState.sortedAssignedOrders}
                   onWarrantyPress={(orderId: string) => actions.onOrderPress(orderId)}
@@ -199,15 +200,15 @@ function StandardHomeScreen() {
 
               {isLoggedIn && userType === "customer" && (
                 <View style={styles.section}>
-                  <SectionHeader title="Dich vu dang su dung" />
+                  <SectionHeader title="Dịch vụ đang sử dụng" />
                   <OrdersList
                     orders={ordersState.displayedOrders}
                     isLoading={ordersState.ordersLoading}
                     userType={userType}
                     onOrderPress={actions.onOrderPress}
-                    emptyMessage="Chua co don hang nao"
+                    emptyMessage="Chưa có đơn hàng nào"
                   />
-                  {ordersState.sortedOrders.length > 2 && <ViewMoreButton onPress={actions.onViewMore} title="Xem tat ca don hang" />}
+                  {ordersState.sortedOrders.length > 2 && <ViewMoreButton onPress={actions.onViewMore} title="Xem tất cả đơn hàng" />}
                 </View>
               )}
 
@@ -217,24 +218,24 @@ function StandardHomeScreen() {
                 </View>
               ) : isLoggedIn && userType === "dealer" ? (
                 <View style={styles.section}>
-                  <SectionHeader title="San pham noi bat" />
+                  <SectionHeader title="Sản phẩm nổi bật" />
                   <View style={styles.servicesContainer}>
                     {homeContent.previewProducts.map((product: any) => (
                       <Item
                         key={product.id}
                         title={product.name}
-                        description={product.description || "Xem chi tiet san pham"}
+                        description={product.description || "Xem chi tiết sản phẩm"}
                         imageUri={getPrimaryCatalogProductImageUrl(product)}
                         onPress={() => actions.onProductPress(String(product.id))}
                       />
                     ))}
                   </View>
-                  <ViewMoreButton onPress={actions.onViewMore} title="Xem them san pham" />
+                  <ViewMoreButton onPress={actions.onViewMore} title="Xem thêm sản phẩm" />
                 </View>
               ) : !isLoggedIn ? (
                 <>
                   <View style={styles.section}>
-                    <SectionHeader title="Dich vu cua chung toi" />
+                    <SectionHeader title="Dịch vụ của chúng tôi" />
                     <View style={styles.servicesContainer}>
                       {homeContent.previewServices.map((service: any) => (
                         <Item
@@ -246,7 +247,7 @@ function StandardHomeScreen() {
                         />
                       ))}
                     </View>
-                    <ViewMoreButton onPress={actions.onViewMore} title="Xem them dich vu" />
+                    <ViewMoreButton onPress={actions.onViewMore} title="Xem thêm dịch vụ" />
                   </View>
 
                   <View style={styles.section}>
@@ -256,7 +257,7 @@ function StandardHomeScreen() {
                         <Item
                           key={product.id}
                           title={product.name}
-                          description={product.description || "Xem chi tiet san pham"}
+                          description={product.description || "Xem chi tiết sản phẩm"}
                           imageUri={getPrimaryCatalogProductImageUrl(product)}
                           onPress={() => actions.onProductPress(String(product.id))}
                         />
@@ -268,12 +269,12 @@ function StandardHomeScreen() {
                   <View style={styles.section}>
                     <View style={styles.loginPromptCard}>
                       <Ionicons name="calendar-outline" size={48} color={Colors.primary} />
-                      <Text style={styles.loginPromptTitle}>Dang nhap de dat lich dich vu</Text>
+                      <Text style={styles.loginPromptTitle}>Đăng nhập để đặt lịch dịch vụ</Text>
                       <Text style={styles.loginPromptDescription}>
-                        Dang nhap de dat lich dich vu, xem lich su don hang va quan ly thong tin xe cua ban
+                        Đăng nhập để đặt lịch dịch vụ, xem lịch sử đơn hàng và quản lý thông tin xe của bạn
                       </Text>
                       <TouchableOpacity style={styles.loginPromptButton} onPress={actions.onLoginPress}>
-                        <Text style={styles.loginPromptButtonText}>Dang nhap / Dang ky</Text>
+                        <Text style={styles.loginPromptButtonText}>Đăng nhập / Đăng ký</Text>
                         <Ionicons name="arrow-forward" size={20} color={Colors.background.light} />
                       </TouchableOpacity>
                     </View>

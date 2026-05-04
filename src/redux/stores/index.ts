@@ -18,6 +18,7 @@ import { warrantyApi } from '../../services/warrantyApi';
 import { vehicleApi } from '../../services/vehicleApi';
 import { serviceCategoryApi } from '../../services/serviceCategoryApi';
 import { managerApi } from '../../services/managerApi';
+import { adminGarageApi } from '../../services/adminGarageApi';
 
 import authReducer from '../slices/authSlice';
 import loadingReducer from '../slices/loadingSlice';
@@ -52,7 +53,10 @@ const garagePersistConfig = {
   key: 'garageContext',
   storage: AsyncStorage,
   version: 1,
-  migrate: async (state: any) => sanitizeGarageContextState(state),
+  migrate: async (state: any) => ({
+    ...sanitizeGarageContextState(state),
+    _persist: state?._persist,
+  }),
 };
 const persistedGarageContextReducer = persistReducer(garagePersistConfig, garageContextReducer);
 
@@ -86,6 +90,7 @@ export const store = configureStore({
     [vehicleApi.reducerPath]: vehicleApi.reducer,
     [serviceCategoryApi.reducerPath]: serviceCategoryApi.reducer,
     [managerApi.reducerPath]: managerApi.reducer,
+    [adminGarageApi.reducerPath]: adminGarageApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -108,7 +113,8 @@ export const store = configureStore({
       warrantyApi.middleware,
       vehicleApi.middleware,
       serviceCategoryApi.middleware,
-      managerApi.middleware
+      managerApi.middleware,
+      adminGarageApi.middleware
     ),
 });
 

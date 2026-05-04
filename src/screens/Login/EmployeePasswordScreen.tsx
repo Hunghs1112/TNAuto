@@ -36,12 +36,12 @@ export default function EmployeePasswordScreen() {
     const normalizedPassword = password.trim();
 
     if (!normalizedPhone) {
-      Alert.alert("Loi", "Thieu so dien thoai dang nhap.");
+      Alert.alert("Lỗi", "Thiếu số điện thoại đăng nhập.");
       return;
     }
 
     if (!normalizedPassword) {
-      Alert.alert("Loi", "Vui long nhap mat khau.");
+      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu.");
       return;
     }
 
@@ -94,13 +94,13 @@ export default function EmployeePasswordScreen() {
           })
         );
       } else {
-        Alert.alert("Loi", "Dang nhap that bai. Vui long thu lai.");
+        Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
       }
     } catch (error: any) {
       console.error("Employee login error:", error);
 
       if (error?.status === 401) {
-        Alert.alert("Mat khau khong dung", "Vui long kiem tra lai mat khau.");
+        Alert.alert("Mật khẩu không đúng", "Vui lòng kiểm tra lại mật khẩu.");
       } else if (error?.status === 403) {
         Alert.alert(
           "Gara tam ngung hoat dong",
@@ -108,13 +108,13 @@ export default function EmployeePasswordScreen() {
         );
       } else if (error?.status === 400) {
         Alert.alert(
-          "Thieu thong tin dang nhap",
-          error?.data?.error || error?.data?.message || "Vui long nhap day du so dien thoai va mat khau."
+          "Thiếu thông tin đăng nhập",
+          error?.data?.error || error?.data?.message || "Vui lòng nhập đầy đủ số điện thoại và mật khẩu."
         );
       } else if (error?.status === 500) {
-        Alert.alert("Loi he thong", "Co loi xay ra tu may chu. Vui long thu lai sau.");
+        Alert.alert("Lỗi hệ thống", "Có lỗi xảy ra từ máy chủ. Vui lòng thử lại sau.");
       } else {
-        Alert.alert("Loi ket noi", error?.data?.error || error?.data?.message || "Khong the ket noi den may chu.");
+        Alert.alert("Lỗi kết nối", error?.data?.error || error?.data?.message || "Không thể kết nối đến máy chủ.");
       }
     } finally {
       setIsLoading(false);
@@ -122,12 +122,12 @@ export default function EmployeePasswordScreen() {
   };
 
   return (
-    <AuthShell title={`Xin chao, ${employeeData?.name || "Nhan vien"}`} subtitle="Vui long nhap mat khau de tiep tuc">
+    <AuthShell title={`Xin chào, ${employeeData?.name || "Nhân viên"}`} subtitle="Vui lòng nhập mật khẩu để tiếp tục">
       <View style={loginSharedStyles.inputContainer}>
         <TextInputComponent
           value={phone}
           editable={false}
-          placeholder="So dien thoai"
+          placeholder="Số điện thoại"
           placeholderTextColor={Colors.text.placeholder}
           style={loginSharedStyles.readOnlyInput}
         />
@@ -135,7 +135,7 @@ export default function EmployeePasswordScreen() {
         <TextInputComponent
           value={password}
           onChangeText={setPassword}
-          placeholder="Mat khau"
+          placeholder="Mật khẩu"
           placeholderTextColor={Colors.text.placeholder}
           secureTextEntry
           autoFocus
@@ -144,7 +144,7 @@ export default function EmployeePasswordScreen() {
       </View>
 
       <View style={loginSharedStyles.actions}>
-        <Button title="Dang nhap" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
+        <Button title="Đăng nhập" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
       </View>
     </AuthShell>
   );

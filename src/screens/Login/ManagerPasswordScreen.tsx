@@ -33,12 +33,12 @@ export default function ManagerPasswordScreen() {
     const normalizedPassword = password.trim();
 
     if (!normalizedLogin) {
-      Alert.alert("Loi", "Thieu so dien thoai dang nhap.");
+      Alert.alert("Lỗi", "Thiếu số điện thoại đăng nhập.");
       return;
     }
 
     if (!normalizedPassword) {
-      Alert.alert("Loi", "Vui long nhap mat khau.");
+      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu.");
       return;
     }
 
@@ -51,7 +51,7 @@ export default function ManagerPasswordScreen() {
 
       const contract = createManagerLoginContract(result, normalizedLogin, expectedRole);
       if (!contract || !contract.state.isReady) {
-        Alert.alert("Loi", result?.error || result?.message || "Dang nhap that bai. Vui long thu lai.");
+        Alert.alert("Lỗi", result?.error || result?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
         return;
       }
 
@@ -67,14 +67,14 @@ export default function ManagerPasswordScreen() {
 
   return (
     <AuthShell
-      title={expectedRole === "garage_admin" ? "Dang nhap admin gara" : "Dang nhap quan ly gara"}
-      subtitle="Vui long nhap mat khau de tiep tuc"
+      title={expectedRole === "garage_admin" ? "Đăng nhập admin gara" : "Đăng nhập quản lý gara"}
+      subtitle="Vui lòng nhập mật khẩu để tiếp tục"
     >
       <View style={loginSharedStyles.inputContainer}>
         <TextInputComponent
           value={phone}
           editable={false}
-          placeholder="So dien thoai"
+          placeholder="Số điện thoại"
           placeholderTextColor={Colors.text.placeholder}
           style={loginSharedStyles.readOnlyInput}
         />
@@ -82,7 +82,7 @@ export default function ManagerPasswordScreen() {
         <TextInputComponent
           value={password}
           onChangeText={setPassword}
-          placeholder="Mat khau"
+          placeholder="Mật khẩu"
           placeholderTextColor={Colors.text.placeholder}
           secureTextEntry
           autoFocus
@@ -91,7 +91,7 @@ export default function ManagerPasswordScreen() {
       </View>
 
       <View style={loginSharedStyles.actions}>
-        <Button title="Dang nhap" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
+        <Button title="Đăng nhập" onPress={handleLogin} loading={isLoading} disabled={isLoading} variant="primary" fullWidth />
       </View>
     </AuthShell>
   );

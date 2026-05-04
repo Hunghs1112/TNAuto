@@ -1,19 +1,42 @@
 // src/screens/OrderDetail/OrderDetailScreen.tsx
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/AppNavigator';
-import { View, Text, FlatList, Image, ActivityIndicator, ScrollView, Modal, TouchableOpacity, RefreshControl } from 'react-native';
+import {
+  View, Text, FlatList, Image, ActivityIndicator, ScrollView,
+  Modal, TouchableOpacity, RefreshControl, Alert, StyleSheet, TextInput,
+} from 'react-native';
 import Screen from '../../components/layout/Screen/Screen';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
+import { borderRadius } from '../../design-system/borders';
+import { spacing } from '../../design-system/spacing';
 import ErrorView from '../../components/Loading/ErrorView';
 import { useGetOrderDetailsQuery } from '../../services/customerApi';
+import {
+  useGetAdminResourceDetailQuery,
+  useGetAdminResourceListQuery,
+  useGetAdminResourceImagesQuery,
+  useUpdateAdminServiceOrderStatusMutation,
+  useAssignAdminServiceOrderMutation,
+  useCompleteAdminServiceOrderMutation,
+  useCreateAdminResourceMutation,
+  useCreateAdminResourceImageMutation,
+  useDeleteAdminResourceImageMutation,
+} from '../../services/adminGarageApi';
 import { ServiceOrderImage } from '../../types/api.types';
 import { styles } from './styles';
-import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
+import { isManagerRole } from '../../navigation/rolePolicy';
+import {
+  createImageFormData,
+  pickImageFromCamera,
+  pickImageFromGallery,
+  showImagePickerOptions,
+  validateImageSize,
+} from '../../utils/imageUpload';
 
 const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
@@ -22,19 +45,56 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
   );
   const userType = useAppSelector((s) => s.auth.userType);
-  const { data: orderData, isLoading, error, refetch, isFetching } = useGetOrderDetailsQuery(id, {
-    skip: userType === 'customer' && !hasGarageContext,
+  const isAdminManager = isManagerRole(userType);
+  const isDealerOnly = userType === 'dealer';
+  const customerOrderQuery = useGetOrderDetailsQuery(id, {
+    skip: isAdminManager || (userType === 'customer' && !hasGarageContext) || isDealerOnly,
   });
+  const adminOrderQuery = useGetAdminResourceDetailQuery(
+    { resource: 'service-orders', id },
+    { skip: !isAdminManager },
+  );
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
 
-  const isDealer = (userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin');
+  const orderData = (isAdminManager ? adminOrderQuery.data : customerOrderQuery.data) as any;
+  const isLoading = isAdminManager ? adminOrderQuery.isLoading : customerOrderQuery.isLoading;
+  const error = isAdminManager ? adminOrderQuery.error : customerOrderQuery.error;
+  const refetch = isAdminManager ? adminOrderQuery.refetch : customerOrderQuery.refetch;
+  const isFetching = isAdminManager ? adminOrderQuery.isFetching : customerOrderQuery.isFetching;
+
+  // Admin mutations
+  const [updateStatus] = useUpdateAdminServiceOrderStatusMutation();
+  const [assignOrder] = useAssignAdminServiceOrderMutation();
+  const [completeOrder] = useCompleteAdminServiceOrderMutation();
+
+  // Admin image management
+  const adminImagesQuery = useGetAdminResourceImagesQuery(
+    { resource: 'service-orders', parentId: id },
+    { skip: !isAdminManager },
+  );
+  const [createImage] = useCreateAdminResourceImageMutation();
+  const [deleteImage] = useDeleteAdminResourceImageMutation();
+  const [showImagesModal, setShowImagesModal] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Employees list for assign picker
+  const employeesQuery = useGetAdminResourceListQuery(
+    { resource: 'employees' },
+    { skip: !isAdminManager },
+  );
+  const employees = (employeesQuery.data || []) as any[];
+
+  // Admin action modals
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   useEffect(() => {
-    if (isDealer) {
+    if (isDealerOnly) {
       navigation.replace('Category');
     }
-  }, [isDealer, navigation]);
+  }, [isDealerOnly, navigation]);
 
   useEffect(() => {
     if (userType === 'customer' && !hasGarageContext) {
@@ -42,27 +102,108 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
     }
   }, [hasGarageContext, navigation, userType]);
 
-  if (isDealer || (userType === 'customer' && !hasGarageContext)) {
-    return null;
-  }
-
-  // Handle pull-to-refresh
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Refetch order data
       await refetch();
-    } catch (error) {
-      console.error('Error refreshing order:', error);
+    } catch (refreshError) {
+      console.error('Error refreshing order:', refreshError);
     } finally {
       setRefreshing(false);
     }
   }, [refetch]);
 
+  // Admin handlers
+  const handleUpdateStatus = useCallback(async (status: string) => {
+    try {
+      await updateStatus({ id, body: { status } }).unwrap();
+      await refetch();
+      setShowStatusModal(false);
+      Alert.alert('Thành công', `Đã cập nhật trạng thái thành "${status}".`);
+    } catch {
+      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái. Vui lòng thử lại.');
+    }
+  }, [id, refetch, updateStatus]);
+
+  const handleAssign = useCallback(async (employeeId: string | number) => {
+    try {
+      await assignOrder({ id, body: { employee_id: employeeId } }).unwrap();
+      await refetch();
+      setShowAssignModal(false);
+      Alert.alert('Thành công', 'Đã gán nhân viên cho đơn hàng.');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể gán nhân viên. Vui lòng thử lại.');
+    }
+  }, [assignOrder, id, refetch]);
+
+  const handleComplete = useCallback(async (deliveryDate: string, note: string) => {
+    try {
+      await completeOrder({ id, body: { delivery_date: deliveryDate, note } }).unwrap();
+      await refetch();
+      setShowCompleteModal(false);
+      Alert.alert('Thành công', 'Đơn hàng đã được hoàn thành.');
+    } catch {
+      Alert.alert('Lỗi', 'Không thể hoàn thành đơn. Vui lòng thử lại.');
+    }
+  }, [completeOrder, id, refetch]);
+
+  const handleUploadImage = useCallback((statusAtTime: 'received' | 'completed') => {
+    const doUpload = async (asset: any) => {
+      if (!asset || !validateImageSize(asset)) return;
+      setUploadingImage(true);
+      try {
+        const formData = createImageFormData(asset, 'image');
+        // createAdminResourceImage expects body as Record<string,unknown>
+        // We pass FormData — backend should accept multipart
+        await createImage({
+          resource: 'service-orders',
+          body: {
+            order_id: id,
+            status_at_time: statusAtTime,
+            image: formData,
+          },
+        }).unwrap();
+        await adminImagesQuery.refetch();
+        await refetch();
+        Alert.alert('Thành công', 'Đã thêm ảnh.');
+      } catch {
+        Alert.alert('Lỗi', 'Không thể upload ảnh. Vui lòng thử lại.');
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    showImagePickerOptions(
+      async () => doUpload(await pickImageFromCamera()),
+      async () => { const assets = await pickImageFromGallery(); doUpload(assets[0]); },
+    );
+  }, [adminImagesQuery, createImage, id, refetch]);
+
+  const handleDeleteImage = useCallback((imageId: string | number) => {
+    Alert.alert('Xóa ảnh', 'Bạn có chắc muốn xóa ảnh này?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xóa', style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteImage({ resource: 'service-orders', id: imageId }).unwrap();
+            await adminImagesQuery.refetch();
+            await refetch();
+          } catch {
+            Alert.alert('Lỗi', 'Không thể xóa ảnh.');
+          }
+        },
+      },
+    ]);
+  }, [adminImagesQuery, deleteImage, refetch]);
+
   // MUST be called before any early returns
   const getImageUrl = useCallback((url: string) => {
     return url;
   }, []);
+
+  if (isDealerOnly || (userType === 'customer' && !hasGarageContext)) {
+    return null;
+  }
 
   // Early returns MUST come after all hooks
   if (isLoading) {
@@ -328,6 +469,45 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
         </View>
       </View>
 
+      {/* Admin action bar */}
+      {isAdminManager && orderData && orderData.status !== 'completed' && orderData.status !== 'cancelled' && orderData.status !== 'canceled' && (
+        <View style={adminStyles.actionBar}>
+          <TouchableOpacity style={adminStyles.actionBtn} onPress={() => setShowStatusModal(true)}>
+            <Ionicons name="swap-horizontal-outline" size={18} color={Colors.primary} />
+            <Text style={adminStyles.actionBtnText}>Trạng thái</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={adminStyles.actionBtn} onPress={() => setShowAssignModal(true)}>
+            <Ionicons name="person-add-outline" size={18} color={Colors.primary} />
+            <Text style={adminStyles.actionBtnText}>Gán NV</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={adminStyles.actionBtn} onPress={() => setShowImagesModal(true)}>
+            <Ionicons name="images-outline" size={18} color={Colors.primary} />
+            <Text style={adminStyles.actionBtnText}>Ảnh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[adminStyles.actionBtn, adminStyles.actionBtnPrimary]}
+            onPress={() => setShowCompleteModal(true)}
+          >
+            <Ionicons name="checkmark-circle-outline" size={18} color={Colors.background.light} />
+            <Text style={[adminStyles.actionBtnText, adminStyles.actionBtnTextPrimary]}>Xong</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Admin: images modal */}
+      {isAdminManager && showImagesModal && (
+        <OrderImagesModal
+          orderId={id}
+          images={(adminImagesQuery.data || []) as any[]}
+          loading={adminImagesQuery.isLoading}
+          uploading={uploadingImage}
+          onClose={() => setShowImagesModal(false)}
+          onUpload={handleUploadImage}
+          onDelete={handleDeleteImage}
+          onFullscreen={(url) => setSelectedImage(url)}
+        />
+      )}
+
       {/* Full Screen Image Modal */}
       <Modal
         visible={!!selectedImage}
@@ -347,9 +527,506 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
           )}
         </View>
       </Modal>
+
+      {/* Status picker modal */}
+      {showStatusModal && (
+        <StatusPickerModal
+          currentStatus={orderData?.status}
+          onClose={() => setShowStatusModal(false)}
+          onSelect={handleUpdateStatus}
+        />
+      )}
+
+      {/* Assign employee modal */}
+      {showAssignModal && (
+        <AssignEmployeeModal
+          employees={employees}
+          currentEmployeeId={orderData?.employee_id}
+          onClose={() => setShowAssignModal(false)}
+          onAssign={handleAssign}
+        />
+      )}
+
+      {/* Complete order modal */}
+      {showCompleteModal && (
+        <CompleteOrderModal
+          onClose={() => setShowCompleteModal(false)}
+          onComplete={handleComplete}
+        />
+      )}
     </Screen>
   );
 };
 
 export default OrderDetailScreen;
 
+// ─── Admin modals ─────────────────────────────────────────────────────────────
+
+// ── Order Images Modal ────────────────────────────────────────────────────────
+function OrderImagesModal({
+  orderId,
+  images,
+  loading,
+  uploading,
+  onClose,
+  onUpload,
+  onDelete,
+  onFullscreen,
+}: {
+  orderId: string;
+  images: any[];
+  loading: boolean;
+  uploading: boolean;
+  onClose: () => void;
+  onUpload: (statusAtTime: 'received' | 'completed') => void;
+  onDelete: (imageId: string | number) => void;
+  onFullscreen: (url: string) => void;
+}) {
+  const received = images.filter((img) => img.status_at_time === 'received');
+  const completed = images.filter((img) => img.status_at_time === 'completed');
+
+  const renderImageItem = (img: any) => (
+    <View key={String(img.id)} style={imgStyles.imgWrapper}>
+      <TouchableOpacity activeOpacity={0.85} onPress={() => img.image_url && onFullscreen(img.image_url)}>
+        {img.image_url ? (
+          <Image source={{ uri: img.image_url }} style={imgStyles.thumb} resizeMode="cover" />
+        ) : (
+          <View style={[imgStyles.thumb, imgStyles.thumbPlaceholder]}>
+            <Ionicons name="image-outline" size={24} color={Colors.text.secondary} />
+          </View>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={imgStyles.deleteBtn}
+        onPress={() => onDelete(img.id)}
+        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+      >
+        <Ionicons name="close-circle" size={20} color={Colors.status.error} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    <View style={adminStyles.overlay}>
+      <View style={[adminStyles.sheet, { maxHeight: '80%' }]}>
+        <View style={adminStyles.sheetHeader}>
+          <Text style={adminStyles.sheetTitle}>Quản lý ảnh đơn</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={22} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: spacing.xl }} />
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Received images */}
+            <View style={imgStyles.section}>
+              <View style={imgStyles.sectionHeader}>
+                <Text style={imgStyles.sectionTitle}>Ảnh khi nhận xe ({received.length})</Text>
+                <TouchableOpacity
+                  style={imgStyles.addBtn}
+                  onPress={() => onUpload('received')}
+                  disabled={uploading}
+                >
+                  {uploading
+                    ? <ActivityIndicator size="small" color={Colors.primary} />
+                    : <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />}
+                </TouchableOpacity>
+              </View>
+              {received.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={imgStyles.imgRow}>
+                    {received.map(renderImageItem)}
+                  </View>
+                </ScrollView>
+              ) : (
+                <Text style={imgStyles.emptyText}>Chưa có ảnh. Nhấn + để thêm.</Text>
+              )}
+            </View>
+
+            {/* Completed images */}
+            <View style={imgStyles.section}>
+              <View style={imgStyles.sectionHeader}>
+                <Text style={imgStyles.sectionTitle}>Ảnh khi bàn giao ({completed.length})</Text>
+                <TouchableOpacity
+                  style={imgStyles.addBtn}
+                  onPress={() => onUpload('completed')}
+                  disabled={uploading}
+                >
+                  {uploading
+                    ? <ActivityIndicator size="small" color={Colors.primary} />
+                    : <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />}
+                </TouchableOpacity>
+              </View>
+              {completed.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={imgStyles.imgRow}>
+                    {completed.map(renderImageItem)}
+                  </View>
+                </ScrollView>
+              ) : (
+                <Text style={imgStyles.emptyText}>Chưa có ảnh. Nhấn + để thêm.</Text>
+              )}
+            </View>
+          </ScrollView>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const imgStyles = StyleSheet.create({
+  section: { gap: spacing.sm, marginBottom: spacing.base },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    fontWeight: Typography.weight.bold,
+  },
+  addBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.primarySoft,
+  },
+  imgRow: { flexDirection: 'row', gap: spacing.sm },
+  imgWrapper: { position: 'relative' },
+  thumb: { width: 80, height: 80, borderRadius: borderRadius.xl },
+  thumbPlaceholder: {
+    backgroundColor: Colors.background.secondary,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.border.light,
+  },
+  deleteBtn: {
+    position: 'absolute', top: -6, right: -6,
+    backgroundColor: Colors.background.light,
+    borderRadius: 10,
+  },
+  emptyText: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.sm,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
+  },
+});
+
+const ORDER_STATUSES = [
+  { key: 'received', label: 'Mới nhận' },
+  { key: 'in_progress', label: 'Đang xử lý' },
+  { key: 'ready_for_pickup', label: 'Chờ bàn giao' },
+];
+
+function StatusPickerModal({
+  currentStatus,
+  onClose,
+  onSelect,
+}: {
+  currentStatus: string;
+  onClose: () => void;
+  onSelect: (status: string) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <View style={adminStyles.overlay}>
+      <View style={adminStyles.sheet}>
+        <View style={adminStyles.sheetHeader}>
+          <Text style={adminStyles.sheetTitle}>Cập nhật trạng thái</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={22} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+        {ORDER_STATUSES.map((s) => (
+          <TouchableOpacity
+            key={s.key}
+            style={[adminStyles.statusRow, s.key === currentStatus && adminStyles.statusRowActive]}
+            disabled={loading || s.key === currentStatus}
+            onPress={async () => {
+              setLoading(true);
+              await onSelect(s.key);
+              setLoading(false);
+            }}
+          >
+            <Text style={[adminStyles.statusLabel, s.key === currentStatus && adminStyles.statusLabelActive]}>
+              {s.label}
+            </Text>
+            {s.key === currentStatus && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+            {loading && s.key !== currentStatus && null}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function AssignEmployeeModal({
+  employees,
+  currentEmployeeId,
+  onClose,
+  onAssign,
+}: {
+  employees: any[];
+  currentEmployeeId?: string | number | null;
+  onClose: () => void;
+  onAssign: (id: string | number) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <View style={adminStyles.overlay}>
+      <View style={adminStyles.sheet}>
+        <View style={adminStyles.sheetHeader}>
+          <Text style={adminStyles.sheetTitle}>Gán nhân viên</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={22} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+        {employees.length === 0 ? (
+          <Text style={adminStyles.emptyText}>Chưa có nhân viên nào.</Text>
+        ) : (
+          employees.map((emp) => {
+            const isActive = String(emp.id) === String(currentEmployeeId);
+            return (
+              <TouchableOpacity
+                key={String(emp.id)}
+                style={[adminStyles.statusRow, isActive && adminStyles.statusRowActive]}
+                disabled={loading || isActive}
+                onPress={async () => {
+                  setLoading(true);
+                  await onAssign(emp.id);
+                  setLoading(false);
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[adminStyles.statusLabel, isActive && adminStyles.statusLabelActive]}>
+                    {String(emp.name || emp.id)}
+                  </Text>
+                  {emp.phone ? <Text style={adminStyles.empPhone}>{String(emp.phone)}</Text> : null}
+                </View>
+                {isActive && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </View>
+    </View>
+  );
+}
+
+function CompleteOrderModal({
+  onClose,
+  onComplete,
+}: {
+  onClose: () => void;
+  onComplete: (deliveryDate: string, note: string) => Promise<void>;
+}) {
+  const today = new Date().toISOString().split('T')[0];
+  const [deliveryDate, setDeliveryDate] = useState(today);
+  const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!deliveryDate.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập ngày bàn giao.');
+      return;
+    }
+    setLoading(true);
+    await onComplete(deliveryDate.trim(), note.trim());
+    setLoading(false);
+  };
+
+  return (
+    <View style={adminStyles.overlay}>
+      <View style={adminStyles.sheet}>
+        <View style={adminStyles.sheetHeader}>
+          <Text style={adminStyles.sheetTitle}>Hoàn thành đơn</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={22} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+        <View style={adminStyles.field}>
+          <Text style={adminStyles.fieldLabel}>Ngày bàn giao (YYYY-MM-DD) *</Text>
+          <TextInput
+            style={adminStyles.input}
+            value={deliveryDate}
+            onChangeText={setDeliveryDate}
+            placeholder="VD: 2026-05-10"
+            placeholderTextColor={Colors.text.secondary}
+          />
+        </View>
+        <View style={adminStyles.field}>
+          <Text style={adminStyles.fieldLabel}>Ghi chú</Text>
+          <TextInput
+            style={[adminStyles.input, { height: 80, textAlignVertical: 'top' }]}
+            value={note}
+            onChangeText={setNote}
+            placeholder="Ghi chú hoàn thành (tuỳ chọn)"
+            placeholderTextColor={Colors.text.secondary}
+            multiline
+          />
+        </View>
+        <View style={adminStyles.modalActions}>
+          <TouchableOpacity style={adminStyles.cancelBtn} onPress={onClose}>
+            <Text style={adminStyles.cancelText}>Hủy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[adminStyles.confirmBtn, loading && { opacity: 0.6 }]}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator size="small" color={Colors.background.light} />
+              : <Text style={adminStyles.confirmText}>Xác nhận</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Admin styles ─────────────────────────────────────────────────────────────
+const adminStyles = StyleSheet.create({
+  actionBar: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.base,
+    backgroundColor: Colors.background.light,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border.light,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.background.light,
+  },
+  actionBtnPrimary: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+    flex: 1.4,
+  },
+  actionBtnText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.xs,
+    color: Colors.primary,
+  },
+  actionBtnTextPrimary: {
+    color: Colors.background.light,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+    zIndex: 100,
+  },
+  sheet: {
+    backgroundColor: Colors.background.light,
+    borderTopLeftRadius: borderRadius['3xl'],
+    borderTopRightRadius: borderRadius['3xl'],
+    padding: spacing.lg,
+    gap: spacing.sm,
+    paddingBottom: spacing['3xl'],
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sheetTitle: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.lg,
+    color: Colors.text.primary,
+    fontWeight: Typography.weight.bold,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  statusRowActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primarySoft,
+  },
+  statusLabel: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+  },
+  statusLabelActive: {
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.bold,
+  },
+  empPhone: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.xs,
+    color: Colors.text.secondary,
+    marginTop: 2,
+  },
+  emptyText: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    paddingVertical: spacing.xl,
+  },
+  field: { gap: spacing.xs },
+  fieldLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.sm,
+    color: Colors.text.secondary,
+  },
+  input: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.base,
+    color: Colors.text.secondary,
+  },
+  confirmBtn: {
+    flex: 2,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+  },
+  confirmText: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.base,
+    color: Colors.background.light,
+    fontWeight: Typography.weight.bold,
+  },
+});
