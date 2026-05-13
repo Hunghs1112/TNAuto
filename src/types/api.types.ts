@@ -10,10 +10,42 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// ==================== Error Types ====================
+
+export type ApiErrorCode =
+  | 'BAD_REQUEST'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'VALIDATION_ERROR'
+  | 'INTERNAL_ERROR'
+  | 'GARAGE_CONTEXT_REQUIRED';
+
+export interface ApiErrorResponse {
+  error_code?: ApiErrorCode;
+  message?: string;
+  error?: string;
+}
+
+// ==================== Pagination Types ====================
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+}
+
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   count: number;
   page?: number;
   limit?: number;
+  total?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  meta?: PaginationMeta;
 }
 
 // ==================== User Types ====================
@@ -87,6 +119,13 @@ export interface ServiceOrder {
   warranty?: Warranty;
   image_count?: number;
   claimable?: boolean;
+  // Garage association
+  garage?: {
+    id?: string | number;
+    code?: string;
+    name?: string;
+    address?: string | null;
+  } | null;
 }
 
 export interface ServiceOrderImage {
@@ -130,6 +169,12 @@ export interface Vehicle extends VehicleDocumentFields {
   has_active_order?: boolean;
   active_order_count?: number;
   last_service_date?: string;
+  // Garage association
+  garage?: {
+    id?: string | number;
+    code?: string;
+    name?: string;
+  } | null;
 }
 
 // ==================== Warranty Types ====================

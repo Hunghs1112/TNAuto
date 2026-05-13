@@ -43,6 +43,37 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
 
+  // Format date to dd/MM/yyyy
+  const formatDate = (dateString?: string | null): string => {
+    if (!dateString) return '—';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      const d = date.getDate().toString().padStart(2, '0');
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const y = date.getFullYear();
+      return `${d}/${m}/${y}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Map status to Vietnamese label + color
+  const getStatusInfo = (status?: string): { label: string; color: string; bg: string } => {
+    switch (status?.toLowerCase()) {
+      case 'received':    return { label: 'Đã tiếp nhận', color: Colors.status.info,      bg: Colors.alpha.info12 };
+      case 'pending':     return { label: 'Chờ xử lý',    color: Colors.status.pending,   bg: Colors.alpha.warning12 };
+      case 'confirmed':   return { label: 'Đã xác nhận',  color: Colors.status.info,      bg: Colors.alpha.info12 };
+      case 'in_progress': return { label: 'Đang xử lý',   color: Colors.status.inProgress,bg: Colors.alpha.info12 };
+      case 'processing':  return { label: 'Đang thực hiện',color: Colors.status.inProgress,bg: Colors.alpha.info12 };
+      case 'ready_for_pickup': return { label: 'Sẵn sàng giao', color: Colors.status.success, bg: Colors.alpha.success12 };
+      case 'completed':   return { label: 'Hoàn thành',   color: Colors.status.completed, bg: Colors.alpha.success12 };
+      case 'cancelled':
+      case 'canceled':    return { label: 'Đã hủy',       color: Colors.status.cancelled, bg: Colors.alpha.expired12 };
+      default:            return { label: status || '—',   color: Colors.text.secondary,   bg: Colors.neutral[100] };
+    }
+  };
+
   // Format timestamp to readable format
   const formatTimestamp = (dateString: string): string => {
     try {
@@ -72,6 +103,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
     }
   };
 
+  const statusInfo = getStatusInfo(order.status);
+
   return (
     <Pressable
       onPress={handlePress}
@@ -85,7 +118,19 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       testID={`order-card-${order.id}`}
     >
       <View style={styles.content}>
-        {/* Header with customer info */}
+        {/* Header: mã đơn + trạng thái */}
+        <View style={styles.topRow}>
+          <Text style={styles.orderId} numberOfLines={1}>
+            #{order.id}
+          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+            <Text style={[styles.statusText, { color: statusInfo.color }]}>
+              {statusInfo.label}
+            </Text>
+          </View>
+        </View>
+
+        {/* Customer info */}
         <View style={styles.header}>
           <View style={styles.customerInfo}>
             <View style={styles.avatarContainer}>
@@ -115,37 +160,54 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </Text>
         </View>
 
-        {/* Footer with timestamp and optional claim button */}
+        {/* Note */}
+        {!!order.note && (
+          <View style={styles.noteSection}>
+            <Ionicons name="document-text-outline" size={14} color={Colors.text.secondary} />
+            <Text style={styles.noteText} numberOfLines={2}>
+              {order.note}
+            </Text>
+          </View>
+        )}
+
+        {/* Footer: ngày nhận xe + thời gian tạo */}
         <View style={styles.footer}>
-          <View style={styles.timestampContainer}>
-            <Ionicons name="time-outline" size={14} color={Colors.text.secondary} />
-            <Text style={styles.timestamp}>
+          <View style={styles.footerItem}>
+            <Ionicons name="calendar-outline" size={13} color={Colors.text.secondary} />
+            <Text style={styles.footerText}>
+              Nhận: {formatDate(order.receive_date)}
+            </Text>
+          </View>
+          <View style={styles.footerItem}>
+            <Ionicons name="time-outline" size={13} color={Colors.text.secondary} />
+            <Text style={styles.footerText}>
               {formatTimestamp(order.created_at)}
             </Text>
           </View>
-          
-          {showClaimButton && onClaim && (
-            <Pressable
-              onPress={handleClaim}
-              disabled={isClaiming}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Nhận đơn"
-              style={({ pressed }) => [
-                styles.claimButton,
-                pressed && styles.claimButtonPressed,
-                isClaiming && styles.claimButtonDisabled,
-              ]}
-              testID={`claim-button-${order.id}`}
-            >
-              {isClaiming ? (
-                <ActivityIndicator size="small" color={Colors.background.light} />
-              ) : (
-                <Text style={styles.claimButtonText}>Nhận đơn</Text>
-              )}
-            </Pressable>
-          )}
         </View>
+
+        {/* Claim button (optional) */}
+        {showClaimButton && onClaim && (
+          <Pressable
+            onPress={handleClaim}
+            disabled={isClaiming}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Nhận đơn"
+            style={({ pressed }) => [
+              styles.claimButton,
+              pressed && styles.claimButtonPressed,
+              isClaiming && styles.claimButtonDisabled,
+            ]}
+            testID={`claim-button-${order.id}`}
+          >
+            {isClaiming ? (
+              <ActivityIndicator size="small" color={Colors.background.light} />
+            ) : (
+              <Text style={styles.claimButtonText}>Nhận đơn</Text>
+            )}
+          </Pressable>
+        )}
       </View>
     </Pressable>
   );
@@ -170,6 +232,29 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.base,
+  },
+  // Mã đơn + trạng thái
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  orderId: {
+    ...textStyles.bodySmall,
+    color: Colors.text.secondary,
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: borderRadius.full,
+  },
+  statusText: {
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.semibold,
+    fontWeight: Typography.weight.semibold,
   },
   header: {
     flexDirection: 'row',
@@ -229,6 +314,24 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+  noteSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    backgroundColor: Colors.neutral[50],
+    borderRadius: borderRadius.sm,
+  },
+  noteText: {
+    ...textStyles.bodySmall,
+    color: Colors.text.secondary,
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -236,13 +339,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: Colors.neutral[100],
+    marginTop: spacing.xs,
   },
-  timestampContainer: {
+  footerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
   },
-  timestamp: {
+  footerText: {
     ...textStyles.bodySmall,
     color: Colors.text.secondary,
     fontSize: 12,

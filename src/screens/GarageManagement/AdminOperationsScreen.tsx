@@ -366,10 +366,10 @@ function WarrantyFormModal({
   onSave: (data: Record<string, string>) => Promise<void>;
 }) {
   const fields = [
-    { key: 'license_plate', label: 'Biển số xe', placeholder: 'VD: 51A-12345' },
-    { key: 'service_name', label: 'Tên dịch vụ', placeholder: 'Nhập tên dịch vụ' },
+    { key: 'order_id', label: 'Mã đơn hàng (order_id)', placeholder: 'VD: 123' },
+    { key: 'customer_id', label: 'Mã khách hàng (customer_id)', placeholder: 'VD: 45' },
+    { key: 'warranty_period', label: 'Thời hạn bảo hành (tháng)', placeholder: 'VD: 12' },
     { key: 'start_date', label: 'Ngày bắt đầu (YYYY-MM-DD)', placeholder: '2026-01-01' },
-    { key: 'end_date', label: 'Ngày kết thúc (YYYY-MM-DD)', placeholder: '2027-01-01' },
     { key: 'note', label: 'Ghi chú', placeholder: 'Tuỳ chọn' },
   ];
   const [values, setValues] = useState<Record<string, string>>(() => {

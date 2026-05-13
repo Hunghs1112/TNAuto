@@ -63,7 +63,7 @@ export default function GarageEmployeesScreen() {
   const employees = useMemo(() => (employeesQuery.data || []).map(mapEmployee), [employeesQuery.data]);
 
   const total = pickStat(statsQuery.data, ['total_employees', 'employees_total', 'count']);
-  const active = pickStat(statsQuery.data, ['active_employees', 'working_employees']);
+  const active = pickStat(statsQuery.data, ['active_employees', 'working_employees', 'employees_with_active_orders']);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

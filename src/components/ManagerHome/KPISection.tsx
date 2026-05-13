@@ -3,12 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { spacing } from '../../design-system/spacing';
 import SectionHeader from '../../screens/Home/SectionHeader';
 import { KPICard } from './KPICard';
-
-interface KPI {
-  key: string;
-  label: string;
-  value: number;
-}
+import { KPI } from '../../types/managerHome';
 
 interface KPISectionProps {
   kpis: KPI[];
@@ -21,8 +16,9 @@ interface KPISectionProps {
  * 
  * Displays the dashboard overview section with 5 KPI cards in a responsive grid layout.
  * Uses SectionHeader with "Tổng quan" title and KPICard components for each metric.
+ * Passes `isAlert` and `onPress` from each KPI entry down to KPICard.
  * 
- * **Validates: Requirements 1.1, 7.1, 7.2**
+ * **Validates: Requirements 1.1, 2.1, 2.4, 2.5, 2.6, 7.1, 7.2**
  */
 export const KPISection: React.FC<KPISectionProps> = ({
   kpis,
@@ -39,6 +35,8 @@ export const KPISection: React.FC<KPISectionProps> = ({
               label={kpi.label}
               value={kpi.value}
               isLoading={isLoading}
+              isAlert={kpi.isAlert}
+              onPress={kpi.onPress}
               testID={`kpi-card-${kpi.key}`}
             />
           </View>

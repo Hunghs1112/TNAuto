@@ -2,9 +2,15 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 import { Vehicle, ApiResponse, ServiceOrder, VehicleDocumentFields } from '../types/api.types';
+import { extractPaginationMeta } from '../utils/paginationHelpers';
 
 export interface GetVehiclesResponse extends ApiResponse<Vehicle[]> {
   count: number;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
 }
 
 export interface VehicleWithOrders extends Vehicle {
@@ -44,13 +50,15 @@ export const vehicleApi = createApi({
       providesTags: ['Vehicle'],
       transformResponse: (response: any) => {
         if (response.success && response.data) {
+          const pagination = extractPaginationMeta(response);
           return {
             success: true,
             data: response.data,
             count: response.count || response.data.length,
+            ...pagination,
           };
         }
-        return { success: false, data: [], count: 0 };
+        return { success: false, data: [], count: 0, total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false };
       },
     }),
     
@@ -59,10 +67,11 @@ export const vehicleApi = createApi({
       query: (id) => `/api/app/customer/vehicles/${id}`,
       providesTags: (result, error, id) => [{ type: 'Vehicle' as const, id }],
       transformResponse: (response: any) => {
-        if (response.success && response.data) {
-          return response.data;
-        }
-        throw new Error(response.error || 'Failed to fetch vehicle');
+        const vehicle = response.data || response;
+        return {
+          ...vehicle,
+          garage: vehicle.garage ?? null,  // preserve garage object
+        };
       },
     }),
     
@@ -74,13 +83,15 @@ export const vehicleApi = createApi({
       }),
       transformResponse: (response: any) => {
         if (response.success && response.data) {
+          const pagination = extractPaginationMeta(response);
           return {
             success: true,
             data: response.data,
             count: response.count || response.data.length,
+            ...pagination,
           };
         }
-        return { success: false, data: [], count: 0 };
+        return { success: false, data: [], count: 0, total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false };
       },
     }),
     
@@ -102,6 +113,13 @@ export const vehicleApi = createApi({
         body,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Vehicle' as const, id }, 'Vehicle'],
+      transformResponse: (response: any) => {
+        const vehicle = response.data || response;
+        return {
+          ...vehicle,
+          garage: vehicle.garage ?? null,  // preserve garage object
+        };
+      },
     }),
     
     // Delete vehicle

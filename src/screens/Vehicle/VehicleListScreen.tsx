@@ -26,15 +26,16 @@ interface VehicleListScreenProps {
 }
 
 const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
-  const { userPhone } = route.params;
+  const { userId } = route.params;
   const navigation = useNavigation<NavigationProp>();
   const hasGarageContext = useAppSelector(
     (state) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
   );
   const { refreshing, onRefresh } = useAutoRefresh({ tags: ['Customer'] });
+  // Dùng customer_id để share cache với BookingScreen (cùng query key)
   const { data: vehiclesData, isLoading, refetch } = useGetCustomerVehiclesQuery(
-    { phone: userPhone },
-    { skip: !hasGarageContext },
+    { customer_id: userId },
+    { skip: !hasGarageContext || !userId },
   );
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -58,28 +59,28 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
 
   const keyExtractor = useCallback((item: Vehicle) => item.id.toString(), []);
 
-  const handleVehiclePress = (vehicle: Vehicle) => {
+  const handleVehiclePress = useCallback((vehicle: Vehicle) => {
     navigation.navigate('VehicleDetail', {
       vehicleId: vehicle.id.toString(),
       licensePlate: vehicle.license_plate,
     });
-  };
+  }, [navigation]);
 
-  const renderVehicleCard = ({ item }: { item: Vehicle }) => {
+  const renderVehicleCard = useCallback(({ item }: { item: Vehicle }) => {
     return (
-      <TouchableOpacity 
-        style={styles.card} 
+      <TouchableOpacity
+        style={styles.card}
         onPress={() => handleVehiclePress(item)}
         activeOpacity={0.8}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.imageContainer}
           onPress={() => item.image_url && setSelectedImage(item.image_url)}
           activeOpacity={0.9}
         >
           {item.image_url ? (
-            <Image 
-              source={{ uri: item.image_url }} 
+            <Image
+              source={{ uri: item.image_url }}
               style={styles.vehicleImage}
               resizeMode="cover"
               onError={() => {}}
@@ -108,7 +109,7 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [handleVehiclePress]);
 
   if (isLoading) {
     return (
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.light,
   },
   header: {
-    backgroundColor: Colors.background.red,
+    backgroundColor: Colors.primary,
   },
   body: {
     flex: 1,

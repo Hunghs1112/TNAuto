@@ -97,7 +97,6 @@ export default function DealerRegisterScreen() {
         dismissKeyboardOnPress
       >
         <Text style={styles.welcomeText}>Trở thành Đối tác</Text>
-        <Text style={styles.subtitle}>Điền thông tin để đăng ký Đại lý</Text>
 
         <View style={styles.logoFrame}>
           <Image

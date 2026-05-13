@@ -6,6 +6,7 @@
 
 import { AdminEntity } from './adminGarageApi';
 import { ServiceOrder, Vehicle, Warranty } from '../types/api.types';
+import { isSuperGarage } from '../utils/garageHelpers';
 
 // ─── Typed resource interfaces ────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ export const mapAdminGarage = (item: AdminEntity): AdminGarage => ({
   code: str(item.code || item.garage_code),
   address: str(item.address),
   status: str(item.status),
-  is_super_garage: bool(item.is_super_garage),
+  is_super_garage: isSuperGarage(item.is_super_garage),
 });
 
 // ─── Convenience: map arrays ──────────────────────────────────────────────────

@@ -46,6 +46,50 @@ const ServiceCategoryScreen = () => {
     [query.data],
   );
 
+  // Tính categoryItems ở level component — không tính lại trong children callback mỗi render
+  const categoryItems = useMemo(
+    () =>
+      (query.data ?? []).map((category: ServiceCategory) => {
+        const descriptionParts = [
+          category.description || 'Xem tất cả dịch vụ trong danh mục này',
+        ];
+        if (category.service_count !== undefined && category.service_count !== null) {
+          descriptionParts.push(`${category.service_count} dịch vụ`);
+        }
+        return {
+          id: category.id,
+          title: category.name,
+          description: descriptionParts.join(' - '),
+          imageUri: category.image_url || undefined,
+          onPress: () => {
+            navigation.navigate('Service', {
+              categoryId: category.id,
+              categoryName: category.name,
+            });
+          },
+        };
+      }),
+    [query.data, navigation],
+  );
+
+  const renderCategoryItem = useCallback(
+    ({ item }: { item: (typeof categoryItems)[0] }) => (
+      <Item
+        key={item.id}
+        title={item.title}
+        description={item.description}
+        imageUri={item.imageUri}
+        onPress={item.onPress}
+      />
+    ),
+    [],
+  );
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({ length: 110 + 12, offset: (110 + 12) * index, index }),
+    [],
+  );
+
   useEffect(() => {
     imageUrls.slice(0, 12).forEach((url) => {
       Image.prefetch(url).catch(() => {});
@@ -137,49 +181,14 @@ const ServiceCategoryScreen = () => {
               </View>
             }
             children={(categories: ServiceCategory[]) => {
-              const categoryItems = categories.map((category: ServiceCategory) => {
-                const descriptionParts = [
-                  category.description || 'Xem tất cả dịch vụ trong danh mục này',
-                ];
-                
-                if (category.service_count !== undefined && category.service_count !== null) {
-                  descriptionParts.push(`${category.service_count} dịch vụ`);
-                }
-                
-                return {
-                  id: category.id,
-                  title: category.name,
-                  description: descriptionParts.join(' - '),
-                  imageUri: category.image_url || undefined,
-                  onPress: () => {
-                    navigation.navigate('Service', { 
-                      categoryId: category.id, 
-                      categoryName: category.name 
-                    });
-                  },
-                };
-              });
-
               return (
                 <View style={styles.form}>
                   <FlatList
                     alwaysBounceVertical={true}
                     data={categoryItems}
                     keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
-                      <Item
-                        key={item.id}
-                        title={item.title}
-                        description={item.description}
-                        imageUri={item.imageUri}
-                        onPress={item.onPress}
-                      />
-                    )}
-                    getItemLayout={(_, index) => ({
-                      length: 110 + 12,
-                      offset: (110 + 12) * index,
-                      index,
-                    })}
+                    renderItem={renderCategoryItem}
+                    getItemLayout={getItemLayout}
                     ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.listContent, { flexGrow: 1, paddingHorizontal: 16 }]}

@@ -7,4 +7,4 @@ export const useAppDispatch = () => useDispatch<AppDispatch>();
 // Re-export other hooks for convenience
 export { useAppSelector } from './useAppSelector';
 export { useAutoRefresh } from './useAutoRefresh';
-export { usePrefetchData, usePrefetchUserData } from './usePrefetchData';
+export { usePrefetchData } from './usePrefetchData';

@@ -1,5 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { ENDPOINTS } from '../constants/apiEndpoints';
+import { ENDPOINTS, buildEndpointUrl } from '../constants/apiEndpoints';
 import { API_CONFIG, baseQueryWithRetry } from './baseApi';
 import { ServiceOrder } from '../types/api.types';
 
@@ -120,7 +120,7 @@ export const managerApi = createApi({
   ...API_CONFIG,
   reducerPath: 'managerApi' as const,
   baseQuery: baseQueryWithRetry,
-  tagTypes: ['ManagerHome'] as const,
+  tagTypes: ['ManagerHome', 'ServiceOrder'] as const,
   endpoints: (builder) => ({
     getManagerHomeSummary: builder.query<ManagerHomeSummary | null, void>({
       query: () => ({
@@ -167,6 +167,17 @@ export const managerApi = createApi({
         return extractArray<ManagerNotification>(response.data, 'notifications');
       },
     }),
+    getServiceOrderById: builder.query<ServiceOrder, string>({
+      query: (id) => buildEndpointUrl('getServiceOrderById', { id }),
+      providesTags: (result, error, id) => [{ type: 'ServiceOrder' as const, id }],
+      transformResponse: (response: any) => {
+        const order = response.data || response;
+        return {
+          ...order,
+          garage: order.garage ?? null,  // preserve garage object
+        };
+      },
+    }),
   }),
 });
 
@@ -174,6 +185,7 @@ export const {
   useGetManagerHomeSummaryQuery,
   useGetManagerHomeOrdersQuery,
   useGetManagerHomeNotificationsQuery,
+  useGetServiceOrderByIdQuery,
 } = managerApi;
 
 export type { ManagerHomeSummary, ManagerNotification, ManagerSummaryStats };

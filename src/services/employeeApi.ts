@@ -7,6 +7,7 @@ import {
   LoginEmployeeResponse,
   ServiceOrder,
 } from '../types/api.types';
+import { extractPaginationMeta } from '../utils/paginationHelpers';
 
 interface EmployeeOrdersResponse extends ApiResponse<ServiceOrder[]> {
   count?: number;
@@ -14,6 +15,7 @@ interface EmployeeOrdersResponse extends ApiResponse<ServiceOrder[]> {
   page?: number;
   limit?: number;
   totalPages?: number;
+  hasNextPage?: boolean;
 }
 
 interface ClaimEmployeeOrderResponse extends ApiResponse<{
@@ -41,14 +43,12 @@ const normalizeOrdersResponse = (response: any): EmployeeOrdersResponse => {
   }
 
   if (response && Array.isArray(response.data)) {
+    const pagination = extractPaginationMeta(response);
     return {
       success: true,
       data: response.data,
       count: response.count ?? response.data.length,
-      total: response.total ?? response.data.length,
-      page: response.page,
-      limit: response.limit,
-      totalPages: response.totalPages,
+      ...pagination,
     };
   }
 
@@ -159,6 +159,9 @@ export const employeeApi = createApi({
         body,
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Employee' as const, id }, 'Employee'],
+      transformResponse: (response: any) => {
+        return response?.data ?? response;
+      },
     }),
     deleteEmployee: builder.mutation<void, string>({
       query: (id) => ({

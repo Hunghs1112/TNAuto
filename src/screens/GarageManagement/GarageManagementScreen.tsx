@@ -110,7 +110,7 @@ export default function GarageManagementScreen() {
         icon: 'people-circle-outline',
         title: 'Nhân sự',
         value: pickStat(employeesStats.data, ['total_employees', 'employees_total', 'count']),
-        subtitle: `${pickStat(employeesStats.data, ['active_employees', 'working_employees'])} đang làm việc`,
+        subtitle: `${pickStat(employeesStats.data, ['active_employees', 'working_employees', 'employees_with_active_orders'])} đang làm việc`,
         onPress: () => navigation.navigate('GarageEmployees'),
       },
       {

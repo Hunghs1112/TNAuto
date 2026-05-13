@@ -109,7 +109,7 @@ export default function EmployeeDetailScreen() {
       if (!asset || !validateImageSize(asset)) return;
       setUploadingAvatar(true);
       try {
-        const formData = createImageFormData(asset, 'avatar');
+        const formData = createImageFormData(asset, 'image');
         await uploadAvatar({ resource: 'employees', id: employeeId, action: 'upload-avatar', body: formData }).unwrap();
         await detailQuery.refetch();
         Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');

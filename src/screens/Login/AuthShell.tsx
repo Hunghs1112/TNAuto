@@ -5,12 +5,12 @@ import { loginSharedStyles } from "./loginSharedStyles";
 
 type AuthShellProps = {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
 };
 
-export default function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
+export default function AuthShell({ title, children, footer }: AuthShellProps) {
   return (
     <Screen statusBarStyle="light-content" showBackButton={false} useScrollView={false}>
       <FormContainer
@@ -20,7 +20,6 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
         dismissKeyboardOnPress
       >
         <Text style={loginSharedStyles.welcomeText}>{title}</Text>
-        <Text style={loginSharedStyles.subtitle}>{subtitle}</Text>
 
         <View style={loginSharedStyles.logoFrame}>
           <Image style={loginSharedStyles.logo} source={require("../../assets/logo.png")} resizeMode="contain" />

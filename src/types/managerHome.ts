@@ -82,9 +82,104 @@ export interface KPI {
   key: string;
   label: string;
   value: number;
+  isAlert?: boolean; // true when key === 'overdue' && value > 0
+  onPress?: () => void; // optional navigation handler when card is tapped
+}
+
+// ==================== View Model & Component Prop Types ====================
+
+/**
+ * Union type for quick action keys in QuickActionsBar
+ */
+export type QuickActionKey = 'create_order' | 'add_customer' | 'view_all_orders';
+
+/**
+ * Data for each management section card
+ */
+export interface ManagementSectionData {
+  key: string;
+  icon: string;
+  title: string;
+  totalCount: number;
+  activeCount: number;
+  subtitle: string;
+  onPress: () => void;
+}
+
+/**
+ * Full view-model object exported from useManagerHomeScreen hook
+ */
+export interface ManagerHomeViewModel {
+  // Data
+  activeOrders: ServiceOrder[];
+  pendingOrders: ServiceOrder[];
+  processingOrders: ServiceOrder[];
+  overdueOrders: ServiceOrder[];
+  completedTodayCount: number;
+  alertsCount: number;
+  kpis: KPI[];
+  managementStats: ManagementSectionData[];
+  isSuperAdmin: boolean;
+
+  // Loading states
+  isLoading: boolean;
+  isRefreshing: boolean;
+
+  // Handlers
+  onRefresh: () => Promise<void>;
+  onOrderPress: (orderId: string | number) => void;
+  onSectionPress: (sectionKey: string) => void;
+  onQuickAction: (action: QuickActionKey) => void;
+  onNotificationPress: () => void;
+  onGaragePress: () => void;
+
+  // Header data
+  garageName: string;
+  userName: string;
+  unreadNotificationsCount: number;
+}
+
+/**
+ * Props for ActiveOrdersSection component
+ */
+export interface ActiveOrdersSectionProps {
+  orders: ServiceOrder[];
+  isLoading: boolean;
+  isError: boolean;
+  onOrderPress: (orderId: string | number) => void;
+  onRetry: () => void;
+}
+
+/**
+ * Props for ManagementSection component
+ */
+export interface ManagementSectionProps {
+  sections: ManagementSectionData[];
+  isLoading: boolean;
+}
+
+/**
+ * Props for QuickActionsBar component
+ */
+export interface QuickActionsBarProps {
+  onCreateOrder: () => void;
+  onAddCustomer: () => void;
+  onViewAllOrders: () => void;
 }
 
 // ==================== Order Status Constants ====================
+
+/**
+ * Order statuses displayed in Active Orders Section
+ */
+export const ACTIVE_ORDER_STATUSES = new Set([
+  'received',
+  'pending',
+  'confirmed',
+  'in_progress',
+  'processing',
+  'ready_for_pickup',
+]);
 
 /**
  * Order statuses considered as "pending" (waiting to be processed)

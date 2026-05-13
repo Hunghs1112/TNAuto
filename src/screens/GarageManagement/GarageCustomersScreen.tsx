@@ -85,7 +85,7 @@ export default function GarageCustomersScreen() {
 
   const totalCustomers = pickStat(statsQuery.data, ['total_customers', 'customers_total', 'count']);
   const newCustomers = pickStat(statsQuery.data, ['new_customers_30d', 'new_customers', 'created_30d']);
-  const activeCustomers = pickStat(statsQuery.data, ['active_customers', 'customers_with_active_orders']);
+  const activeCustomers = pickStat(statsQuery.data, ['active_customers', 'customers_with_active_orders', 'customers_with_orders']);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -117,8 +117,8 @@ export default function GarageCustomersScreen() {
 
   const renderCustomer = useCallback(
     ({ item }: { item: AdminCustomer }) => {
-      const vehicleCount = getNumber(item.vehicle_count);
-      const activeOrders = getNumber(item.active_order_count);
+      const vehicleCount = getNumber(item.vehicle_count ?? (item as any).total_vehicles);
+      const activeOrders = getNumber(item.active_order_count ?? (item as any).active_orders);
       const totalOrders = getNumber(item.total_orders);
 
       return (
@@ -215,9 +215,6 @@ export default function GarageCustomersScreen() {
           ListHeaderComponent={
             <View style={styles.headerBlock}>
               <Text style={styles.screenTitle}>Tệp khách hàng</Text>
-              <Text style={styles.screenSubtitle}>
-                Dữ liệu lấy trực tiếp từ namespace quản trị `/api/app/admin/customers`.
-              </Text>
 
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>

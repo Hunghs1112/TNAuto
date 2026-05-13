@@ -124,9 +124,11 @@ function RemindersTab() {
 
   const handleSaveEdit = useCallback(async (item: AdminServiceReminderConfig, days: string) => {
     try {
+      const daysNum = Number(days);
       await updateConfig({
         serviceId: item.service_id,
-        body: { reminder_days: Number(days), interval_days: Number(days) },
+        // Backend expects reminder_days as array
+        body: { reminder_days: [daysNum], interval_days: daysNum },
       }).unwrap();
       await query.refetch();
       Alert.alert('Thành công', 'Đã cập nhật cấu hình nhắc nhở.');
@@ -138,7 +140,11 @@ function RemindersTab() {
 
   const renderItem = useCallback(({ item }: { item: AdminServiceReminderConfig }) => {
     const enabled = isTruthy(item.enabled) || isTruthy(item.is_enabled);
-    const days = Number(item.reminder_days || item.interval_days || 0);
+    // reminder_days is an array from backend e.g. [30, 60], show first value
+    const daysRaw = item.reminder_days ?? item.interval_days;
+    const days = Array.isArray(daysRaw)
+      ? (daysRaw.length > 0 ? Number(daysRaw[0]) : 0)
+      : Number(daysRaw || 0);
 
     return (
       <View style={styles.settingCard}>
@@ -215,7 +221,20 @@ function VisibilityTab() {
   const query = useGetAdminUiVisibilityQuery();
   const [updateVisibility] = useUpdateAdminUiVisibilityMutation();
 
-  const items = useMemo(() => query.data || [], [query.data]);
+  // Backend trả 1 object đơn {id, is_hidden} hoặc array — normalize thành array
+  const items = useMemo(() => {
+    const raw = query.data || [];
+    if (Array.isArray(raw) && raw.length > 0) {
+      // Nếu item không có key/label, gán mặc định
+      return raw.map((item, idx) => ({
+        ...item,
+        key: item.key ?? String(item.id ?? idx),
+        label: item.label ?? 'Ẩn giao diện',
+        section: item.section ?? 'Cài đặt chung',
+      }));
+    }
+    return [];
+  }, [query.data]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -345,7 +364,11 @@ function EditReminderModal({
   onClose: () => void;
   onSave: (days: string) => Promise<void>;
 }) {
-  const currentDays = String(item.reminder_days || item.interval_days || '');
+  const currentDays = (() => {
+    const raw = item.reminder_days ?? item.interval_days;
+    if (Array.isArray(raw)) return raw.length > 0 ? String(raw[0]) : '';
+    return String(raw || '');
+  })();
   const [days, setDays] = useState(currentDays);
   const [saving, setSaving] = useState(false);
 

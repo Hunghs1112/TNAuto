@@ -6,3 +6,6 @@ export { EmployeeOrdersList } from './EmployeeOrdersList';
 export { QuickActionsSection } from './QuickActionsSection';
 export { NotificationButton } from './NotificationButton';
 export { GarageSummaryCard } from './GarageSummaryCard';
+export { default as ManagementSection } from './ManagementSection';
+export { QuickActionsBar } from './QuickActionsBar';
+export { ActiveOrdersSection } from './ActiveOrdersSection';

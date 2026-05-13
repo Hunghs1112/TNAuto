@@ -32,6 +32,7 @@ import {
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { RootState } from '../../redux/types';
 import { ServiceOrderImage } from '../../types/api.types';
+import { isManagerRole } from '../../navigation/rolePolicy';
 import {
   pickImageFromGallery,
   pickImageFromCamera,
@@ -49,7 +50,8 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const navigation = useNavigation<any>();
   const currentEmployee = useAppSelector((state: RootState) => state.employee.currentEmployee);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
-  const isDealer = (userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin');
+  const isDealer = userType === 'dealer';
+  const isManagerUser = isManagerRole(userType);
   const currentEmployeeId = currentEmployee?.id ? String(currentEmployee.id) : null;
 
   const [refreshing, setRefreshing] = useState(false);
@@ -69,13 +71,11 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const [uploadServiceOrderImage] = useUploadServiceOrderImageMutation();
   const [updateEmployeeOrderStatus] = useUpdateEmployeeOrderStatusMutation();
 
-  const getImageUrl = useCallback((url: string) => url, []);
-
   useEffect(() => {
-    if (isDealer) {
+    if (isDealer || isManagerUser) {
       navigation.replace('Category' as never);
     }
-  }, [isDealer, navigation]);
+  }, [isDealer, isManagerUser, navigation]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -102,9 +102,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const canUpdateStatus = Boolean(orderData && isOwnedByCurrentEmployee && orderData.status === 'in_progress');
   const canUploadImages = isOwnedByCurrentEmployee;
 
-  if (isDealer) {
-    return null;
-  }
+  if (isDealer || isManagerUser) return null;
 
   if (isLoading) {
     return (
@@ -136,118 +134,59 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
     );
   }
 
-  const handleUploadImageFromCamera = async (statusAtTime: string) => {
-    if (!canUploadImages) {
-      Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
-      return;
-    }
-
-    if (uploading) {
-      Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
-      return;
-    }
-
-    try {
-      setUploading(true);
-
-      const asset = await pickImageFromCamera({
-        maxWidth: 1920,
-        maxHeight: 1920,
-        quality: 0.8,
-      });
-
-      if (!asset || !asset.uri) {
+  const handleUploadImage = useCallback(
+    async (statusAtTime: string, source: 'camera' | 'gallery') => {
+      if (!canUploadImages) {
+        Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
         return;
       }
-
-      if (!validateImageSize(asset, 5)) {
+      if (uploading) {
+        Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
         return;
       }
+      try {
+        setUploading(true);
+        const asset =
+          source === 'camera'
+            ? await pickImageFromCamera({ maxWidth: 1920, maxHeight: 1920, quality: 0.8 })
+            : (await pickImageFromGallery({ maxWidth: 1920, maxHeight: 1920, quality: 0.8, selectionLimit: 1 }))[0] ?? null;
 
-      const formData = createImageFormData(asset, 'image');
-      const uploadResult = await uploadSingleImage(formData).unwrap();
+        if (!asset?.uri || !validateImageSize(asset, 5)) return;
 
-      await uploadServiceOrderImage({
-        order_id: id,
-        image_url: uploadResult.url,
-        status_at_time: statusAtTime,
-        uploaded_by: currentEmployeeId || '0',
-        description: '',
-      }).unwrap();
+        const formData = createImageFormData(asset, 'image');
+        const uploadResult = await uploadSingleImage(formData).unwrap();
+        await uploadServiceOrderImage({
+          order_id: id,
+          image_url: uploadResult.url,
+          status_at_time: statusAtTime,
+          uploaded_by: currentEmployeeId || '0',
+          description: '',
+        }).unwrap();
 
-      Alert.alert('Thành công', 'Tải ảnh lên thành công.');
-      await refetch();
-    } catch (uploadError: any) {
-      console.error('Failed to upload image:', uploadError);
-      Alert.alert('Lỗi', getApiErrorMessage(uploadError, 'Tải ảnh lên thất bại. Vui lòng thử lại.'));
-    } finally {
-      setUploading(false);
-    }
-  };
+        Alert.alert('Thành công', 'Tải ảnh lên thành công.');
+        await refetch();
+      } catch (uploadError: any) {
+        Alert.alert('Lỗi', getApiErrorMessage(uploadError, 'Tải ảnh lên thất bại. Vui lòng thử lại.'));
+      } finally {
+        setUploading(false);
+      }
+    },
+    [canUploadImages, uploading, id, currentEmployeeId, uploadSingleImage, uploadServiceOrderImage, refetch],
+  );
 
-  const handleUploadImageFromGallery = async (statusAtTime: string) => {
-    if (!canUploadImages) {
-      Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
-      return;
-    }
-
-    if (uploading) {
-      Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
-      return;
-    }
-
-    try {
-      setUploading(true);
-
-      const assets = await pickImageFromGallery({
-        maxWidth: 1920,
-        maxHeight: 1920,
-        quality: 0.8,
-        selectionLimit: 1,
-      });
-
-      if (!assets || assets.length === 0) {
+  const handlePickImage = useCallback(
+    (statusAtTime: string) => {
+      if (!canUploadImages) {
+        Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
         return;
       }
-
-      const asset = assets[0];
-
-      if (!validateImageSize(asset, 5)) {
-        return;
-      }
-
-      const formData = createImageFormData(asset, 'image');
-      const uploadResult = await uploadSingleImage(formData).unwrap();
-
-      await uploadServiceOrderImage({
-        order_id: id,
-        image_url: uploadResult.url,
-        status_at_time: statusAtTime,
-        uploaded_by: currentEmployeeId || '0',
-        description: '',
-      }).unwrap();
-
-      Alert.alert('Thành công', 'Tải ảnh lên thành công.');
-      await refetch();
-    } catch (uploadError: any) {
-      console.error('Failed to upload image:', uploadError);
-      Alert.alert('Lỗi', getApiErrorMessage(uploadError, 'Tải ảnh lên thất bại. Vui lòng thử lại.'));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleUploadImage = (statusAtTime: string) => {
-    if (!canUploadImages) {
-      Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
-      return;
-    }
-
-    showImagePickerOptions(
-      () => handleUploadImageFromCamera(statusAtTime),
-      () => handleUploadImageFromGallery(statusAtTime),
-    );
-  };
+      showImagePickerOptions(
+        () => handleUploadImage(statusAtTime, 'camera'),
+        () => handleUploadImage(statusAtTime, 'gallery'),
+      );
+    },
+    [canUploadImages, handleUploadImage],
+  );
 
   const handleClaimOrder = async () => {
     if (!currentEmployeeId) {
@@ -386,7 +325,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
       );
     }
 
-    const imageUrl = getImageUrl(item.image_url);
+    const imageUrl = item.image_url;
 
     return (
       <TouchableOpacity onPress={() => setSelectedImage(imageUrl)} activeOpacity={0.8}>
@@ -423,7 +362,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
           {canUploadImages ? (
             <TouchableOpacity
               style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
-              onPress={() => handleUploadImage(statusAtTime)}
+              onPress={() => handlePickImage(statusAtTime)}
               disabled={uploading}
             >
               {uploading ? (
@@ -480,6 +419,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
               ) : null}
 
               {renderRow('Khách hàng', orderData.customer_name || orderData.receiver_name)}
+              {(orderData.garage?.name || orderData.garage_name) ? renderRow('Gara', orderData.garage?.name || orderData.garage_name) : null}
               {renderRow('Loại dịch vụ', orderData.service_name)}
               {orderData.employee_name ? renderRow('Nhân viên hỗ trợ', orderData.employee_name) : null}
               {orderData.note ? renderRow('Ghi chú', orderData.note) : null}

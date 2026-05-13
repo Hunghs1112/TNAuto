@@ -428,6 +428,14 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
                 </Text>
               </View>
             )}
+
+            {vehicle.garage?.name && (
+              <View style={styles.infoRow}>
+                <Ionicons name="business-outline" size={18} color={Colors.text.secondary} />
+                <Text style={styles.infoLabel}>Gara:</Text>
+                <Text style={styles.infoValue}>{vehicle.garage.name}</Text>
+              </View>
+            )}
           </View>
         </View>
 

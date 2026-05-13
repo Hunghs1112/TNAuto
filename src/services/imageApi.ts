@@ -78,18 +78,18 @@ export const imageApi = createApi({
       }),
       invalidatesTags: ['UploadedImage'],
     }),
-    // Save service order image metadata (after file upload)
+    // Save service order image metadata (after file upload) — employee scope
     uploadServiceOrderImage: builder.mutation<UploadServiceOrderImageResponse, { order_id: string; image_url: string; status_at_time: string; uploaded_by: string; description?: string }>({
       query: (body) => ({ 
-        url: '/service-order-images', 
+        url: '/api/app/employee/orders/images', 
         method: 'POST', 
         body 
       }),
       invalidatesTags: ['ServiceOrderImage'],
     }),
-    // Get service order images
+    // Get service order images — employee scope
     getServiceOrderImages: builder.query<GetServiceOrderImagesResponse, string>({
-      query: (order_id) => `/service-order-images/${order_id}`,
+      query: (order_id) => `/api/app/employee/orders/${order_id}/images`,
       providesTags: ['ServiceOrderImage'],
     }),
   }),

@@ -66,7 +66,7 @@ export const usePrefetchData = () => {
         data: servicesData.data, 
         count: servicesData.data.length 
       }));
-      console.log('usePrefetchData: Services prefetched and synced:', servicesData.data.length);
+      if (__DEV__) console.log('usePrefetchData: Services prefetched:', servicesData.data.length);
     }
   }, [servicesSuccess, servicesData, dispatch]);
 
@@ -74,14 +74,14 @@ export const usePrefetchData = () => {
   useEffect(() => {
     if (categoriesSuccess && categoriesData) {
       dispatch(setCategories(categoriesData));
-      console.log('usePrefetchData: Categories prefetched and synced:', categoriesData.length);
+      if (__DEV__) console.log('usePrefetchData: Categories prefetched:', categoriesData.length);
     }
   }, [categoriesSuccess, categoriesData, dispatch]);
 
   useEffect(() => {
     if (dealerCategoriesSuccess && dealerCategoriesData) {
       dispatch(setCategories(dealerCategoriesData as any));
-      console.log('usePrefetchData: Dealer categories prefetched and synced:', dealerCategoriesData.length);
+      if (__DEV__) console.log('usePrefetchData: Dealer categories prefetched:', dealerCategoriesData.length);
     }
   }, [dealerCategoriesSuccess, dealerCategoriesData, dispatch]);
 
@@ -92,7 +92,7 @@ export const usePrefetchData = () => {
         data: offersData.data as any, 
         count: offersData.count 
       }));
-      console.log('usePrefetchData: Offers prefetched and synced:', offersData.count);
+      if (__DEV__) console.log('usePrefetchData: Offers prefetched:', offersData.count);
     }
   }, [offersSuccess, offersData, dispatch]);
 
@@ -101,28 +101,5 @@ export const usePrefetchData = () => {
     categoriesLoaded: categoriesSuccess || dealerCategoriesSuccess,
     offersLoaded: offersSuccess,
   };
-};
-
-/**
- * Hook to prefetch user-specific data (orders, notifications)
- * Call this after user authentication
- * 
- * Usage:
- * ```tsx
- * function HomeScreen() {
- *   usePrefetchUserData();
- *   // ... rest of screen
- * }
- * ```
- */
-export const usePrefetchUserData = () => {
-  const userType = useAppSelector((state: RootState) => state.auth.userType);
-  const userPhone = useAppSelector((state: RootState) => state.auth.userPhone);
-  const userId = useAppSelector((state: RootState) => state.auth.userId);
-
-  // Can add prefetching for orders, notifications here if needed
-  // For now, we let screens load them on demand with caching
-
-  console.log('usePrefetchUserData: User data ready for', userType, userPhone, userId);
 };
 

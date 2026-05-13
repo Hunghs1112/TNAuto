@@ -36,7 +36,7 @@ const ProductDetailScreen = () => {
   const userType = useAppSelector((state) => state.auth.userType);
   const currentGarageCode = useAppSelector(selectGarageCode);
   const currentGarageName = useAppSelector(selectGarageName);
-  const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
+  const isDealer = userType === 'dealer';
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null as string | null);
   const [refreshing, setRefreshing] = useState(false);
@@ -223,14 +223,7 @@ const ProductDetailScreen = () => {
                   </View>
 
                   <View style={styles.actionSection}>
-                    <ConfirmButton
-                      title="Liên hệ để đặt hàng"
-                      onPress={() => {
-                        // TODO: Implement contact functionality
-                      }}
-                      buttonColor={Colors.primary}
-                      textColor={Colors.text.inverted}
-                    />
+                    {/* TODO: Implement contact/booking functionality */}
                   </View>
                 </View>
               </View>

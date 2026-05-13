@@ -2,6 +2,7 @@
 import { createApi, fetchBaseQuery, retry } from '@reduxjs/toolkit/query/react';
 import limitedFetch from '../utils/limitedFetch';
 import { API_BASE_URL } from '../constants/config';
+import type { RootState } from '../redux/types';
 
 /**
  * Base query with retry logic for failed requests
@@ -54,6 +55,24 @@ export const baseQueryWithRetry = retry(
 
         headers.delete('x-garage-code');
 
+        // Set x-garage-id header only for endpoints that require garage context.
+        const garageId = (state as RootState)?.garageContext?.garageId;
+        const garageRequiredEndpoints = new Set([
+          'createServiceOrder',
+          'getServiceOrderImages',
+          'getCustomerVehiclesAdmin',
+          'searchVehicles',
+          'updateVehicle',
+          'createVehicleForGarage',
+          'updateVehicleForGarage',
+        ]);
+
+        if (garageId && garageRequiredEndpoints.has(endpoint)) {
+          headers.set('x-garage-id', garageId);
+        } else {
+          headers.delete('x-garage-id');
+        }
+
         return headers;
       },
     })(args, api, extraOptions);
@@ -67,9 +86,9 @@ export const baseQueryWithRetry = retry(
   },
   {
     maxRetries: 3, // Retry failed requests up to 3 times (1s, 2s, 4s)
-    backoff: (attempt) => {
+    backoff: async (attempt) => {
       // Exponential backoff: 1s, 2s, 4s
-      return Math.min(1000 * Math.pow(2, attempt), 10000);
+      await new Promise<void>(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 10000)));
     },
   }
 );

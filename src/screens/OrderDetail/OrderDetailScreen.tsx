@@ -1,5 +1,5 @@
 // src/screens/OrderDetail/OrderDetailScreen.tsx
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppStackParamList } from '../../navigation/AppNavigator';
@@ -26,6 +26,7 @@ import {
   useCreateAdminResourceImageMutation,
   useDeleteAdminResourceImageMutation,
 } from '../../services/adminGarageApi';
+import { useUploadSingleImageMutation } from '../../services/imageApi';
 import { ServiceOrderImage } from '../../types/api.types';
 import { styles } from './styles';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
@@ -75,15 +76,16 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
   );
   const [createImage] = useCreateAdminResourceImageMutation();
   const [deleteImage] = useDeleteAdminResourceImageMutation();
+  const [uploadSingleImage] = useUploadSingleImageMutation();
   const [showImagesModal, setShowImagesModal] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Employees list for assign picker
+  // Employees list for assign picker — fetch fresh, no transform
   const employeesQuery = useGetAdminResourceListQuery(
     { resource: 'employees' },
     { skip: !isAdminManager },
   );
-  const employees = (employeesQuery.data || []) as any[];
+  const rawEmployees = (employeesQuery.data || []) as any[];
 
   // Admin action modals
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -152,15 +154,19 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
       if (!asset || !validateImageSize(asset)) return;
       setUploadingImage(true);
       try {
+        // Bước 1: upload file lên /api/upload/single → lấy URL
         const formData = createImageFormData(asset, 'image');
-        // createAdminResourceImage expects body as Record<string,unknown>
-        // We pass FormData — backend should accept multipart
+        const uploadResult = await uploadSingleImage(formData).unwrap();
+        const imageUrl = uploadResult.url || uploadResult.image_url;
+        if (!imageUrl) throw new Error('Upload không trả về URL');
+
+        // Bước 2: lưu metadata ảnh vào đơn hàng
         await createImage({
           resource: 'service-orders',
           body: {
             order_id: id,
+            image_url: imageUrl,
             status_at_time: statusAtTime,
-            image: formData,
           },
         }).unwrap();
         await adminImagesQuery.refetch();
@@ -176,7 +182,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
       async () => doUpload(await pickImageFromCamera()),
       async () => { const assets = await pickImageFromGallery(); doUpload(assets[0]); },
     );
-  }, [adminImagesQuery, createImage, id, refetch]);
+  }, [adminImagesQuery, createImage, id, refetch, uploadSingleImage]);
 
   const handleDeleteImage = useCallback((imageId: string | number) => {
     Alert.alert('Xóa ảnh', 'Bạn có chắc muốn xóa ảnh này?', [
@@ -345,6 +351,9 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
             <View style={styles.billCard}>
               {/* Customer Name */}
               {renderRow('Tên khách hàng', orderData.customer_name || orderData.receiver_name)}
+
+              {/* Garage Name */}
+              {(orderData.garage?.name || orderData.garage_name) ? renderRow('Gara', orderData.garage?.name || orderData.garage_name) : null}
 
               {/* Service Type */}
               {renderRow('Loại dịch vụ', orderData.service_name)}
@@ -540,7 +549,7 @@ const OrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => 
       {/* Assign employee modal */}
       {showAssignModal && (
         <AssignEmployeeModal
-          employees={employees}
+          employees={rawEmployees}
           currentEmployeeId={orderData?.employee_id}
           onClose={() => setShowAssignModal(false)}
           onAssign={handleAssign}
@@ -770,39 +779,73 @@ function AssignEmployeeModal({
   onClose: () => void;
   onAssign: (id: string | number) => Promise<void>;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [assigning, setAssigning] = React.useState<string | null>(null);
+
+  const handlePick = async (empId: string | number) => {
+    const key = String(empId);
+    setAssigning(key);
+    try {
+      await onAssign(empId);
+    } finally {
+      setAssigning(null);
+    }
+  };
+
   return (
     <View style={adminStyles.overlay}>
       <View style={adminStyles.sheet}>
+        {/* Header */}
         <View style={adminStyles.sheetHeader}>
-          <Text style={adminStyles.sheetTitle}>Gán nhân viên</Text>
+          <Text style={adminStyles.sheetTitle}>Chọn nhân viên</Text>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={Colors.text.primary} />
           </TouchableOpacity>
         </View>
+
+        {/* List */}
         {employees.length === 0 ? (
           <Text style={adminStyles.emptyText}>Chưa có nhân viên nào.</Text>
         ) : (
           employees.map((emp) => {
-            const isActive = String(emp.id) === String(currentEmployeeId);
+            const empId = String(emp.id ?? '');
+            const empName = String(emp.name ?? '');
+            const empPhone = String(emp.phone ?? '');
+            const isActive = empId === String(currentEmployeeId ?? '');
+            const isBusy = assigning === empId;
+
             return (
               <TouchableOpacity
-                key={String(emp.id)}
-                style={[adminStyles.statusRow, isActive && adminStyles.statusRowActive]}
-                disabled={loading || isActive}
-                onPress={async () => {
-                  setLoading(true);
-                  await onAssign(emp.id);
-                  setLoading(false);
-                }}
+                key={empId}
+                style={[assignStyles.row, isActive && assignStyles.rowActive]}
+                disabled={isBusy || isActive}
+                activeOpacity={0.75}
+                onPress={() => handlePick(emp.id)}
               >
-                <View style={{ flex: 1 }}>
-                  <Text style={[adminStyles.statusLabel, isActive && adminStyles.statusLabelActive]}>
-                    {String(emp.name || emp.id)}
+                {/* Avatar placeholder */}
+                <View style={[assignStyles.avatar, isActive && assignStyles.avatarActive]}>
+                  <Text style={[assignStyles.avatarText, isActive && assignStyles.avatarTextActive]}>
+                    {empName ? empName.charAt(0).toUpperCase() : '?'}
                   </Text>
-                  {emp.phone ? <Text style={adminStyles.empPhone}>{String(emp.phone)}</Text> : null}
                 </View>
-                {isActive && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+
+                {/* Info */}
+                <View style={assignStyles.info}>
+                  <Text style={[assignStyles.name, isActive && assignStyles.nameActive]}>
+                    {empName || `Nhân viên #${empId}`}
+                  </Text>
+                  {empPhone ? (
+                    <Text style={assignStyles.phone}>{empPhone}</Text>
+                  ) : null}
+                </View>
+
+                {/* Right indicator */}
+                {isBusy ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : isActive ? (
+                  <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                )}
               </TouchableOpacity>
             );
           })
@@ -811,6 +854,66 @@ function AssignEmployeeModal({
     </View>
   );
 }
+
+const assignStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    marginBottom: spacing.sm,
+    backgroundColor: Colors.background.light,
+  },
+  rowActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primarySoft,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  avatarActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  avatarText: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    fontWeight: Typography.weight.bold,
+  },
+  avatarTextActive: {
+    color: Colors.background.light,
+  },
+  info: {
+    flex: 1,
+    gap: 2,
+  },
+  name: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    fontWeight: Typography.weight.bold,
+  },
+  nameActive: {
+    color: Colors.primary,
+  },
+  phone: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.sm,
+    color: Colors.text.secondary,
+  },
+});
 
 function CompleteOrderModal({
   onClose,

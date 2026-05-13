@@ -11,6 +11,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   RefreshControl,
+  FlatList,
 } from "react-native";
 import Screen from "../../components/layout/Screen/Screen";
 import { Colors } from "../../constants/colors";
@@ -22,7 +23,6 @@ import { QueryWrapper, ScreenLoader } from "../../components/Loading";
 import { styles } from "./styles";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ConfirmButton from "../../components/ConfirmButton";
-import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { offerApi } from "../../services/offerApi";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
@@ -42,7 +42,7 @@ const OfferDetailScreen = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList<string>>(null);
   const currentGarageCode = useAppSelector((s) => s.garageContext.garageCode);
 
   // Fetch offer details from API
@@ -55,56 +55,36 @@ const OfferDetailScreen = () => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Invalidate offer tags to clear cache first
-      dispatch(offerApi.util.invalidateTags([{ type: "Offer", id: offerId.toString() }, "Offer", "OfferImage"]));
-      // Wait a bit for cache invalidation to take effect
-      await new Promise<void>((resolve) => setTimeout(() => resolve(), 100));
-      // Refetch offer data
       await Promise.all([offerQuery.refetch(), offerImagesQuery.refetch()]);
     } catch (error) {
-      console.error("Error refreshing offer:", error);
+      if (__DEV__) console.warn('Error refreshing offer:', error);
     } finally {
-      // Ensure refreshing is set to false
-      setTimeout(() => setRefreshing(false), 100);
+      setRefreshing(false);
     }
-  }, [offerQuery, offerImagesQuery, dispatch, offerId]);
+  }, [offerQuery, offerImagesQuery]);
 
-  // Prepare images array - prioritize offer images query, then offer.images, then primary_image, then image_url
-  const images = useMemo(() => {
+  // Merge images + imagesObjects từ cùng 1 useMemo để tránh tính toán 2 lần
+  const { images, imagesObjects } = useMemo(() => {
     let imageUrls: string[] = [];
+    let objects: typeof offerImagesQuery.data = [];
 
-    // Nếu có offerImagesQuery data (từ endpoint riêng)
     if (offerImagesQuery.data && offerImagesQuery.data.length > 0) {
+      objects = offerImagesQuery.data;
       imageUrls = offerImagesQuery.data.map((img) => img.image_url);
-    }
-    // Nếu offer có images array (từ getOfferById response)
-    else if (offer?.images && offer.images.length > 0) {
+    } else if (offer?.images && offer.images.length > 0) {
+      objects = offer.images as any;
       imageUrls = offer.images.map((img) => img.image_url);
-    }
-    // Nếu có primary_image
-    else if (offer?.primary_image?.image_url) {
+    } else if (offer?.primary_image?.image_url) {
       imageUrls = [offer.primary_image.image_url];
-    }
-    // Nếu có image_url cũ (backward compatibility)
-    else if (offer?.image_url) {
+    } else if (offer?.image_url) {
       imageUrls = [offer.image_url];
-    } else {
-      return [PLACEHOLDER_IMAGE];
     }
 
-    return imageUrls.length > 0 ? imageUrls : [PLACEHOLDER_IMAGE];
+    return {
+      images: imageUrls.length > 0 ? imageUrls : [PLACEHOLDER_IMAGE],
+      imagesObjects: objects ?? [],
+    };
   }, [offerImagesQuery.data, offer?.images, offer?.primary_image, offer?.image_url]);
-
-  // Lấy danh sách images objects để check is_primary
-  const imagesObjects = useMemo(() => {
-    if (offerImagesQuery.data && offerImagesQuery.data.length > 0) {
-      return offerImagesQuery.data;
-    }
-    if (offer?.images && offer.images.length > 0) {
-      return offer.images;
-    }
-    return [];
-  }, [offerImagesQuery.data, offer?.images]);
 
   // Handle scroll để cập nhật currentImageIndex khi swipe
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -117,11 +97,8 @@ const OfferDetailScreen = () => {
 
   // Scroll đến ảnh khi click thumbnail
   const scrollToImage = (index: number) => {
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({
-        x: index * SCREEN_WIDTH,
-        animated: true,
-      });
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index, animated: true });
     }
     setCurrentImageIndex(index);
   };
@@ -152,29 +129,33 @@ const OfferDetailScreen = () => {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
               >
                 <View style={styles.body}>
-                  {/* Image Carousel với Swipe */}
+                  {/* Image Carousel — FlatList horizontal để virtualize ảnh lớn */}
                   <View style={styles.imageCarouselContainer}>
-                    <ScrollView
-                      ref={scrollViewRef}
+                    <FlatList
+                      ref={flatListRef}
+                      data={images}
                       horizontal
                       pagingEnabled
                       showsHorizontalScrollIndicator={false}
                       onMomentumScrollEnd={handleScrollEnd}
                       decelerationRate="fast"
                       style={styles.imageCarouselScroll}
-                      contentContainerStyle={styles.imageCarouselContent}
-                    >
-                      {images.map((imageUrl, index) => (
+                      keyExtractor={(_, index) => index.toString()}
+                      getItemLayout={(_, index) => ({
+                        length: SCREEN_WIDTH,
+                        offset: SCREEN_WIDTH * index,
+                        index,
+                      })}
+                      renderItem={({ item: imageUrl, index }) => (
                         <TouchableOpacity
-                          key={index}
                           style={styles.imageCarousel}
                           onPress={() => setSelectedImage(imageUrl)}
                           activeOpacity={0.9}
                         >
                           <Image source={{ uri: imageUrl }} style={styles.offerImage} resizeMode="cover" />
                         </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      )}
+                    />
 
                     {/* Image Indicators */}
                     {images.length > 1 && (
@@ -192,7 +173,7 @@ const OfferDetailScreen = () => {
                   {/* Divider giữa ảnh to và list ảnh */}
                   {images.length > 1 && <View style={styles.divider} />}
 
-                  {/* Image Gallery Thumbnails - Ngay dưới ảnh chính */}
+                  {/* Image Gallery Thumbnails */}
                   {images.length > 1 && (
                     <View style={styles.thumbnailSection}>
                       <ScrollView
@@ -204,14 +185,11 @@ const OfferDetailScreen = () => {
                         {images.map((imageUrl, index) => (
                           <TouchableOpacity
                             key={index}
-                            onPress={() => {
-                              scrollToImage(index);
-                            }}
+                            onPress={() => scrollToImage(index)}
                             activeOpacity={0.8}
                             style={[styles.thumbnail, index === currentImageIndex && styles.thumbnailActive]}
                           >
                             <Image source={{ uri: imageUrl }} style={styles.thumbnailImage} resizeMode="cover" />
-                            {/* Badge ảnh chính */}
                             {imagesObjects[index]?.is_primary === 1 && (
                               <View style={styles.primaryBadge}>
                                 <Text style={styles.primaryBadgeText}>Chính</Text>

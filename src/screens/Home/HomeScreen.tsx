@@ -39,7 +39,7 @@ export default function HomeScreen() {
   const activeGarage = useAppSelector(selectActiveGarage);
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-  const isManager = isManagerUserRole(storeUserType as any);
+  const isManager = isManagerUserRole(storeUserType);
 
   if (isManager) {
     return (
@@ -251,7 +251,7 @@ function StandardHomeScreen() {
                   </View>
 
                   <View style={styles.section}>
-                    <SectionHeader title="San pham noi bat" />
+                    <SectionHeader title="Sản phẩm nổi bật" />
                     <View style={styles.servicesContainer}>
                       {homeContent.previewProducts.map((product: any) => (
                         <Item
@@ -263,7 +263,7 @@ function StandardHomeScreen() {
                         />
                       ))}
                     </View>
-                    <ViewMoreButton onPress={actions.onViewMore} title="Xem them san pham" />
+                    <ViewMoreButton onPress={actions.onViewMore} title="Xem thêm sản phẩm" />
                   </View>
 
                   <View style={styles.section}>

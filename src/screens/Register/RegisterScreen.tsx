@@ -165,7 +165,6 @@ export default function RegisterScreen() {
         dismissKeyboardOnPress
       >
         <Text style={styles.welcomeText}>Chào mừng đến với GaraOne</Text>
-        <Text style={styles.subtitle}>Đăng ký tại đây</Text>
 
         <View style={styles.logoFrame}>
           <Image

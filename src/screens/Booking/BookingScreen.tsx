@@ -198,8 +198,8 @@ const BookingScreen: React.FC = () => {
         license_plate: licensePlate,
         vehicle_type: vehicleType,
         service_id: selectedService.id,
-        receive_date: formattedDeliveryDate, // Sử dụng delivery_date làm receive_date
-        delivery_date: formattedDeliveryDate,
+        receive_date: formattedDeliveryDate,
+        // delivery_date để null — backend tự tính hoặc nhân viên cập nhật sau
         note,
       };
       const result = await createOrder(body).unwrap();
@@ -414,7 +414,7 @@ const BookingScreen: React.FC = () => {
           value={deliveryDate} 
           onChangeText={handleDeliveryDateChange} 
           placeholder={getCurrentDate()} 
-          label="Ngày đặt lịch" 
+          label="Ngày nhận xe" 
           fullWidth
         />
         <NoteInput value={note} onChangeText={setNote} placeholder="Nhập ghi chú (tùy chọn)" />

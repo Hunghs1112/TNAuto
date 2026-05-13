@@ -85,7 +85,15 @@ function limitedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Res
     const task = () => {
       runWith429Backoff(input, init)
         .then((resp) => resolve(resp))
-        .catch((err) => reject(err))
+        .catch((err) => {
+          // Suppress AbortController polyfill errors — these are benign and occur
+          // when RTK Query cancels in-flight requests on component unmount.
+          const msg = String(err?.message || err || '');
+          if (msg.includes('AbortController') || msg.includes('abort') || err?.name === 'AbortError') {
+            return; // silently ignore
+          }
+          reject(err);
+        })
         .finally(() => {
           activeCount -= 1;
           dequeue();

@@ -3,11 +3,11 @@
 import React, { ReactNode, useMemo, useCallback } from 'react';
 import { View, Text, StatusBar, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
 import { RootView } from '../components/layout';
-import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from '../constants/colors';
 import { PerformanceConfig } from '../config/performance';
 import Header from './Header';
 import Item from './Item';
+import ErrorView from './Loading/ErrorView';
 import { sharedStyles } from '../styles/sharedStyles';
 import { useAutoRefresh } from '../redux/hooks/useAutoRefresh';
 
@@ -97,7 +97,7 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
     );
   }
 
-  // Error state
+  // Error state — dùng ErrorView có nút retry nhất quán với các màn khác
   if (error) {
     return (
       <View style={sharedStyles.container}>
@@ -107,10 +107,11 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
           <View style={[sharedStyles.whiteSection, { paddingHorizontal: 16 }]}>
             {topContent}
             <View style={sharedStyles.body}>
-              <View style={sharedStyles.emptyContainer}>
-                <Ionicons name="alert-circle-outline" size={48} color={Colors.primary} />
-                <Text style={sharedStyles.errorText}>Lỗi tải dữ liệu</Text>
-              </View>
+              <ErrorView
+                message="Lỗi tải dữ liệu"
+                onRetry={typeof onRefresh === 'function' ? onRefresh : undefined}
+                icon="alert-circle-outline"
+              />
             </View>
           </View>
         </RootView>

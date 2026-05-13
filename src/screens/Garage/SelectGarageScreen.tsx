@@ -29,7 +29,6 @@ const SelectGarageScreen = () => {
     <Screen headerTitle="Chọn gara" showBackButton statusBarStyle="light-content">
       <FormContainer keyboardAvoiding withScroll paddingCustom={{ horizontal: 'xl', top: 'lg', bottom: 'xl' }} keyboardVerticalOffset={30} dismissKeyboardOnPress>
         <Text style={styles.title}>Chọn gara</Text>
-        <Text style={styles.subtitle}>{canChangeGarage ? 'Nhập mã gara để liên kết tài khoản với gara của bạn. Sau khi xác nhận, bạn có thể bắt đầu sử dụng các dịch vụ.' : 'Tài khoản này đã được gắn cố định với một gara.'}</Text>
 
         <View style={styles.inputSection}>
           <Text style={styles.sectionTitle}>Nhập mã gara</Text>

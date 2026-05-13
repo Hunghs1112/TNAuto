@@ -89,6 +89,22 @@ export interface AdminMutationResponse extends AdminEntity {
   message?: string;
 }
 
+export interface GarageManager {
+  id: string | number;
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  garage_id?: string | number | null;
+  garage_code?: string | null;
+  garage_name?: string | null;
+  role?: string | null;
+  status?: string | null;
+  avatar_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
 interface ResourceListArgs {
   resource: AdminListResource;
   params?: Record<string, unknown>;
@@ -595,6 +611,28 @@ export const adminGarageApi = createApi({
       transformResponse: (response: unknown) =>
         normalizeMutationResponse(response, 'Failed to update UI visibility'),
     }),
+    createGarageManager: builder.mutation<GarageManager, Record<string, unknown>>({
+      query: (body) => ({
+        url: '/api/web/garage-managers',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['AdminDashboard'],
+      transformResponse: (response: any) => {
+        return response?.data ?? response;
+      },
+    }),
+    updateGarageManager: builder.mutation<GarageManager, { id: string | number; body: Record<string, unknown> }>({
+      query: ({ id, body }) => ({
+        url: `/api/web/garage-managers/${encodeURIComponent(String(id))}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['AdminDashboard'],
+      transformResponse: (response: any) => {
+        return response?.data ?? response;
+      },
+    }),
   }),
 });
 
@@ -627,4 +665,6 @@ export const {
   useUpdateAdminServiceReminderConfigMutation,
   useToggleAdminServiceReminderConfigMutation,
   useUpdateAdminUiVisibilityMutation,
+  useCreateGarageManagerMutation,
+  useUpdateGarageManagerMutation,
 } = adminGarageApi;

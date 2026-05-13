@@ -436,7 +436,7 @@ const CustomerDetailScreen: React.FC = () => {
   const handleDelete = useCallback(() => {
     Alert.alert(
       'Xóa khách hàng',
-      `Bạn có chắc muốn xóa khách hàng "${customerInfo?.name}"? Hành động này không thể hoàn tác.`,
+      `Xóa khách hàng khỏi gara này? Tài khoản khách hàng vẫn được giữ nguyên trên hệ thống.`,
       [
         { text: 'Hủy', style: 'cancel' },
         {
@@ -445,7 +445,7 @@ const CustomerDetailScreen: React.FC = () => {
           onPress: async () => {
             try {
               await deleteCustomer({ resource: 'customers', id: customerId }).unwrap();
-              Alert.alert('Thành công', 'Đã xóa khách hàng.');
+              Alert.alert('Thành công', 'Đã xóa khách hàng khỏi gara');
               navigation.goBack();
             } catch {
               Alert.alert('Lỗi', 'Không thể xóa khách hàng. Vui lòng thử lại.');
@@ -463,7 +463,7 @@ const CustomerDetailScreen: React.FC = () => {
         if (!asset || !validateImageSize(asset)) return;
         setUploadingAvatar(true);
         try {
-          const formData = createImageFormData(asset, 'avatar');
+          const formData = createImageFormData(asset, 'image');
           await uploadAvatar({ resource: 'customers', id: customerId, action: 'upload-avatar', body: formData }).unwrap();
           await adminCustomerQuery.refetch();
           Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');
@@ -478,7 +478,7 @@ const CustomerDetailScreen: React.FC = () => {
         if (!assets.length || !validateImageSize(assets[0])) return;
         setUploadingAvatar(true);
         try {
-          const formData = createImageFormData(assets[0], 'avatar');
+          const formData = createImageFormData(assets[0], 'image');
           await uploadAvatar({ resource: 'customers', id: customerId, action: 'upload-avatar', body: formData }).unwrap();
           await adminCustomerQuery.refetch();
           Alert.alert('Thành công', 'Đã cập nhật ảnh đại diện.');

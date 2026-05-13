@@ -107,7 +107,7 @@ export default function GarageOrdersScreen() {
   const totalOrders = pickStat(statsQuery.data, ['total_orders', 'orders_total', 'count']);
   const pendingOrders = pickStat(statsQuery.data, ['pending_orders', 'received_orders']);
   const processingOrders = pickStat(statsQuery.data, ['processing_orders', 'in_progress_orders']);
-  const completedToday = pickStat(statsQuery.data, ['completed_today', 'completed_orders_today']);
+  const completedToday = pickStat(statsQuery.data, ['completed_today', 'completed_orders_today', 'completed_orders']);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -217,9 +217,6 @@ export default function GarageOrdersScreen() {
           ListHeaderComponent={
             <View style={styles.headerBlock}>
               <Text style={styles.screenTitle}>Luồng xử lý dịch vụ</Text>
-              <Text style={styles.screenSubtitle}>
-                Danh sách và trạng thái lấy từ `/api/app/admin/service-orders`.
-              </Text>
 
               <View style={styles.statsGrid}>
                 <View style={styles.statCard}>

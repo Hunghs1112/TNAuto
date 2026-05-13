@@ -196,10 +196,6 @@ export default function SuperAdminGaragesScreen() {
           ListHeaderComponent={
             <View style={styles.headerBlock}>
               <Text style={styles.screenTitle}>Quản lý hệ thống gara</Text>
-              <Text style={styles.screenSubtitle}>
-                Danh sách tất cả gara trong hệ thống. Chỉ hiển thị với quyền{' '}
-                <Text style={styles.roleTag}>garage_admin</Text>.
-              </Text>
               <View style={styles.statRow}>
                 <View style={styles.statCard}>
                   <Text style={styles.statValue}>{garages.length}</Text>

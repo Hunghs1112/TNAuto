@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
+import { isManagerRole } from "../../navigation/rolePolicy";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -40,8 +41,7 @@ const MyServiceScreen: React.FC = () => {
   }, [isLoggedIn, navigation]);
 
   useEffect(() => {
-    if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
-      // Dealer không được phép xem/điều hướng chức năng dịch vụ.
+    if (isManagerRole(userType) || userType === 'dealer') {
       navigation.replace('Category');
     }
   }, [userType, navigation]);
@@ -53,7 +53,7 @@ const MyServiceScreen: React.FC = () => {
   }, [hasGarageContext, isLoggedIn, navigation, userType]);
 
   const { data: ordersResponse, isLoading, error, refetch, isFetching } = useGetCustomerOrdersQuery(userPhone, {
-    skip: !userPhone || (userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin') || !hasGarageContext,
+    skip: !userPhone || isManagerRole(userType) || userType === 'dealer' || !hasGarageContext,
   });
 
   const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse?.data]);
@@ -63,8 +63,8 @@ const MyServiceScreen: React.FC = () => {
     { key: 'ready_for_pickup', label: 'Chờ xác nhận' },
     { key: 'in_progress', label: 'Đang xử lý' },
     { key: 'completed', label: 'Hoàn thành' },
+    // Merge cancelled + canceled thành 1 filter
     { key: 'cancelled', label: 'Đã hủy' },
-    { key: 'canceled', label: 'Đã hủy' },
   ]), []);
 
   const actualRefreshing = refreshing || isFetching;
@@ -80,15 +80,22 @@ const MyServiceScreen: React.FC = () => {
     }
   }, [baseOnRefresh, refetch]);
 
+  // Sort descending — đơn mới nhất lên đầu
   const sortedOrders = useMemo(
-    () => [...orders].sort((a, b) => new Date(a.receive_date).getTime() - new Date(b.receive_date).getTime()),
+    () => [...orders].sort((a, b) => new Date(b.receive_date).getTime() - new Date(a.receive_date).getTime()),
     [orders],
   );
 
   const filteredOrders = useMemo(
-    () => selectedStatus === 'all'
-      ? sortedOrders
-      : sortedOrders.filter(order => order.status === selectedStatus),
+    () =>
+      selectedStatus === 'all'
+        ? sortedOrders
+        : sortedOrders.filter(
+            (order) =>
+              order.status === selectedStatus ||
+              // Merge cancelled + canceled vào cùng filter 'cancelled'
+              (selectedStatus === 'cancelled' && order.status === 'canceled'),
+          ),
     [selectedStatus, sortedOrders],
   );
 
@@ -106,7 +113,11 @@ const MyServiceScreen: React.FC = () => {
   }, [navigation]);
 
   const renderOrderItem = useCallback(({ item }: any) => {
-    const serviceName = services?.find((s: { id: number }) => s.id === Number(item.service_id))?.name || 'Dịch vụ không xác định';
+    // Ưu tiên service_name từ order data, fallback vào redux store
+    const serviceName =
+      item.service_name ||
+      services?.find((s: { id: number }) => s.id === Number(item.service_id))?.name ||
+      'Dịch vụ không xác định';
     const secondaryName = `Nhân viên: ${item.employee_name || 'Chưa giao'}`;
     return (
       <ServiceOrderCard
@@ -123,18 +134,9 @@ const MyServiceScreen: React.FC = () => {
 
   const keyExtractor = useCallback((item: any) => item.id.toString(), []);
 
-  // Don't render if not logged in (will redirect)
-  if (!isLoggedIn) {
-    return null;
-  }
-
-  if ((userType === 'dealer' || userType === 'garage_manager' || userType === 'garage_admin')) {
-    return null;
-  }
-
-  if (userType === 'customer' && !hasGarageContext) {
-    return null;
-  }
+  if (!isLoggedIn) return null;
+  if (isManagerRole(userType) || userType === 'dealer') return null;
+  if (userType === 'customer' && !hasGarageContext) return null;
 
 
   if (isLoading) {

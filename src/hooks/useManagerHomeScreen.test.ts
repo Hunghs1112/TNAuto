@@ -191,9 +191,9 @@ describe('useManagerHomeScreen utilities', () => {
         },
       };
 
-      const kpis = computeKPIs(summary, 7);
+      const kpis = computeKPIs(summary, undefined, 7);
 
-      expect(kpis).toHaveLength(5);
+      expect(kpis).toHaveLength(4);
       expect(kpis[0]).toEqual({
         key: 'pending',
         label: 'Đơn chờ xử lý',
@@ -204,42 +204,53 @@ describe('useManagerHomeScreen utilities', () => {
         label: 'Đơn đang xử lý',
         value: 3,
       });
-      expect(kpis[2]).toEqual({
+      expect(kpis[2]).toMatchObject({
         key: 'overdue',
         label: 'Đơn quá hạn',
         value: 2,
+        isAlert: true,
       });
       expect(kpis[3]).toEqual({
         key: 'completed_today',
         label: 'Hoàn thành hôm nay',
         value: 10,
       });
-      expect(kpis[4]).toEqual({
-        key: 'notifications',
-        label: 'Thông báo chưa đọc',
-        value: 7,
-      });
+    });
+
+    it('should set isAlert on overdue KPI when value > 0', () => {
+      const summary: ManagerHomeSummary = {
+        stats: { overdue_orders: 3 },
+      };
+      const kpis = computeKPIs(summary);
+      const overdue = kpis.find((k) => k.key === 'overdue')!;
+      expect(overdue.isAlert).toBe(true);
+    });
+
+    it('should not set isAlert on overdue KPI when value is 0', () => {
+      const summary: ManagerHomeSummary = {
+        stats: { overdue_orders: 0 },
+      };
+      const kpis = computeKPIs(summary);
+      const overdue = kpis.find((k) => k.key === 'overdue')!;
+      expect(overdue.isAlert).toBeFalsy();
     });
 
     it('should handle null summary data', () => {
-      const kpis = computeKPIs(null, 3);
+      const kpis = computeKPIs(null);
 
-      expect(kpis).toHaveLength(5);
+      expect(kpis).toHaveLength(4);
       expect(kpis[0].value).toBe(0);
       expect(kpis[1].value).toBe(0);
       expect(kpis[2].value).toBe(0);
       expect(kpis[3].value).toBe(0);
-      expect(kpis[4].value).toBe(3);
     });
 
     it('should handle undefined summary data', () => {
-      const kpis = computeKPIs(undefined, 0);
+      const kpis = computeKPIs(undefined);
 
-      expect(kpis).toHaveLength(5);
-      kpis.forEach((kpi, index) => {
-        if (index < 4) {
-          expect(kpi.value).toBe(0);
-        }
+      expect(kpis).toHaveLength(4);
+      kpis.forEach((kpi) => {
+        expect(kpi.value).toBe(0);
       });
     });
 
@@ -248,11 +259,54 @@ describe('useManagerHomeScreen utilities', () => {
         stats: {},
       };
 
-      const kpis = computeKPIs(summary, 5);
+      const kpis = computeKPIs(summary);
 
-      expect(kpis).toHaveLength(5);
+      expect(kpis).toHaveLength(4);
       expect(kpis[0].value).toBe(0);
-      expect(kpis[4].value).toBe(5);
+    });
+
+    it('should fallback to orders list when summary has no valid stats', () => {
+      const yesterday = new Date(Date.now() - 86400000).toISOString();
+      const orders: ServiceOrder[] = [
+        {
+          id: '1',
+          status: 'pending',
+          customer_id: 1,
+          service_id: 1,
+          license_plate: 'A',
+          receive_date: '2024-01-01',
+          created_at: '2024-01-01',
+        },
+        {
+          id: '2',
+          status: 'in_progress',
+          customer_id: 2,
+          service_id: 1,
+          license_plate: 'B',
+          receive_date: '2024-01-01',
+          created_at: '2024-01-01',
+        },
+        {
+          id: '3',
+          status: 'in_progress',
+          delivery_date: yesterday,
+          customer_id: 3,
+          service_id: 1,
+          license_plate: 'C',
+          receive_date: '2024-01-01',
+          created_at: '2024-01-01',
+        },
+      ];
+
+      const kpis = computeKPIs(null, orders);
+
+      const pending = kpis.find((k) => k.key === 'pending')!;
+      const processing = kpis.find((k) => k.key === 'processing')!;
+      const overdue = kpis.find((k) => k.key === 'overdue')!;
+
+      expect(pending.value).toBe(1);
+      expect(processing.value).toBe(2);
+      expect(overdue.value).toBe(1);
     });
   });
 });
@@ -268,7 +322,7 @@ describe('useManagerHomeScreen auto-refresh', () => {
   });
 
   it('should setup timers when isEnabled is true', () => {
-    const setIntervalSpy = jest.spyOn(global, 'setInterval');
+    const setIntervalSpy = jest.spyOn(globalThis, 'setInterval');
 
     // This test verifies that setInterval is called when the hook is enabled
     // In a real implementation, you would use renderHook from @testing-library/react-hooks
@@ -279,7 +333,7 @@ describe('useManagerHomeScreen auto-refresh', () => {
   });
 
   it('should cleanup timers on unmount', () => {
-    const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+    const clearIntervalSpy = jest.spyOn(globalThis, 'clearInterval');
 
     // This test verifies that clearInterval is called on cleanup
     // In a real implementation, you would use renderHook and unmount
