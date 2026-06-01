@@ -23,6 +23,7 @@ type CreateVehicleRequest = {
   garage_id?: number | string | null;
   license_plate: string;
   model?: string | null;
+  production_year?: number | null;
   image_url?: string | null;
 } & Partial<Omit<VehicleDocumentFields, 'inspection_status' | 'insurance_status'>>;
 
@@ -32,6 +33,7 @@ type UpdateVehicleRequest = {
   garage_code?: string | null;
   garage_id?: number | string | null;
   model?: string | null;
+  production_year?: number | null;
   image_url?: string | null;
 } & Partial<Omit<VehicleDocumentFields, 'inspection_status' | 'insurance_status'>>;
 

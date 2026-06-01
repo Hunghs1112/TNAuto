@@ -96,12 +96,24 @@ export default function AdminSettingsScreen() {
 function RemindersTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [editItem, setEditItem] = useState<AdminServiceReminderConfig | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const query = useGetAdminServiceReminderConfigsQuery();
   const [toggleConfig] = useToggleAdminServiceReminderConfigMutation();
   const [updateConfig] = useUpdateAdminServiceReminderConfigMutation();
 
   const items = useMemo(() => query.data || [], [query.data]);
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const q = searchQuery.toLowerCase().trim();
+    return items.filter(
+      (item) =>
+        item.service_name?.toLowerCase().includes(q) ||
+        String(item.service_id).includes(q),
+    );
+  }, [items, searchQuery]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -178,16 +190,40 @@ function RemindersTab() {
   return (
     <View style={{ flex: 1 }}>
       <FlatList
-        data={items}
+        data={filteredItems}
         keyExtractor={(item) => String(item.service_id)}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing || query.isFetching} onRefresh={handleRefresh} />}
         ListHeaderComponent={
-          <Text style={styles.sectionDesc}>
-            Bật/tắt và điều chỉnh số ngày nhắc nhở dịch vụ cho từng loại dịch vụ.
-          </Text>
+          <View style={{ gap: spacing.sm }}>
+            <Text style={styles.sectionDesc}>
+              Bật/tắt và điều chỉnh số ngày nhắc nhở dịch vụ cho từng loại dịch vụ.
+            </Text>
+            {/* Search bar */}
+            <View style={adminSearchStyles.searchBar}>
+              <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+              <TextInput
+                style={adminSearchStyles.searchInput}
+                value={searchInput}
+                onChangeText={setSearchInput}
+                onBlur={() => setSearchQuery(searchInput)}
+                onSubmitEditing={() => setSearchQuery(searchInput)}
+                placeholder="Tìm dịch vụ..."
+                placeholderTextColor={Colors.text.secondary}
+                returnKeyType="search"
+              />
+              {searchInput ? (
+                <TouchableOpacity
+                  onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
         }
         ListEmptyComponent={
           query.isLoading ? (
@@ -544,4 +580,25 @@ const modalStyles = StyleSheet.create({
   cancelText: { fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.base, color: Colors.text.secondary },
   saveBtn: { flex: 2, paddingVertical: spacing.md, borderRadius: borderRadius.xl, backgroundColor: Colors.primary, alignItems: 'center' },
   saveText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.base, color: Colors.background.light, fontWeight: Typography.weight.bold },
+});
+
+const adminSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
 });

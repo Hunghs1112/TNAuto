@@ -81,6 +81,7 @@ export default function GarageOrdersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const userType = useAppSelector((state) => state.auth.userType);
   const [statusFilter, setStatusFilter] = useState<OrderFilter>('all');
+  const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const canAccess = isManagerRole(userType);
@@ -100,8 +101,18 @@ export default function GarageOrdersScreen() {
   const [createOrder] = useCreateAdminResourceMutation();
 
   const orders = useMemo(
-    () => (ordersQuery.data || []).map(mapAdminServiceOrder),
-    [ordersQuery.data],
+    () => {
+      const all = (ordersQuery.data || []).map(mapAdminServiceOrder);
+      if (!search.trim()) return all;
+      const q = search.trim().toLowerCase();
+      return all.filter(
+        (o) =>
+          (o.license_plate || '').toLowerCase().includes(q) ||
+          (o.customer_name || '').toLowerCase().includes(q) ||
+          (o.service_name || '').toLowerCase().includes(q),
+      );
+    },
+    [ordersQuery.data, search],
   );
 
   const totalOrders = pickStat(statsQuery.data, ['total_orders', 'orders_total', 'count']);
@@ -239,6 +250,24 @@ export default function GarageOrdersScreen() {
 
               <View style={styles.filtersRow}>
                 {FILTERS.map(renderFilter)}
+              </View>
+
+              {/* Search bar */}
+              <View style={styles.searchBar}>
+                <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Tìm biển số, tên KH, dịch vụ..."
+                  placeholderTextColor={Colors.text.secondary}
+                  returnKeyType="search"
+                />
+                {search ? (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           }
@@ -478,6 +507,25 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    marginTop: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    padding: 0,
   },
 });
 

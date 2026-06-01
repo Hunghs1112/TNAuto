@@ -163,6 +163,7 @@ const ServiceScreen = () => {
       refreshing={refreshing}
       onRefresh={handleRefresh}
       mapDataToItems={mapDataToItems}
+      searchPlaceholder="Tìm dịch vụ..."
       topContent={
         showGarageTabs ? (
           <GarageTabs

@@ -94,18 +94,19 @@ export const useHomeScreen = () => {
   const employeeId = currentEmployee?.id || (userType === "employee" ? userId : undefined);
   const canUseTenantCatalog = userType === "employee" || isDealer ? isLoggedIn : hasGarageContext;
   const customerNotificationParams =
-    userType === "customer" ? { recipient_id: userId, recipient_type: "customer" } : undefined;
+    userType === "customer" ? { customer_id: userId, user_type: "customer" } : undefined;
   const shouldResolveGarageName =
     isLoggedIn &&
     Boolean(currentGarageCode) &&
-    garageContext.resolved &&
-    !hasResolvedGarageName(currentGarageName, currentGarageCode);
+    garageContext.resolved;
   const shouldShowPromoHome =
     !isLoggedIn || (userType === "customer" && !hasGarageContext);
 
   const [claimEmployeeOrder] = useClaimEmployeeOrderMutation();
   const { data: resolvedGarageByCode, refetch: refetchResolvedGarageByCode } = useResolveGarageByCodeQuery(currentGarageCode, {
     skip: !shouldResolveGarageName,
+    // Luôn refetch khi mount để lấy thông tin mới nhất từ backend
+    refetchOnMountOrArgChange: true,
   });
   const lastSyncedGarageSignatureRef = useRef<string>('');
   const isRefreshingGarageRef = useRef(false);
@@ -156,6 +157,7 @@ export const useHomeScreen = () => {
   } = useOrdersData({
     userType,
     userPhone,
+    userId,
     currentEmployeeId: employeeId,
     hasGarageContext,
   });
@@ -214,10 +216,6 @@ export const useHomeScreen = () => {
 
   useEffect(() => {
     if (!resolvedGarageByCode?.name || isRefreshingGarageRef.current) {
-      return;
-    }
-
-    if (!isFocused || appStateRef.current !== 'active') {
       return;
     }
 
@@ -302,14 +300,14 @@ export const useHomeScreen = () => {
 
   const handleProductPress = useCallback(
     (id: string) => {
-      navigation.navigate("ProductDetail", { productId: id });
+      navigation.navigate("ProductDetail", { productId: Number(id) });
     },
     [navigation],
   );
 
   const handleServicePress = useCallback(
     (id: string) => {
-      navigation.navigate("ServiceDetail", { serviceId: id });
+      navigation.navigate("ServiceDetail", { serviceId: Number(id) });
     },
     [navigation],
   );

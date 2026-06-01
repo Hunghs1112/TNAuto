@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 
@@ -14,7 +14,18 @@ interface GarageTabsProps {
 }
 
 const GarageTabs: React.FC<GarageTabsProps> = ({ garages, activeGarageCode, onChangeGarage }) => {
-  if (garages.length <= 1) {
+  // Deduplicate theo garageId (fallback garageCode) để tránh hiển thị 2 tab cùng 1 gara khi đổi mã
+  const uniqueGarages = useMemo(() => {
+    const seen = new Set<string>();
+    return garages.filter((g) => {
+      const key = g.garageId ? `id:${g.garageId}` : `code:${g.garageCode}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [garages]);
+
+  if (uniqueGarages.length <= 1) {
     return null;
   }
 
@@ -25,7 +36,7 @@ const GarageTabs: React.FC<GarageTabsProps> = ({ garages, activeGarageCode, onCh
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        {garages.map((garage) => {
+        {uniqueGarages.map((garage) => {
           const isActive = garage.garageCode === activeGarageCode;
 
           return (

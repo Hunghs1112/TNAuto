@@ -7,21 +7,23 @@ import { textStyles } from "../../design-system/typography";
 
 export const loginSharedStyles = StyleSheet.create({
   welcomeText: {
-    ...textStyles.h2,
+    fontSize: 22,
+    fontWeight: "700",
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.primary,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    ...textStyles.bodySmall,
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.regular,
     color: Colors.text.secondary,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
+  // Không dùng logo lớn nữa — logo nằm trong headerBand của AuthShell
   logoFrame: {
-    width: "100%",
-    maxWidth: 520,
-    height: 260,
-    alignSelf: "center",
-    marginVertical: spacing.xl,
+    display: "none",
+    width: 0,
+    height: 0,
   },
   logo: {
     width: "100%",
@@ -29,6 +31,7 @@ export const loginSharedStyles = StyleSheet.create({
   },
   formBody: {
     width: "100%",
+    marginTop: spacing.md,
   },
   inputContainer: {
     gap: spacing.base,

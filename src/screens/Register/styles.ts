@@ -4,133 +4,82 @@ import { Typography } from "../../constants/typo";
 import { spacing } from "../../design-system/spacing";
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.light, // White for bottom safe area
-  },
-  root: {
-    flex: 1,
-    backgroundColor: Colors.gradients.primary[0], // Gradient color for top safe area
-  },
-  body: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: Colors.background.light,
-  },
-  form: {
-    flex: 1,
-    marginTop: "2%",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: Colors.background.light,
-  },
-  formGroup: {
-    width: "100%",
-    gap: 12,
-  },
-  textSection: {
-    marginBottom: 20,
-  },
   welcomeText: {
     fontSize: 24,
     lineHeight: 28,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.primary,
-    marginTop: 0,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: Typography.size.sm,
-    lineHeight: 16,
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    color: Colors.text.secondary,
+    marginBottom: spacing.sm,
   },
   logoFrame: {
-    width: "100%",
-    maxWidth: 520,
-    height: 260,
+    width: 220,
+    height: 160,
     alignSelf: "center",
-    marginVertical: spacing.xl,
+    marginVertical: spacing.lg,
   },
   logo: {
     width: "100%",
     height: "100%",
   },
-  
-  // Input Container - unified spacing
   inputContainer: {
-    gap: 16,
     width: "100%",
-    marginBottom: 24,
+    marginBottom: spacing.md,
   },
-  helperText: {
-    fontSize: Typography.size.sm,
-    fontFamily: Typography.fontFamily.regular,
-    color: Colors.text.secondary,
-    marginTop: -8,
-    marginLeft: 4,
+  errorIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#ff4d4f',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  errorText: {
-    fontSize: Typography.size.sm,
-    fontFamily: Typography.fontFamily.regular,
-    color: Colors.status.error,
-    marginTop: -6,
-    marginLeft: 4,
-    marginBottom: 6,
+  errorIconText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    lineHeight: 15,
   },
-  
-  customerLink: {
-    marginTop: 20,
-    marginBottom: 10,
-    alignItems: "flex-end",
-  },
-  customerLinkText: {
-    fontSize: Typography.size.sm,
-    lineHeight: 16,
-    fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
-    color: Colors.primary,
-    textAlign: "left",
+  actions: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   signup: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
-  },
-  // Actions area (buttons)
-  actions: {
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: spacing.lg,
   },
   registerPrompt: {
     fontSize: Typography.size.sm,
-    lineHeight: 16,
     fontFamily: Typography.fontFamily.regular,
     color: Colors.text.secondary,
   },
   registerLink: {
     fontSize: Typography.size.sm,
-    lineHeight: 16,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
     color: Colors.primary,
     marginLeft: 5,
   },
-  bar: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    height: "4.19%",
-    alignItems: "center",
+  dealerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    gap: 8,
+    marginTop: spacing.lg,
+    width: '100%',
   },
-  barInner: {
-    width: 134,
-    height: 5,
-    borderRadius: 100,
-    backgroundColor: Colors.text.placeholder,
-    marginBottom: 9,
+  dealerBannerText: {
+    fontSize: Typography.size.sm,
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    color: '#fff',
+    flex: 1,
+    textAlign: 'center',
   },
 });

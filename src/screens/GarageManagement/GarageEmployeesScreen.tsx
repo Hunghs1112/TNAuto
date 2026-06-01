@@ -55,8 +55,12 @@ export default function GarageEmployeesScreen() {
   const canAccess = isManagerRole(userType);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [search, setSearch] = useState('');
 
-  const employeesQuery = useGetAdminResourceListQuery({ resource: 'employees' }, { skip: !canAccess });
+  const employeesQuery = useGetAdminResourceListQuery(
+    { resource: 'employees', params: search.trim() ? { search: search.trim() } : undefined },
+    { skip: !canAccess },
+  );
   const statsQuery = useGetAdminStatsQuery({ resource: 'employees' }, { skip: !canAccess });
   const [createEmployee] = useCreateAdminResourceMutation();
 
@@ -166,6 +170,26 @@ export default function GarageEmployeesScreen() {
           ListHeaderComponent={
             <View style={styles.headerBlock}>
               <Text style={styles.screenTitle}>Quản lý nhân sự</Text>
+
+              {/* Search bar */}
+              <View style={styles.searchBar}>
+                <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Tìm theo tên, SĐT..."
+                  placeholderTextColor={Colors.text.secondary}
+                  returnKeyType="search"
+                  onSubmitEditing={() => employeesQuery.refetch()}
+                />
+                {search ? (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                   <Text style={styles.statValue}>{total}</Text>
@@ -377,6 +401,25 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    marginTop: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    padding: 0,
   },
 });
 

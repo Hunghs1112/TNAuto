@@ -187,6 +187,16 @@ export const employeeApi = createApi({
         return response;
       },
     }),
+    changePassword: builder.mutation<
+      { success: boolean; message?: string },
+      { current_password: string; new_password: string }
+    >({
+      query: (body) => ({
+        url: ENDPOINTS.employeeChangePassword.path,
+        method: 'PUT',
+        body,
+      }),
+    }),
   }),
 });
 
@@ -202,6 +212,7 @@ export const {
   useUpdateEmployeeMutation,
   useDeleteEmployeeMutation,
   useUpdateEmployeeOrderStatusMutation,
+  useChangePasswordMutation,
 } = employeeApi;
 
 export type { Employee, ServiceOrder, LoginEmployeeResponse } from '../types/api.types';

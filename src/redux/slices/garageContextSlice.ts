@@ -133,8 +133,22 @@ const upsertSavedGarageState = (state: GarageContextState, payload: GaragePayloa
     return null;
   }
 
-  const existingIndex = state.savedGarages.findIndex((garage) => garage.garageCode === garageCode);
-  const updatedGarage = buildSavedGarage(payload, existingIndex >= 0 ? state.savedGarages[existingIndex] : undefined);
+  // Tìm theo garageCode trước (exact match)
+  let existingIndex = state.savedGarages.findIndex((garage) => garage.garageCode === garageCode);
+
+  // Nếu không tìm thấy theo code, tìm theo garageId (trường hợp admin đổi mã gara)
+  // Điều này ngăn tạo entry trùng khi cùng 1 gara có mã mới
+  if (existingIndex === -1 && payload.garageId) {
+    const normalizedId = String(payload.garageId);
+    existingIndex = state.savedGarages.findIndex(
+      (garage) => garage.garageId && String(garage.garageId) === normalizedId,
+    );
+  }
+
+  const updatedGarage = buildSavedGarage(
+    payload,
+    existingIndex >= 0 ? state.savedGarages[existingIndex] : undefined,
+  );
 
   if (!updatedGarage) {
     return null;
@@ -169,6 +183,20 @@ export const sanitizeGarageContextState = (state: Partial<GarageContextState> | 
           }),
         )
         .filter((garage): garage is SavedGarage => Boolean(garage))
+        // Deduplicate theo garageId — giữ entry cuối cùng (mới nhất)
+        .reduce<SavedGarage[]>((acc, garage) => {
+          if (garage.garageId) {
+            const dupIndex = acc.findIndex(
+              (g) => g.garageId && String(g.garageId) === String(garage.garageId),
+            );
+            if (dupIndex >= 0) {
+              acc[dupIndex] = garage; // cập nhật entry cũ bằng entry mới hơn
+              return acc;
+            }
+          }
+          acc.push(garage);
+          return acc;
+        }, [])
     : [];
 
   const activeGarage =

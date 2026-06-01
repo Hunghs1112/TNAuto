@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   noteInput: {
-    height: 80,
+    height: 64,
     textAlignVertical: "top",
   },
 });

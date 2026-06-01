@@ -59,6 +59,19 @@ const getStatusColor = (status?: string): string => {
   }
 };
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return dateStr;
+  // Nếu đã là định dạng DD/MM/YYYY thì giữ nguyên
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  // Parse và format lại thành DD/MM/YYYY
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
   serviceName,
   secondaryName,
@@ -81,8 +94,14 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
       accessibilityLabel={`${serviceName} - ${secondaryName} - ${statusText}`}
     >
       <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.upperSection}>
+        {/* Badge trạng thái — góc trên phải */}
+        {status && (
+          <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+            <Text style={styles.statusText}>{statusText}</Text>
+          </View>
+        )}
+
+        <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.serviceInfo}>
               <View style={styles.iconContainerShadow}>
@@ -101,50 +120,44 @@ const ServiceOrderCard: React.FC<ServiceOrderCardProps> = ({
                       end={{ x: 1, y: 1 }}
                       style={styles.iconContainer}
                     >
-                      <Ionicons name="settings" size={28} color={Colors.background.light} />
+                      <Ionicons name="settings" size={26} color={Colors.background.light} />
                     </LinearGradient>
                   )}
                 </View>
               </View>
               <View style={styles.textContainer}>
                 <View style={styles.serviceText}>
-                  <Text style={styles.serviceName}>{serviceName}</Text>
-                  <Text style={styles.secondaryName}>{secondaryName}</Text>
+                  <Text style={styles.serviceName} numberOfLines={1}>{serviceName}</Text>
+                  <Text style={styles.secondaryName} numberOfLines={1}>{secondaryName}</Text>
                   <GarageBadge garageName={garageName} />
-                  {status && (
-                    <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                      <Text style={styles.statusText}>{statusText}</Text>
-                    </View>
-                  )}
                 </View>
               </View>
             </View>
             <View style={styles.arrowContainer}>
-              <Ionicons name="arrow-forward-circle" size={24} color={Colors.text.secondary} />
+              <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.footer}>
+            <View style={styles.dateItem}>
+              <View style={[styles.dateIconContainer, isCompleted ? styles.scheduleDateIcon : styles.receiveDateIcon]}>
+                <Ionicons
+                  name={isCompleted ? "calendar" : "calendar-outline"}
+                  size={14}
+                  color={isCompleted ? Colors.primaryLight : Colors.secondary}
+                />
+              </View>
+              <Text style={styles.dateLabel} numberOfLines={1}>
+                {isCompleted ? "Đã nhận:" : "Dự kiến:"}
+              </Text>
+              <Text style={styles.dateValue} numberOfLines={1}>
+                {isCompleted ? formatDate(receiveDate) : formatDate(scheduleDate)}
+              </Text>
             </View>
           </View>
         </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.footer}>
-          <View style={styles.dateItem}>
-            <View style={[styles.dateIconContainer, isCompleted ? styles.scheduleDateIcon : styles.receiveDateIcon]}>
-              <Ionicons
-                name={isCompleted ? "calendar" : "calendar-outline"}
-                size={18}
-                color={isCompleted ? Colors.primaryLight : Colors.secondary}
-              />
-            </View>
-            <Text style={styles.dateLabel} numberOfLines={1}>
-              {isCompleted ? "Đã nhận ngày" : "Ngày nhận dự kiến"}
-            </Text>
-            <Text style={styles.dateValue} numberOfLines={1}>
-              {isCompleted ? receiveDate : scheduleDate}
-            </Text>
-          </View>
-        </View>
-      </View>
       </View>
     </Pressable>
   )
@@ -156,41 +169,40 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.background.light,
     borderRadius: borderRadius['2xl'],
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.neutral[200],
     width: "100%",
-    minHeight: 190,
-    ...getRedShadowStyle('lg'),
+    overflow: "hidden",
+    ...getRedShadowStyle('sm'),
   },
   content: {
-    padding: spacing.xl,
+    padding: spacing.base,
     flex: 1,
-    justifyContent: "space-between",
   },
   upperSection: {
-    flex: 2,
-    justifyContent: "flex-start",
+    flex: 1,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   serviceInfo: {
     flexDirection: "row",
     gap: spacing.base,
     flex: 1,
+    alignItems: "center",
   },
   iconContainerShadow: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     ...getRedShadowStyle('sm'),
   },
   iconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     overflow: 'hidden',
@@ -198,37 +210,39 @@ const styles = StyleSheet.create({
   },
   arrowContainer: {
     padding: spacing.xs,
-    borderRadius: borderRadius.md,
-    backgroundColor: Colors.neutral[50],
   },
   textContainer: {
     flex: 1,
-    marginLeft: spacing.xs,
   },
   serviceText: {
-    gap: spacing.sm,
+    gap: 4,
   },
   serviceName: {
     color: Colors.text.primary,
-    ...textStyles.bodyLarge,
+    fontSize: 14,
     fontFamily: Typography.fontFamily.bold,
     fontWeight: Typography.weight.bold,
+    lineHeight: 18,
   },
   secondaryName: {
     color: Colors.text.secondary,
-    ...textStyles.bodySmall,
+    fontSize: 12,
     opacity: 0.8,
+    lineHeight: 16,
   },
   statusBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.md,
-    alignSelf: 'flex-start',
-    marginTop: spacing.xs,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderTopRightRadius: borderRadius['2xl'],
+    borderBottomLeftRadius: borderRadius.md,
+    zIndex: 1,
   },
   statusText: {
     color: Colors.background.light,
-    ...textStyles.bodySmall,
+    fontSize: 11,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: Typography.weight.semibold,
   },
@@ -236,24 +250,22 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.divider,
     marginHorizontal: 0,
-    marginVertical: spacing.md,
+    marginVertical: spacing.sm,
   },
   footer: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.sm,
   },
   dateItem: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    gap: spacing.sm,
+    gap: 6,
   },
   dateIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -265,24 +277,24 @@ const styles = StyleSheet.create({
   },
   receiveDate: {
     color: Colors.secondary,
-    ...textStyles.bodySmall,
+    fontSize: 12,
     flex: 1,
     fontWeight: Typography.weight.semibold,
   },
   scheduleDate: {
     color: Colors.primaryLight,
-    ...textStyles.bodySmall,
+    fontSize: 12,
     flex: 1,
     fontWeight: Typography.weight.semibold,
   },
   dateLabel: {
     color: Colors.text.secondary,
-    ...textStyles.bodySmall,
+    fontSize: 11,
     flexShrink: 0,
   },
   dateValue: {
     color: Colors.text.primary,
-    ...textStyles.bodySmall,
+    fontSize: 12,
     flex: 1,
     fontWeight: Typography.weight.semibold,
   },

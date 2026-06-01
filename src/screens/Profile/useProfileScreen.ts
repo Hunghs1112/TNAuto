@@ -57,11 +57,7 @@ export const getChangePasswordHandler = (
 ): (() => void) => {
   switch (userType) {
     case 'employee':
-      return () =>
-        navigation.navigate('EmployeePassword', {
-          phone: userPhone,
-          employeeData: undefined,
-        });
+      return () => navigation.navigate('ChangePassword', { phone: userPhone });
     case 'dealer':
       return () => navigation.navigate('DealerLogin', { phone: userPhone });
     case 'garage_manager':
@@ -90,6 +86,7 @@ interface MenuHandlers {
   navigateToVehicleList: () => void;
   navigateToSelectGarage: () => void;
   navigateToGarageOrders: () => void;
+  navigateToEmployeeOrders: () => void;
   navigateToGarageCustomers: () => void;
   navigateToGarageEmployees: () => void;
   navigateToAdminCatalog: () => void;
@@ -135,7 +132,22 @@ export const buildRoleMenuConfig = (
   switch (userType) {
     case 'customer':
       return [
-        accountSection,
+        {
+          // Khách hàng: chỉ hiển thị Thông tin tài khoản
+          // TODO: bật lại 'changePassword' khi tính năng đổi mật khẩu hoàn thiện
+          // TODO: bật lại 'notification' khi tính năng cài đặt thông báo hoàn thiện
+          id: 'account',
+          label: 'Tài khoản',
+          items: [
+            {
+              id: 'accountInfo',
+              title: 'Thông tin tài khoản',
+              subtitle: 'Chỉnh sửa hồ sơ cá nhân',
+              icon: 'person-outline',
+              onPress: handlers.navigateToAccountInfo,
+            },
+          ],
+        },
         {
           id: 'vehicle',
           label: 'Xe của tôi',
@@ -160,24 +172,23 @@ export const buildRoleMenuConfig = (
 
     case 'employee':
       return [
-        accountSection,
         {
-          id: 'work',
-          label: 'Công việc',
+          id: 'account',
+          label: 'Tài khoản',
           items: [
             {
-              id: 'garageOrders',
-              title: 'Quản lý đơn hàng',
-              subtitle: 'Xem và xử lý các đơn hàng',
-              icon: 'list-outline',
-              onPress: handlers.navigateToGarageOrders,
+              id: 'accountInfo',
+              title: 'Thông tin tài khoản',
+              subtitle: 'Chỉnh sửa hồ sơ cá nhân',
+              icon: 'person-outline',
+              onPress: handlers.navigateToAccountInfo,
             },
             {
-              id: 'selectGarage',
-              title: 'Gara hiện tại',
-              subtitle: 'Chọn gara đang làm việc',
-              icon: 'business-outline',
-              onPress: handlers.navigateToSelectGarage,
+              id: 'changePassword',
+              title: 'Đổi mật khẩu',
+              subtitle: 'Cập nhật mật khẩu của bạn',
+              icon: 'key-outline',
+              onPress: handlers.handleChangePassword,
             },
           ],
         },
@@ -439,6 +450,7 @@ export const useProfileScreen = (): ProfileScreenData => {
     navigation.navigate('VehicleList', { userId, userPhone });
   const navigateToSelectGarage = () => navigation.navigate('SelectGarage');
   const navigateToGarageOrders = () => navigation.navigate('GarageOrders');
+  const navigateToEmployeeOrders = () => navigation.navigate('EmployeeOrders');
   const navigateToGarageCustomers = () => navigation.navigate('GarageCustomers');
   const navigateToGarageEmployees = () => navigation.navigate('GarageEmployees');
   const navigateToAdminCatalog = () => navigation.navigate('AdminCatalog');
@@ -457,6 +469,7 @@ export const useProfileScreen = (): ProfileScreenData => {
         navigateToVehicleList,
         navigateToSelectGarage,
         navigateToGarageOrders,
+        navigateToEmployeeOrders,
         navigateToGarageCustomers,
         navigateToGarageEmployees,
         navigateToAdminCatalog,

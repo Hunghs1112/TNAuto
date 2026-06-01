@@ -5,8 +5,8 @@ import {
   useGetManagerHomeOrdersQuery,
   useGetManagerHomeNotificationsQuery,
 } from '../services/managerApi';
-import { useGetAdminStatsQuery } from '../services/adminGarageApi';
-import { AdminStats } from '../services/adminGarageApi';
+import { useGetAdminStatsQuery, useGetAdminAnalyticsQuery } from '../services/adminGarageApi';
+import { AdminStats, TimePeriod } from '../services/adminGarageApi';
 import { ServiceOrder } from '../types/api.types';
 import {
   ACTIVE_ORDER_STATUSES,
@@ -252,6 +252,10 @@ export function useManagerHomeScreen({
 
   const isSuperAdmin = isSuperAdminRole(userType);
 
+  // ── State (phải khai báo trước queries) ──────────────────────────────────
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activePeriod, setActivePeriod] = useState<TimePeriod>('7d');
+
   // Role guard — navigate to Home if not a manager
   useEffect(() => {
     if (isEnabled && !isManagerRole(userType)) {
@@ -325,6 +329,15 @@ export function useManagerHomeScreen({
     data: notificationsStats,
     refetch: refetchNotificationsStats,
   } = useGetAdminStatsQuery({ resource: 'notifications' }, { skip: !isEnabled });
+
+  // Analytics query
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    isFetching: analyticsFetching,
+    isError: analyticsError,
+    refetch: refetchAnalytics,
+  } = useGetAdminAnalyticsQuery({ period: activePeriod }, { skip: !isEnabled });
 
   // ── 401 handling ─────────────────────────────────────────────────────────
 
@@ -408,10 +421,6 @@ export function useManagerHomeScreen({
     return Number(s.alerts) || 0;
   }, [summaryData]);
 
-  // ── isRefreshing state ────────────────────────────────────────────────────
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
   // ── onRefresh ─────────────────────────────────────────────────────────────
 
   const onRefresh = useCallback(async () => {
@@ -430,6 +439,7 @@ export function useManagerHomeScreen({
         refetchVehiclesStats(),
         refetchWarrantiesStats(),
         refetchNotificationsStats(),
+        refetchAnalytics(),
       ]);
     } finally {
       setIsRefreshing(false);
@@ -447,6 +457,7 @@ export function useManagerHomeScreen({
     refetchVehiclesStats,
     refetchWarrantiesStats,
     refetchNotificationsStats,
+    refetchAnalytics,
   ]);
 
   // ── Auto-refresh interval (60s) ───────────────────────────────────────────
@@ -555,6 +566,15 @@ export function useManagerHomeScreen({
     kpis,
     managementStats,
     isSuperAdmin,
+
+    // Analytics
+    activePeriod,
+    onPeriodChange: setActivePeriod,
+    analyticsData,
+    analyticsLoading,
+    analyticsIsError: analyticsError,
+    analyticsFetching,
+    onAnalyticsRetry: refetchAnalytics,
 
     // Loading states
     isLoading,

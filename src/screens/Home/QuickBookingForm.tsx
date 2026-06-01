@@ -79,7 +79,7 @@ const InputFieldWithLabel: React.FC<InputFieldWithLabelProps> = React.memo(({
 const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
   const dispatch = useDispatch()
   const navigation = useNavigation<NavigationProp>()
-  const { isLoggedIn, userName, userPhone, userLicensePlate } = useSelector((state: RootState) => state.auth)
+  const { isLoggedIn, userName, userPhone, userLicensePlate, userId } = useSelector((state: RootState) => state.auth)
   const activeGarageCode = useSelector(selectGarageCode)
   const hasGarageContext = useSelector(
     (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
@@ -169,6 +169,7 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
       const formattedReceiveDate = formatDateForAPI(receiveDate)
       const formattedDeliveryDate = formatDateForAPI(deliveryDate)
       const body = {
+        customer_id: userId ? Number(userId) : undefined,
         garageCode: activeGarageCode,
         receiver_name: userName,
         receiver_phone: userPhone,
@@ -219,23 +220,29 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
         padding="base"
         dismissKeyboardOnPress
       >
-          <InputFieldWithLabel
-            value={userName}
-            onChangeText={() => {}}
-            placeholder="Tên khách hàng"
-            label="Tên khách hàng"
-            icon="person-outline"
-            editable={false}
-          />
-          <InputFieldWithLabel
-            value={userPhone}
-            onChangeText={() => {}}
-            placeholder="Số điện thoại"
-            label="Số điện thoại"
-            icon="call-outline"
-            keyboardType="phone-pad"
-            editable={false}
-          />
+          <View style={styles.row}>
+            <View style={styles.halfField}>
+              <InputFieldWithLabel
+                value={userName}
+                onChangeText={() => {}}
+                placeholder="Tên khách hàng"
+                label="Họ tên"
+                icon="person-outline"
+                editable={false}
+              />
+            </View>
+            <View style={styles.halfField}>
+              <InputFieldWithLabel
+                value={userPhone}
+                onChangeText={() => {}}
+                placeholder="Số điện thoại"
+                label="Điện thoại"
+                icon="call-outline"
+                keyboardType="phone-pad"
+                editable={false}
+              />
+            </View>
+          </View>
           {/* Chọn xe hoặc nhập thông tin xe */}
           {hasVehicles ? (
             <>
@@ -343,34 +350,31 @@ const QuickBookingForm: React.FC<QuickBookingFormProps> = ({ onConfirm }) => {
 const styles = StyleSheet.create({
   vehicleInfoContainer: {
     width: "100%",
-    marginBottom: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: Colors.primarySoft,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.alpha.primary12,
-    gap: 8,
+    gap: 4,
   },
   vehicleInfoRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   vehicleInfoLabel: {
     fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.text.secondary,
   },
   vehicleInfoValue: {
     fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.primary,
     flex: 1,
   },
-
   container: {
     width: "100%",
   },
@@ -382,82 +386,69 @@ const styles = StyleSheet.create({
   },
   inputFieldContainer: {
     width: "100%",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   labelRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.background.light,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 4,
-    borderRadius: 8,
-    maxWidth: 240,
-    shadowColor: Colors.neutral[300],
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingHorizontal: 2,
+    marginBottom: 3,
+    gap: 4,
   },
   iconContainer: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 8,
   },
   label: {
-    fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    fontSize: 13,
-    lineHeight: 18,
+    fontFamily: Typography.fontFamily.semibold,
+    fontSize: 11,
+    lineHeight: 14,
     color: Colors.text.secondary,
-    flex: 1,
-    letterSpacing: 0.2,
   },
   inputWrapper: {
     width: "100%",
-    marginTop: 4,
+  },
+  row: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  halfField: {
+    flex: 1,
   },
   dateRowContainer: {
     width: "100%",
-    marginBottom: 4,
-    flexDirection: "row",
-    gap: 0,
+    marginBottom: 6,
   },
   confirmButtonContainer: {
     width: "100%",
-    marginTop: 4,
-    paddingHorizontal: 4,
+    marginTop: 6,
   },
   estimatedTimeContainer: {
     width: "100%",
-    marginBottom: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: Colors.primarySoft,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: Colors.alpha.primary12,
   },
   estimatedTimeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   estimatedTimeLabel: {
     fontFamily: Typography.fontFamily.medium,
-    fontWeight: Typography.weight.medium,
-    fontSize: 14,
-    color: Colors.text.primary,
+    fontSize: 12,
+    color: Colors.text.secondary,
+    flex: 1,
   },
   estimatedTimeValue: {
     fontFamily: Typography.fontFamily.bold,
-    fontWeight: Typography.weight.bold,
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.primary,
   },
 })

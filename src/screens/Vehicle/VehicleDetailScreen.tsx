@@ -404,6 +404,12 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
               <Text style={styles.infoValue}>{vehicle.model || 'Chưa cập nhật'}</Text>
             </View>
 
+            <View style={[styles.infoRow, styles.infoRowCompact]}>
+              <Ionicons name="calendar-outline" size={18} color={Colors.text.primary} />
+              <Text style={styles.infoLabel}>Năm sản xuất:</Text>
+              <Text style={styles.infoValue}>{vehicle.production_year ? vehicle.production_year.toString() : 'Chưa cập nhật'}</Text>
+            </View>
+
             <View style={styles.infoRow}>
               <Ionicons 
                 name={vehicle.has_active_order ? "construct" : "checkmark-circle"} 
@@ -648,6 +654,9 @@ const styles = StyleSheet.create({
   },
   vehicleInfo: {
     padding: 20,
+  },
+  infoRowCompact: {
+    marginTop: -2,
   },
   infoRow: {
     flexDirection: 'row',

@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Screen, FormContainer } from '../../components/layout';
 import TextInput from '../../components/TextInput/TextInput';
 import DateInput from '../../components/TextInput/DateInput';
 import { Button } from '../../components/ui';
+import { MultiImagePicker } from '../../components/MultiImagePicker';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
 import { spacing } from '../../design-system/spacing';
@@ -30,6 +31,8 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
     hasGarageContext,
     model,
     setModel,
+    productionYear,
+    setProductionYear,
     licenseNumber,
     setLicenseNumber,
     licenseExpiryDate,
@@ -46,8 +49,8 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
     setInsuranceStartDate,
     insuranceExpiryDate,
     setInsuranceExpiryDate,
-    vehicleImageUri,
-    handlePickVehicleImage,
+    vehicleImages,
+    setVehicleImages,
     handleSave,
   } = useVehicleEditScreen(vehicleId);
 
@@ -76,6 +79,8 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" showsVerticalScrollIndicator={false} bounces>
             <View style={styles.sheet}>
               <View style={styles.sheetContent}>
+
+                {/* ── Thông tin xe ── */}
                 <View style={styles.sectionCard}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionIconWrap}>
@@ -89,30 +94,32 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
                     <Text style={styles.readonlyValue}>{vehicle.license_plate}</Text>
                   </View>
 
+                  {/* Ảnh xe — dùng MultiImagePicker singleMode */}
                   <View style={styles.vehicleImageSection}>
-                    <Text style={styles.fieldLabel}>Ảnh xe</Text>
-                    <TouchableOpacity style={styles.vehicleImagePicker} onPress={handlePickVehicleImage} activeOpacity={0.85}>
-                      {vehicleImageUri ? (
-                        <Image source={{ uri: vehicleImageUri }} style={styles.vehicleImagePreview} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.vehicleImagePlaceholder}>
-                          <Ionicons name="image-outline" size={28} color={Colors.primary} />
-                          <Text style={styles.vehicleImagePlaceholderText}>Thêm ảnh xe</Text>
-                        </View>
-                      )}
-                      <View style={styles.vehicleImageEditBadge}>
-                        <Ionicons name="camera-outline" size={14} color={Colors.background.light} />
-                        <Text style={styles.vehicleImageEditBadgeText}>Đổi ảnh</Text>
-                      </View>
-                    </TouchableOpacity>
+                    <Text style={styles.fieldLabel}>
+                      Ảnh xe <Text style={styles.optionalLabel}>(Tùy chọn)</Text>
+                    </Text>
+                    <MultiImagePicker
+                      images={vehicleImages}
+                      onImagesChange={setVehicleImages}
+                      singleMode
+                      maxImages={1}
+                    />
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Model</Text>
+                    <Text style={styles.fieldLabel}>Model <Text style={styles.optionalLabel}>(Tùy chọn)</Text></Text>
                     <TextInput value={model} onChangeText={setModel} placeholder="Nhập model xe" style={styles.input} />
+                  </View>
+
+                  <View style={styles.fieldBlockLast}>
+                    <Text style={styles.fieldLabel}>Năm sản xuất <Text style={styles.optionalLabel}>(Tùy chọn)</Text></Text>
+                    <TextInput value={productionYear} onChangeText={setProductionYear} placeholder="Ví dụ: 2022" style={styles.input} keyboardType="number-pad" />
+                    <Text style={styles.hintText}>Chỉ nhập năm hợp lệ, từ 1886 đến năm hiện tại.</Text>
                   </View>
                 </View>
 
+                {/* ── Bằng lái xe ── */}
                 <View style={styles.sectionCard}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionIconWrap}>
@@ -122,15 +129,16 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Số bằng lái xe</Text>
+                    <Text style={styles.fieldLabel}>Số bằng lái xe <Text style={styles.optionalLabel}>(Tùy chọn)</Text></Text>
                     <TextInput value={licenseNumber} onChangeText={setLicenseNumber} placeholder="Nhập số bằng lái xe" style={styles.input} />
                   </View>
 
                   <View style={styles.fieldBlockLast}>
-                    <DateInput value={licenseExpiryDate} onChangeText={setLicenseExpiryDate} placeholder="Chọn ngày hết hạn bằng lái" label="Ngày hết hạn bằng lái" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <DateInput value={licenseExpiryDate} onChangeText={setLicenseExpiryDate} placeholder="Chọn ngày hết hạn bằng lái" label="Ngày hết hạn bằng lái (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
                   </View>
                 </View>
 
+                {/* ── Đăng kiểm ── */}
                 <View style={styles.sectionCard}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionIconWrap}>
@@ -140,19 +148,20 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Số chứng nhận đăng kiểm</Text>
+                    <Text style={styles.fieldLabel}>Số chứng nhận đăng kiểm <Text style={styles.optionalLabel}>(Tùy chọn)</Text></Text>
                     <TextInput value={inspectionCertificateNumber} onChangeText={setInspectionCertificateNumber} placeholder="Nhập số chứng nhận đăng kiểm" style={styles.input} />
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <DateInput value={inspectionDate} onChangeText={setInspectionDate} placeholder="Chọn ngày đăng kiểm" label="Ngày đăng kiểm" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <DateInput value={inspectionDate} onChangeText={setInspectionDate} placeholder="Chọn ngày đăng kiểm" label="Ngày đăng kiểm (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
                   </View>
 
                   <View style={styles.fieldBlockLast}>
-                    <DateInput value={inspectionExpiryDate} onChangeText={setInspectionExpiryDate} placeholder="Chọn ngày hết hạn đăng kiểm" label="Ngày hết hạn đăng kiểm" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <DateInput value={inspectionExpiryDate} onChangeText={setInspectionExpiryDate} placeholder="Chọn ngày hết hạn đăng kiểm" label="Ngày hết hạn đăng kiểm (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
                   </View>
                 </View>
 
+                {/* ── Bảo hiểm ── */}
                 <View style={styles.sectionCard}>
                   <View style={styles.sectionHeader}>
                     <View style={styles.sectionIconWrap}>
@@ -162,18 +171,19 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <Text style={styles.fieldLabel}>Đơn vị bảo hiểm</Text>
+                    <Text style={styles.fieldLabel}>Đơn vị bảo hiểm <Text style={styles.optionalLabel}>(Tùy chọn)</Text></Text>
                     <TextInput value={insuranceCompany} onChangeText={setInsuranceCompany} placeholder="Nhập đơn vị bảo hiểm" style={styles.input} />
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <DateInput value={insuranceStartDate} onChangeText={setInsuranceStartDate} placeholder="Chọn ngày bắt đầu bảo hiểm" label="Ngày bắt đầu bảo hiểm" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <DateInput value={insuranceStartDate} onChangeText={setInsuranceStartDate} placeholder="Chọn ngày bắt đầu bảo hiểm" label="Ngày bắt đầu bảo hiểm (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
                   </View>
 
                   <View style={styles.fieldBlockLast}>
-                    <DateInput value={insuranceExpiryDate} onChangeText={setInsuranceExpiryDate} placeholder="Chọn ngày hết hạn bảo hiểm" label="Ngày hết hạn bảo hiểm" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <DateInput value={insuranceExpiryDate} onChangeText={setInsuranceExpiryDate} placeholder="Chọn ngày hết hạn bảo hiểm" label="Ngày hết hạn bảo hiểm (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
                   </View>
                 </View>
+
               </View>
             </View>
           </ScrollView>
@@ -205,14 +215,10 @@ const styles = StyleSheet.create({
   readonlyValue: { ...textStyles.bodyStrong, fontFamily: Typography.fontFamily.semibold, fontWeight: Typography.weight.semibold, color: Colors.primary },
   fieldBlock: { marginBottom: spacing.md },
   fieldBlockLast: { marginBottom: 0 },
+  hintText: { marginTop: 6, fontSize: 12, lineHeight: 16, color: Colors.text.secondary },
   vehicleImageSection: { marginBottom: spacing.lg },
-  vehicleImagePicker: { position: 'relative', borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.neutral[50], borderWidth: 1, borderColor: Colors.alpha.primary12, minHeight: 180 },
-  vehicleImagePreview: { width: '100%', height: 180 },
-  vehicleImagePlaceholder: { height: 180, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  vehicleImagePlaceholderText: { ...textStyles.bodySmall, color: Colors.text.secondary, fontFamily: Typography.fontFamily.medium, fontWeight: Typography.weight.medium },
-  vehicleImageEditBadge: { position: 'absolute', right: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: Colors.alpha.black60 },
-  vehicleImageEditBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.background.light },
   fieldLabel: { ...textStyles.bodySmall, fontFamily: Typography.fontFamily.medium, fontWeight: Typography.weight.medium, color: Colors.text.secondary, marginBottom: 8 },
+  optionalLabel: { fontSize: 11, color: Colors.text.secondary, fontWeight: '400' },
   input: { marginBottom: 0 },
   dateInput: { marginBottom: 0 },
   stickyFooter: { backgroundColor: Colors.background.muted, borderTopWidth: 1, borderTopColor: Colors.alpha.primary12, paddingHorizontal: spacing.xl, paddingTop: spacing.md },

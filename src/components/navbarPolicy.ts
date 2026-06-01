@@ -17,6 +17,7 @@ export function buildNavbarTabs(userType?: string | null): NavbarTabItem[] {
   const isManager = isManagerRole(role);
   const isSuperAdmin = isSuperAdminRole(role);
   const isDealer = isDealerLikeRole(role) && !isManager;
+  const isEmployee = role === "employee";
 
   // ── Garage manager (quản lý 1 gara) ──────────────────────────────────────
   if (isManager && !isSuperAdmin) {
@@ -37,6 +38,15 @@ export function buildNavbarTabs(userType?: string | null): NavbarTabItem[] {
       { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
       { key: "orders", label: "Đơn hàng", icon: "receipt-outline", routeName: "GarageOrders", requiresAuth: true },
       { key: "garages", label: "Hệ thống", icon: "storefront-outline", routeName: "SuperAdminGarages", requiresAuth: true, superAdminOnly: true },
+    ];
+  }
+
+  // ── Employee (nhân viên) — 3 tab: Đơn việc, Trang chủ, Hồ sơ ──────────
+  if (isEmployee) {
+    return [
+      { key: "orders",   label: "Đơn việc",  icon: "receipt-outline",  routeName: "EmployeeOrders", requiresAuth: true },
+      { key: "home",     label: "Trang chủ", icon: "home",             routeName: "HomeTab",        isCenter: true },
+      { key: "settings", label: "Hồ sơ",     icon: "settings-outline", routeName: "Profile",        requiresAuth: true },
     ];
   }
 
@@ -62,8 +72,10 @@ export function buildNavbarTabs(userType?: string | null): NavbarTabItem[] {
 }
 
 export function splitNavbarTabs(tabs: NavbarTabItem[]) {
-  const leftTabs = tabs.filter((t) => !t.isCenter).slice(0, 2);
-  const rightTabs = tabs.filter((t) => !t.isCenter).slice(2, 4);
+  const nonCenter = tabs.filter((t) => !t.isCenter);
+  const mid = Math.ceil(nonCenter.length / 2);
+  const leftTabs  = nonCenter.slice(0, mid);
+  const rightTabs = nonCenter.slice(mid);
   const centerTab = tabs.find((t) => t.isCenter);
 
   return { leftTabs, rightTabs, centerTab };

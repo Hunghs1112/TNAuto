@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,199 +23,204 @@ import {
   AdminServiceReminderConfig,
   AdminStats,
   AdminUiVisibilitySetting,
+  TimePeriod,
+  useGetAdminAnalyticsQuery,
   useGetAdminServiceReminderConfigsQuery,
   useGetAdminStatsQuery,
   useGetAdminUiVisibilityQuery,
 } from '../../services/adminGarageApi';
+import AnalyticsSkeleton from '../../components/ui/AnalyticsSkeleton';
+import KpiCard from '../../components/ui/KpiCard';
+import NewCustomersLineChart from '../../components/ui/NewCustomersLineChart';
+import OrdersBarChart from '../../components/ui/OrdersBarChart';
+import PeriodSelector from '../../components/ui/PeriodSelector';
 
-type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+type Nav = NativeStackNavigationProp<AppStackParamList>;
 
-const toNumber = (value: unknown) => {
-  const normalized = Number(value);
-  return Number.isFinite(normalized) ? normalized : 0;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const toNum = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 };
 
 const pickStat = (stats: AdminStats | undefined, keys: string[]) => {
-  if (!stats) {
-    return 0;
+  if (!stats) return 0;
+  for (const k of keys) {
+    if (stats[k] !== undefined) return toNum(stats[k]);
   }
-
-  for (const key of keys) {
-    if (stats[key] !== undefined) {
-      return toNumber(stats[key]);
-    }
-  }
-
   return 0;
 };
 
-const isTruthyFlag = (value: unknown) =>
-  value === true || value === 1 || value === '1' || value === 'true';
+const isTruthy = (v: unknown) =>
+  v === true || v === 1 || v === '1' || v === 'true';
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function GarageManagementScreen() {
-  const navigation = useNavigation<NavigationProp>();
-  const userType = useAppSelector((state) => state.auth.userType);
-  const garageName = useAppSelector((state) => state.garageContext.garageName);
-  const garageCode = useAppSelector((state) => state.garageContext.activeGarageCode || state.garageContext.garageCode);
+  const navigation = useNavigation<Nav>();
+  const userType   = useAppSelector(s => s.auth.userType);
+  const garageName = useAppSelector(s => s.garageContext.garageName);
+  const garageCode = useAppSelector(
+    s => s.garageContext.activeGarageCode || s.garageContext.garageCode,
+  );
   const canAccess = isManagerRole(userType);
-  const [refreshing, setRefreshing] = useState(false);
 
-  const customersStats = useGetAdminStatsQuery({ resource: 'customers' }, { skip: !canAccess });
-  const ordersStats = useGetAdminStatsQuery({ resource: 'service-orders' }, { skip: !canAccess });
-  const employeesStats = useGetAdminStatsQuery({ resource: 'employees' }, { skip: !canAccess });
-  const servicesStats = useGetAdminStatsQuery({ resource: 'services' }, { skip: !canAccess });
-  const serviceCategoriesStats = useGetAdminStatsQuery({ resource: 'service-categories' }, { skip: !canAccess });
-  const productsStats = useGetAdminStatsQuery({ resource: 'products' }, { skip: !canAccess });
-  const categoriesStats = useGetAdminStatsQuery({ resource: 'categories' }, { skip: !canAccess });
-  const offersStats = useGetAdminStatsQuery({ resource: 'offers' }, { skip: !canAccess });
-  const warrantiesStats = useGetAdminStatsQuery({ resource: 'warranties' }, { skip: !canAccess });
-  const vehiclesStats = useGetAdminStatsQuery({ resource: 'vehicles' }, { skip: !canAccess });
-  const notificationsStats = useGetAdminStatsQuery({ resource: 'notifications' }, { skip: !canAccess });
-  const uiVisibilityQuery = useGetAdminUiVisibilityQuery(undefined, { skip: !canAccess });
-  const reminderConfigsQuery = useGetAdminServiceReminderConfigsQuery(undefined, { skip: !canAccess });
+  const [refreshing,   setRefreshing]   = useState(false);
+  const [activePeriod, setActivePeriod] = useState<TimePeriod>('7d');
+
+  // Sync-scroll: khi một chart scroll → chart kia scroll theo
+  const ordersScrollRef    = useRef<ScrollView>(null);
+  const customersScrollRef = useRef<ScrollView>(null);
+
+  const syncFromOrders = useCallback((x: number) => {
+    customersScrollRef.current?.scrollTo({ x, animated: false });
+  }, []);
+
+  const syncFromCustomers = useCallback((x: number) => {
+    ordersScrollRef.current?.scrollTo({ x, animated: false });
+  }, []);
+
+  // ── Queries ────────────────────────────────────────────────────────────────
+  const analyticsQ = useGetAdminAnalyticsQuery(
+    { period: activePeriod },
+    { skip: !canAccess },
+  );
+
+  const customersStats       = useGetAdminStatsQuery({ resource: 'customers' },         { skip: !canAccess });
+  const ordersStats          = useGetAdminStatsQuery({ resource: 'service-orders' },     { skip: !canAccess });
+  const employeesStats       = useGetAdminStatsQuery({ resource: 'employees' },          { skip: !canAccess });
+  const servicesStats        = useGetAdminStatsQuery({ resource: 'services' },           { skip: !canAccess });
+  const svcCategoriesStats   = useGetAdminStatsQuery({ resource: 'service-categories' }, { skip: !canAccess });
+  const productsStats        = useGetAdminStatsQuery({ resource: 'products' },           { skip: !canAccess });
+  const categoriesStats      = useGetAdminStatsQuery({ resource: 'categories' },         { skip: !canAccess });
+  const offersStats          = useGetAdminStatsQuery({ resource: 'offers' },             { skip: !canAccess });
+  const warrantiesStats      = useGetAdminStatsQuery({ resource: 'warranties' },         { skip: !canAccess });
+  const vehiclesStats        = useGetAdminStatsQuery({ resource: 'vehicles' },           { skip: !canAccess });
+  const notificationsStats   = useGetAdminStatsQuery({ resource: 'notifications' },      { skip: !canAccess });
+  const uiVisibilityQ        = useGetAdminUiVisibilityQuery(undefined,                   { skip: !canAccess });
+  const reminderConfigsQ     = useGetAdminServiceReminderConfigsQuery(undefined,         { skip: !canAccess });
 
   const reminderConfigs = useMemo(
-    () => (reminderConfigsQuery.data || []) as AdminServiceReminderConfig[],
-    [reminderConfigsQuery.data],
+    () => (reminderConfigsQ.data ?? []) as AdminServiceReminderConfig[],
+    [reminderConfigsQ.data],
   );
   const uiVisibility = useMemo(
-    () => (uiVisibilityQuery.data || []) as AdminUiVisibilitySetting[],
-    [uiVisibilityQuery.data],
+    () => (uiVisibilityQ.data ?? []) as AdminUiVisibilitySetting[],
+    [uiVisibilityQ.data],
   );
 
   const enabledReminders = reminderConfigs.filter(
-    (item) => isTruthyFlag(item.enabled) || isTruthyFlag(item.is_enabled),
+    c => isTruthy(c.enabled) || isTruthy(c.is_enabled),
   ).length;
-  const hiddenSections = uiVisibility.filter((item) => isTruthyFlag(item.is_hidden)).length;
+  const hiddenSections = uiVisibility.filter(s => isTruthy(s.is_hidden)).length;
 
-  const dashboardCards = useMemo(
-    () => [
-      {
-        key: 'customers',
-        icon: 'people-outline',
-        title: 'Khách hàng',
-        value: pickStat(customersStats.data, ['total_customers', 'customers_total', 'count']),
-        subtitle: `${pickStat(customersStats.data, ['active_customers', 'customers_with_active_orders'])} đang hoạt động`,
-        onPress: () => navigation.navigate('GarageCustomers'),
-      },
-      {
-        key: 'orders',
-        icon: 'receipt-outline',
-        title: 'Đơn dịch vụ',
-        value: pickStat(ordersStats.data, ['total_orders', 'orders_total', 'count']),
-        subtitle: `${pickStat(ordersStats.data, ['processing_orders', 'in_progress_orders'])} đang xử lý`,
-        onPress: () => navigation.navigate('GarageOrders'),
-      },
-      {
-        key: 'employees',
-        icon: 'people-circle-outline',
-        title: 'Nhân sự',
-        value: pickStat(employeesStats.data, ['total_employees', 'employees_total', 'count']),
-        subtitle: `${pickStat(employeesStats.data, ['active_employees', 'working_employees', 'employees_with_active_orders'])} đang làm việc`,
-        onPress: () => navigation.navigate('GarageEmployees'),
-      },
-      {
-        key: 'services',
-        icon: 'construct-outline',
-        title: 'Dịch vụ',
-        value: pickStat(servicesStats.data, ['total_services', 'services_total', 'count']),
-        subtitle: `${pickStat(serviceCategoriesStats.data, ['total_categories', 'categories_total', 'count'])} nhóm dịch vụ`,
-        onPress: () => navigation.navigate('AdminCatalog'),
-      },
-      {
-        key: 'products',
-        icon: 'cube-outline',
-        title: 'Sản phẩm',
-        value: pickStat(productsStats.data, ['total_products', 'products_total', 'count']),
-        subtitle: `${pickStat(categoriesStats.data, ['total_categories', 'categories_total', 'count'])} danh mục`,
-        onPress: () => navigation.navigate('AdminCatalog'),
-      },
-      {
-        key: 'offers',
-        icon: 'pricetag-outline',
-        title: 'Ưu đãi',
-        value: pickStat(offersStats.data, ['total_offers', 'offers_total', 'count']),
-        subtitle: `${pickStat(offersStats.data, ['active_offers', 'running_offers'])} đang chạy`,
-        onPress: () => navigation.navigate('AdminCatalog'),
-      },
-      {
-        key: 'warranties',
-        icon: 'shield-checkmark-outline',
-        title: 'Bảo hành',
-        value: pickStat(warrantiesStats.data, ['total_warranties', 'warranties_total', 'count']),
-        subtitle: `${pickStat(warrantiesStats.data, ['active_warranties', 'valid_warranties'])} còn hiệu lực`,
-        onPress: () => navigation.navigate('AdminOperations'),
-      },
-      {
-        key: 'vehicles',
-        icon: 'car-sport-outline',
-        title: 'Xe',
-        value: pickStat(vehiclesStats.data, ['total_vehicles', 'vehicles_total', 'count']),
-        subtitle: `${pickStat(vehiclesStats.data, ['vehicles_due_inspection', 'expiring_inspections'])} cần theo dõi`,
-        onPress: () => navigation.navigate('AdminOperations'),
-      },
-      {
-        key: 'notifications',
-        icon: 'notifications-outline',
-        title: 'Thông báo',
-        value: pickStat(notificationsStats.data, ['total_notifications', 'notifications_total', 'count']),
-        subtitle: `${pickStat(notificationsStats.data, ['alerts', 'pending_notifications', 'failed_notifications'])} cần chú ý`,
-        onPress: () => navigation.navigate('Notification'),
-      },
-    ],
-    [
-      categoriesStats.data,
-      customersStats.data,
-      employeesStats.data,
-      navigation,
-      notificationsStats.data,
-      offersStats.data,
-      ordersStats.data,
-      productsStats.data,
-      serviceCategoriesStats.data,
-      servicesStats.data,
-      vehiclesStats.data,
-      warrantiesStats.data,
-    ],
-  );
+  const dashboardCards = useMemo(() => [
+    {
+      key: 'customers',
+      icon: 'people-outline',
+      title: 'Khách hàng',
+      value: pickStat(customersStats.data, ['total_customers', 'customers_total', 'count']),
+      subtitle: `${pickStat(customersStats.data, ['active_customers', 'customers_with_active_orders'])} đang hoạt động`,
+      onPress: () => navigation.navigate('GarageCustomers'),
+    },
+    {
+      key: 'orders',
+      icon: 'receipt-outline',
+      title: 'Đơn dịch vụ',
+      value: pickStat(ordersStats.data, ['total_orders', 'orders_total', 'count']),
+      subtitle: `${pickStat(ordersStats.data, ['processing_orders', 'in_progress_orders'])} đang xử lý`,
+      onPress: () => navigation.navigate('GarageOrders'),
+    },
+    {
+      key: 'employees',
+      icon: 'people-circle-outline',
+      title: 'Nhân sự',
+      value: pickStat(employeesStats.data, ['total_employees', 'employees_total', 'count']),
+      subtitle: `${pickStat(employeesStats.data, ['active_employees', 'working_employees', 'employees_with_active_orders'])} đang làm việc`,
+      onPress: () => navigation.navigate('GarageEmployees'),
+    },
+    {
+      key: 'services',
+      icon: 'construct-outline',
+      title: 'Dịch vụ',
+      value: pickStat(servicesStats.data, ['total_services', 'services_total', 'count']),
+      subtitle: `${pickStat(svcCategoriesStats.data, ['total_categories', 'categories_total', 'count'])} nhóm`,
+      onPress: () => navigation.navigate('AdminCatalog'),
+    },
+    {
+      key: 'products',
+      icon: 'cube-outline',
+      title: 'Sản phẩm',
+      value: pickStat(productsStats.data, ['total_products', 'products_total', 'count']),
+      subtitle: `${pickStat(categoriesStats.data, ['total_categories', 'categories_total', 'count'])} danh mục`,
+      onPress: () => navigation.navigate('AdminCatalog'),
+    },
+    {
+      key: 'offers',
+      icon: 'pricetag-outline',
+      title: 'Ưu đãi',
+      value: pickStat(offersStats.data, ['total_offers', 'offers_total', 'count']),
+      subtitle: `${pickStat(offersStats.data, ['active_offers', 'running_offers'])} đang chạy`,
+      onPress: () => navigation.navigate('AdminCatalog'),
+    },
+    {
+      key: 'warranties',
+      icon: 'shield-checkmark-outline',
+      title: 'Bảo hành',
+      value: pickStat(warrantiesStats.data, ['total_warranties', 'warranties_total', 'count']),
+      subtitle: `${pickStat(warrantiesStats.data, ['active_warranties', 'valid_warranties'])} còn hiệu lực`,
+      onPress: () => navigation.navigate('AdminOperations'),
+    },
+    {
+      key: 'vehicles',
+      icon: 'car-sport-outline',
+      title: 'Xe',
+      value: pickStat(vehiclesStats.data, ['total_vehicles', 'vehicles_total', 'count']),
+      subtitle: `${pickStat(vehiclesStats.data, ['vehicles_due_inspection', 'expiring_inspections'])} cần theo dõi`,
+      onPress: () => navigation.navigate('AdminOperations'),
+    },
+    {
+      key: 'notifications',
+      icon: 'notifications-outline',
+      title: 'Thông báo',
+      value: pickStat(notificationsStats.data, ['total_notifications', 'notifications_total', 'count']),
+      subtitle: `${pickStat(notificationsStats.data, ['alerts', 'pending_notifications', 'failed_notifications'])} cần chú ý`,
+      onPress: () => navigation.navigate('Notification'),
+    },
+  ], [
+    categoriesStats.data, customersStats.data, employeesStats.data,
+    navigation, notificationsStats.data, offersStats.data, ordersStats.data,
+    productsStats.data, svcCategoriesStats.data, servicesStats.data,
+    vehiclesStats.data, warrantiesStats.data,
+  ]);
 
-  const isLoading =
-    customersStats.isLoading ||
-    ordersStats.isLoading ||
-    employeesStats.isLoading ||
-    servicesStats.isLoading ||
-    productsStats.isLoading;
+  const staticLoading =
+    customersStats.isLoading || ordersStats.isLoading ||
+    employeesStats.isLoading || servicesStats.isLoading || productsStats.isLoading;
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
-        customersStats.refetch(),
-        ordersStats.refetch(),
-        employeesStats.refetch(),
-        servicesStats.refetch(),
-        serviceCategoriesStats.refetch(),
-        productsStats.refetch(),
-        categoriesStats.refetch(),
-        offersStats.refetch(),
-        warrantiesStats.refetch(),
-        vehiclesStats.refetch(),
+        analyticsQ.refetch(),
+        customersStats.refetch(), ordersStats.refetch(),
+        employeesStats.refetch(), servicesStats.refetch(),
+        svcCategoriesStats.refetch(), productsStats.refetch(),
+        categoriesStats.refetch(), offersStats.refetch(),
+        warrantiesStats.refetch(), vehiclesStats.refetch(),
         notificationsStats.refetch(),
-        uiVisibilityQuery.refetch(),
-        reminderConfigsQuery.refetch(),
+        uiVisibilityQ.refetch(), reminderConfigsQ.refetch(),
       ]);
     } finally {
       setRefreshing(false);
     }
   };
 
+  // ── Access guard ───────────────────────────────────────────────────────────
   if (!canAccess) {
     return (
-      <Screen
-        headerTitle="Quản trị gara"
-        showBackButton={false}
-        statusBarStyle="light-content"
-      >
+      <Screen headerTitle="Quản trị gara" showBackButton={false} statusBarStyle="light-content">
         <View style={styles.emptyState}>
           <Ionicons name="lock-closed-outline" size={40} color={Colors.text.secondary} />
           <Text style={styles.emptyTitle}>Bạn không có quyền truy cập màn này</Text>
@@ -223,6 +229,96 @@ export default function GarageManagementScreen() {
     );
   }
 
+  // ── Analytics section ──────────────────────────────────────────────────────
+  const kpi    = analyticsQ.data?.kpi;
+  const series = analyticsQ.data?.series;
+
+  const renderAnalytics = () => (
+    <View style={styles.section}>
+      {/* Header */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Phân tích hoạt động</Text>
+        {analyticsQ.isFetching && analyticsQ.data && (
+          <ActivityIndicator size="small" color={Colors.primary} />
+        )}
+      </View>
+
+      {/* Period selector — luôn hiển thị */}
+      <PeriodSelector value={activePeriod} onChange={setActivePeriod} />
+
+      {/* Loading lần đầu */}
+      {analyticsQ.isLoading && !analyticsQ.data && <AnalyticsSkeleton />}
+
+      {/* Error */}
+      {analyticsQ.isError && (
+        <View style={styles.errorBox}>
+          <Ionicons name="cloud-offline-outline" size={28} color={Colors.text.secondary} />
+          <Text style={styles.errorText}>Không tải được dữ liệu phân tích</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => analyticsQ.refetch()}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.retryText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Data */}
+      {kpi && series && (
+        <>
+          {/* KPI grid 2×2 */}
+          <View style={styles.kpiGrid}>
+            <KpiCard
+              title="Tổng đơn"
+              value={kpi.total_orders}
+              previousValue={kpi.previous_period_orders}
+              icon="receipt-outline"
+              onPress={() => navigation.navigate('GarageOrders')}
+            />
+            <KpiCard
+              title="Khách mới"
+              value={kpi.new_customers}
+              previousValue={kpi.previous_period_new_customers}
+              icon="person-add-outline"
+              onPress={() => navigation.navigate('GarageCustomers')}
+            />
+            <KpiCard
+              title="Hoàn thành"
+              value={kpi.completed_orders}
+              previousValue={kpi.previous_period_completed}
+              icon="checkmark-circle-outline"
+            />
+            <KpiCard
+              title="Đang xử lý"
+              value={kpi.in_progress_orders}
+              previousValue={kpi.previous_period_in_progress}
+              icon="time-outline"
+              onPress={() => navigation.navigate('GarageOrders')}
+            />
+          </View>
+
+          {/* Biểu đồ đơn hàng */}
+          <OrdersBarChart
+            data={series.orders_by_status}
+            period={activePeriod}
+            scrollRef={ordersScrollRef}
+            onSyncScroll={syncFromOrders}
+          />
+
+          {/* Biểu đồ khách hàng mới */}
+          <NewCustomersLineChart
+            data={series.new_customers}
+            period={activePeriod}
+            scrollRef={customersScrollRef}
+            onSyncScroll={syncFromCustomers}
+          />
+        </>
+      )}
+    </View>
+  );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Screen
       hideHeader
@@ -233,86 +329,76 @@ export default function GarageManagementScreen() {
       backgroundColor={Colors.background.secondary}
       contentStyle={styles.screenContent}
     >
+      {/* Hero */}
       <View style={styles.heroCard}>
         <View style={styles.heroRow}>
           <View style={styles.heroIcon}>
             <Ionicons name="business-outline" size={24} color={Colors.background.light} />
           </View>
           <View style={styles.heroText}>
-            <Text style={styles.heroTitle}>
-              {garageName || 'Garage admin dashboard'}
-            </Text>
+            <Text style={styles.heroTitle}>{garageName || 'Garage admin dashboard'}</Text>
             <Text style={styles.heroSubtitle}>
-              {garageCode ? `Mã gara: ${garageCode}` : 'Đang dùng namespace /api/app/admin'}
+              {garageCode ? `Mã gara: ${garageCode}` : 'Quản trị gara'}
             </Text>
           </View>
         </View>
-        <Text style={styles.heroDescription}>
-          Màn này tổng hợp số liệu và cấu hình quản trị đang được lấy từ nhóm endpoint app admin mới.
-        </Text>
       </View>
 
-      {isLoading ? (
+      {staticLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Đang đồng bộ dashboard quản trị...</Text>
+          <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
         </View>
       ) : (
         <>
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('GarageCustomers')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="people-outline" size={18} color={Colors.primary} />
-              <Text style={styles.quickActionText}>Khách hàng</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('GarageOrders')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
-              <Text style={styles.quickActionText}>Đơn hàng</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => navigation.navigate('Notification')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
-              <Text style={styles.quickActionText}>Thông báo</Text>
-            </TouchableOpacity>
+          {/* Quick actions */}
+          <View style={styles.quickRow}>
+            {[
+              { icon: 'people-outline',        label: 'Khách hàng', route: 'GarageCustomers' },
+              { icon: 'receipt-outline',        label: 'Đơn hàng',  route: 'GarageOrders' },
+              { icon: 'notifications-outline',  label: 'Thông báo', route: 'Notification' },
+            ].map(({ icon, label, route }) => (
+              <TouchableOpacity
+                key={route}
+                style={styles.quickBtn}
+                onPress={() => navigation.navigate(route as any)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name={icon as any} size={18} color={Colors.primary} />
+                <Text style={styles.quickLabel}>{label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
+          {/* Analytics */}
+          {renderAnalytics()}
+
+          {/* Tổng quan nghiệp vụ */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Tổng quan nghiệp vụ</Text>
             <View style={styles.cardsGrid}>
-              {dashboardCards.map((card) => (
+              {dashboardCards.map(card => (
                 <TouchableOpacity
                   key={card.key}
-                  style={styles.dashboardCard}
-                  activeOpacity={card.onPress ? 0.85 : 1}
+                  style={styles.dashCard}
+                  activeOpacity={0.85}
                   onPress={card.onPress}
-                  disabled={!card.onPress}
                 >
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardIcon}>
+                  <View style={styles.dashCardHeader}>
+                    <View style={styles.dashCardIcon}>
                       <Ionicons name={card.icon as any} size={18} color={Colors.primary} />
                     </View>
-                    {card.onPress ? (
-                      <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
-                    ) : null}
+                    <Ionicons name="chevron-forward" size={16} color={Colors.text.secondary} />
                   </View>
-                  <Text style={styles.cardValue}>{card.value}</Text>
-                  <Text style={styles.cardTitle}>{card.title}</Text>
-                  <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
+                  <Text style={styles.dashCardValue}>{card.value}</Text>
+                  <Text style={styles.dashCardTitle}>{card.title}</Text>
+                  <Text style={styles.dashCardSub}>{card.subtitle}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
+          {/* Cấu hình quản trị */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Cấu hình quản trị</Text>
             <TouchableOpacity
@@ -323,13 +409,13 @@ export default function GarageManagementScreen() {
               <View style={styles.configRow}>
                 <View>
                   <Text style={styles.configLabel}>Service reminder configs</Text>
-                  <Text style={styles.configValue}>{enabledReminders}/{reminderConfigs.length} đang bật</Text>
+                  <Text style={styles.configValue}>
+                    {enabledReminders}/{reminderConfigs.length} đang bật
+                  </Text>
                 </View>
                 <Ionicons name="time-outline" size={18} color={Colors.secondary} />
               </View>
-
-              <View style={styles.configDivider} />
-
+              <View style={styles.divider} />
               <View style={styles.configRow}>
                 <View>
                   <Text style={styles.configLabel}>UI visibility settings</Text>
@@ -350,11 +436,12 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.base,
   },
+
+  // ── Hero ──────────────────────────────────────────────────────────────────
   heroCard: {
     backgroundColor: Colors.primary,
     borderRadius: borderRadius['2xl'],
     padding: spacing.lg,
-    gap: spacing.base,
   },
   heroRow: {
     flexDirection: 'row',
@@ -369,10 +456,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.alpha.white18,
   },
-  heroText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
+  heroText: { flex: 1, gap: spacing.xs },
   heroTitle: {
     color: Colors.background.light,
     fontFamily: Typography.fontFamily.bold,
@@ -384,17 +468,13 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.sm,
   },
-  heroDescription: {
-    color: Colors.alpha.white85,
-    fontFamily: Typography.fontFamily.regular,
-    fontSize: Typography.size.sm,
-    lineHeight: 20,
-  },
-  quickActionsRow: {
+
+  // ── Quick actions ─────────────────────────────────────────────────────────
+  quickRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  quickAction: {
+  quickBtn: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -406,26 +486,71 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border.light,
   },
-  quickActionText: {
+  quickLabel: {
     color: Colors.text.primary,
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
   },
-  section: {
+
+  // ── Section ───────────────────────────────────────────────────────────────
+  section: { gap: spacing.sm },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   sectionTitle: {
+    flex: 1,
     color: Colors.text.primary,
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.lg,
     fontWeight: Typography.weight.bold,
   },
+
+  // ── KPI grid ──────────────────────────────────────────────────────────────
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+
+  // ── Error box ─────────────────────────────────────────────────────────────
+  errorBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius['2xl'],
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  errorText: {
+    color: Colors.text.secondary,
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.sm,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: Colors.primary,
+  },
+  retryText: {
+    color: Colors.background.light,
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.bold,
+  },
+
+  // ── Dashboard cards ───────────────────────────────────────────────────────
   cardsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  dashboardCard: {
+  dashCard: {
     width: '48%',
     backgroundColor: Colors.background.light,
     borderRadius: borderRadius['2xl'],
@@ -434,12 +559,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.border.light,
     gap: spacing.sm,
   },
-  cardHeader: {
+  dashCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cardIcon: {
+  dashCardIcon: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -447,24 +572,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.primarySoft,
   },
-  cardValue: {
+  dashCardValue: {
     color: Colors.primary,
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size['2xl'],
     fontWeight: Typography.weight.bold,
   },
-  cardTitle: {
+  dashCardTitle: {
     color: Colors.text.primary,
     fontFamily: Typography.fontFamily.bold,
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.bold,
   },
-  cardSubtitle: {
+  dashCardSub: {
     color: Colors.text.secondary,
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.size.xs,
     lineHeight: 18,
   },
+
+  // ── Config card ───────────────────────────────────────────────────────────
   configCard: {
     backgroundColor: Colors.background.light,
     borderRadius: borderRadius['2xl'],
@@ -490,10 +617,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.bold,
   },
-  configDivider: {
+  divider: {
     height: 1,
     backgroundColor: Colors.border.light,
   },
+
+  // ── Misc ──────────────────────────────────────────────────────────────────
   centered: {
     alignItems: 'center',
     justifyContent: 'center',

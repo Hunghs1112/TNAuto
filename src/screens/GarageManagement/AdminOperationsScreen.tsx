@@ -106,13 +106,23 @@ function WarrantiesTab() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editItem, setEditItem] = useState<AdminEntity | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
 
   const listQuery = useGetAdminResourceListQuery({ resource: 'warranties' });
   const [createItem] = useCreateAdminResourceMutation();
   const [updateItem] = useUpdateAdminResourceMutation();
   const [deleteItem] = useDeleteAdminResourceMutation();
 
-  const items = useMemo(() => listQuery.data || [], [listQuery.data]);
+  const items = useMemo(() => {
+    const all = listQuery.data || [];
+    if (!search.trim()) return all;
+    const q = search.trim().toLowerCase();
+    return all.filter((item) =>
+      String(item.license_plate || '').toLowerCase().includes(q) ||
+      String(item.customer_name || '').toLowerCase().includes(q) ||
+      String(item.service_name || '').toLowerCase().includes(q),
+    );
+  }, [listQuery.data, search]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -169,6 +179,23 @@ function WarrantiesTab() {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Search bar */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Tìm biển số, khách hàng, dịch vụ..."
+          placeholderTextColor={Colors.text.secondary}
+          returnKeyType="search"
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}

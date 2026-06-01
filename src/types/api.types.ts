@@ -162,6 +162,7 @@ export interface Vehicle extends VehicleDocumentFields {
   customer_id: number;
   license_plate: string;
   model?: string | null;
+  production_year?: number | null;
   image_url?: string | null;
   created_at: string;
   updated_at?: string;

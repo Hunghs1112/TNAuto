@@ -38,6 +38,7 @@ const OfferScreen = () => {
       error={error}
       emptyIcon="pricetag-outline"
       emptyMessage="Chưa có ưu đãi nào"
+      searchPlaceholder="Tìm ưu đãi..."
       mapDataToItems={useCallback((data: any) => {
         if (!data?.success || !data?.data) {
           return [];

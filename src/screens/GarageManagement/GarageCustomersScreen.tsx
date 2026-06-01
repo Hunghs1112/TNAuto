@@ -65,10 +65,11 @@ export default function GarageCustomersScreen() {
   const userType = useAppSelector((state) => state.auth.userType);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [search, setSearch] = useState('');
   const canAccess = isManagerRole(userType);
 
   const customersQuery = useGetAdminResourceListQuery(
-    { resource: 'customers' },
+    { resource: 'customers', params: search.trim() ? { search: search.trim() } : undefined },
     { skip: !canAccess },
   );
   const statsQuery = useGetAdminStatsQuery(
@@ -216,6 +217,25 @@ export default function GarageCustomersScreen() {
             <View style={styles.headerBlock}>
               <Text style={styles.screenTitle}>Tệp khách hàng</Text>
 
+              {/* Search bar */}
+              <View style={styles.searchBar}>
+                <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Tìm theo tên, SĐT..."
+                  placeholderTextColor={Colors.text.secondary}
+                  returnKeyType="search"
+                  onSubmitEditing={() => customersQuery.refetch()}
+                />
+                {search ? (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                    <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
               <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                   <Text style={styles.statValue}>{totalCustomers}</Text>
@@ -361,6 +381,25 @@ function CreateCustomerModal({ onClose, onSave }: CreateCustomerModalProps) {
 }
 
 const styles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    marginTop: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    padding: 0,
+  },
   listContent: {
     padding: spacing.base,
     gap: spacing.md,

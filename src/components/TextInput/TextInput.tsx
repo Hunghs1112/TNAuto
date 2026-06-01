@@ -1,9 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { View, TextInput, StyleSheet } from "react-native";
+import { View, TextInput, StyleSheet, Platform } from "react-native";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
 import { spacing } from "../../design-system/spacing";
-import { borderPresets } from "../../design-system/borders";
 import { selectPlatform } from "../../utils/platform";
 import { textStyles } from "../../design-system/typography";
 
@@ -20,6 +19,8 @@ interface TextInputComponentProps {
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "number-pad";
   editable?: boolean;
   style?: any;
+  inputStyle?: any;
+  iconLeft?: React.ReactNode;
   iconRight?: React.ReactNode;
   onFocus?: () => void;
   onBlur?: () => void;
@@ -38,14 +39,16 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
   onChangeText = () => {},
   placeholder = "Nhập thông tin",
   secureTextEntry = false,
-  placeholderTextColor = Colors.text.placeholder,
+  placeholderTextColor,
   textColor = Colors.text.primary,
-  borderColor = Colors.neutral[300],
+  borderColor,
   multiline = false,
   numberOfLines = 1,
   keyboardType = "default",
   editable = true,
   style,
+  inputStyle: inputStyleProp,
+  iconLeft,
   iconRight,
   onFocus,
   onBlur,
@@ -56,7 +59,7 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
   onSubmitEditing,
   blurOnSubmit,
   autoFocus = false,
-  focusBorderColor = Colors.accent.yellow,
+  focusBorderColor,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -74,31 +77,48 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
     onBlur?.();
   }, [onBlur]);
 
+  // Dynamic container style based on focus
+  const containerStyle = useMemo(() => [
+    styles.container,
+    isFocused && styles.containerFocused,
+    style,
+  ], [isFocused, style]);
+
+  // Dynamic input style
   const inputStyle = useMemo(() => [
     styles.input,
     {
       color: textColor,
-      borderColor: isFocused && focusBorderColor ? focusBorderColor : borderColor,
-      paddingRight: iconRight ? 40 : spacing.md,
+      paddingLeft: iconLeft ? spacing.md : spacing.base,
+      paddingRight: iconRight ? 44 : spacing.base,
       textAlignVertical: multiline ? "top" : "center",
-      transform: multiline ? undefined : [{ translateY: -2 }],
     },
-  ], [textColor, borderColor, focusBorderColor, iconRight, isFocused, multiline]);
+    multiline && styles.inputMultiline,
+    inputStyleProp,
+  ], [textColor, iconLeft, iconRight, multiline, inputStyleProp]);
+
   return (
-    <View style={[styles.container, style]}>
+    <View style={containerStyle}>
+      {/* Icon left area with separator */}
+      {iconLeft && (
+        <View style={[styles.iconLeftArea, isFocused && styles.iconLeftAreaFocused]}>
+          {iconLeft}
+        </View>
+      )}
+
       <TextInput
         ref={inputRef}
         value={value}
         onChangeText={handleChangeText}
         placeholder={placeholder}
-        placeholderTextColor={placeholderTextColor}
+        placeholderTextColor={placeholderTextColor ?? Colors.neutral[400]}
         secureTextEntry={secureTextEntry}
         multiline={multiline}
         numberOfLines={numberOfLines}
         keyboardType={keyboardType}
         editable={editable}
         style={inputStyle}
-        underlineColorAndroid={Colors.transparent}
+        underlineColorAndroid="transparent"
         onFocus={handleFocus}
         onBlur={handleBlur}
         autoFocus={autoFocus}
@@ -108,8 +128,10 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
         onSubmitEditing={onSubmitEditing}
         blurOnSubmit={blurOnSubmit}
       />
+
+      {/* Icon right */}
       {iconRight && (
-        <View style={styles.iconRightContainer} pointerEvents="none">
+        <View style={styles.iconRightArea} pointerEvents="box-none">
           {iconRight}
         </View>
       )}
@@ -119,28 +141,56 @@ const TextInputComponent: React.FC<TextInputComponentProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
     width: "100%",
-    position: "relative",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.neutral[200],
+    backgroundColor: Colors.neutral[50],
+    overflow: "hidden",
+    height: 40,
+  },
+  containerFocused: {
+    borderColor: Colors.primary,
+    backgroundColor: '#fff',
+  },
+  iconLeftArea: {
+    width: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
+    borderRightWidth: 1,
+    borderRightColor: Colors.neutral[200],
+    backgroundColor: Colors.neutral[100],
+  },
+  iconLeftAreaFocused: {
+    borderRightColor: Colors.alpha.primary12,
+    backgroundColor: Colors.primarySoft,
   },
   input: {
     flex: 1,
-    ...textStyles.bodySmall,
+    fontSize: 13,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: Typography.weight.medium,
-    borderRadius: borderPresets.input,
-    borderWidth: 1,
-    backgroundColor: Colors.background.light,
-    paddingHorizontal: spacing.md,
-    paddingVertical: selectPlatform(14, 12),
-    minHeight: 46,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
+    height: 40,
+    textAlignVertical: "center",
+    backgroundColor: "transparent",
+    includeFontPadding: false,
   },
-  iconRightContainer: {
-    position: "absolute",
-    right: spacing.md,
-    top: "50%",
-    transform: [{ translateY: -10 }],
-    zIndex: 1,
+  inputMultiline: {
+    height: 60,
+    paddingVertical: 8,
+    textAlignVertical: "top",
+  },
+  iconRightArea: {
+    paddingHorizontal: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
   },
 });
 

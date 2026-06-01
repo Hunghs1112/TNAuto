@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { launchImageLibrary } from 'react-native-image-picker';
 
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { useGetVehicleByIdQuery, useUpdateVehicleMutation } from '../../services/vehicleApi';
-import { useUploadSingleImageMutation } from '../../services/imageApi';
+import type { ImageItem } from '../../components/MultiImagePicker';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -66,9 +65,9 @@ export const useVehicleEditScreen = (vehicleId: string) => {
 
   const { data: vehicle, isLoading } = useGetVehicleByIdQuery(vehicleId, { skip: !hasGarageContext });
   const [updateVehicle, { isLoading: isSaving }] = useUpdateVehicleMutation();
-  const [uploadSingleImage] = useUploadSingleImageMutation();
 
   const [model, setModel] = useState('');
+  const [productionYear, setProductionYear] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [licenseExpiryDate, setLicenseExpiryDate] = useState('');
   const [inspectionCertificateNumber, setInspectionCertificateNumber] = useState('');
@@ -77,8 +76,10 @@ export const useVehicleEditScreen = (vehicleId: string) => {
   const [insuranceCompany, setInsuranceCompany] = useState('');
   const [insuranceStartDate, setInsuranceStartDate] = useState('');
   const [insuranceExpiryDate, setInsuranceExpiryDate] = useState('');
-  const [vehicleImageUri, setVehicleImageUri] = useState('');
-  const [vehicleImageFileName, setVehicleImageFileName] = useState('');
+
+  // Thay thế vehicleImageUri/vehicleImageFileName bằng ImageItem[]
+  // MultiImagePicker xử lý upload nội bộ, hook chỉ cần đọc kết quả
+  const [vehicleImages, setVehicleImages] = useState<ImageItem[]>([]);
 
   useEffect(() => {
     if (!hasGarageContext) navigation.replace('SelectGarage');
@@ -87,6 +88,7 @@ export const useVehicleEditScreen = (vehicleId: string) => {
   useEffect(() => {
     if (!vehicle) return;
     setModel(vehicle.model || '');
+    setProductionYear(vehicle.production_year?.toString() || '');
     setLicenseNumber(vehicle.license_number || '');
     setLicenseExpiryDate(formatDisplayDate(vehicle.license_expiry_date));
     setInspectionCertificateNumber(vehicle.inspection_certificate_number || '');
@@ -95,37 +97,37 @@ export const useVehicleEditScreen = (vehicleId: string) => {
     setInsuranceCompany(vehicle.insurance_company || '');
     setInsuranceStartDate(formatDisplayDate(vehicle.insurance_start_date));
     setInsuranceExpiryDate(formatDisplayDate(vehicle.insurance_expiry_date));
-    setVehicleImageUri(vehicle.image_url || '');
-    setVehicleImageFileName('');
-  }, [vehicle]);
 
-  const handlePickVehicleImage = async () => {
-    const result = await launchImageLibrary({ mediaType: 'photo', selectionLimit: 1, quality: 0.85 });
-    if (result.didCancel) return;
-
-    const asset = result.assets?.[0];
-    if (!asset?.uri) {
-      Alert.alert('Lỗi', 'Không thể chọn ảnh xe.');
-      return;
+    // Khởi tạo vehicleImages từ image_url hiện tại (nếu có)
+    if (vehicle.image_url) {
+      setVehicleImages([{
+        id: `existing_${vehicle.id}`,
+        uri: vehicle.image_url,
+        uploadedUrl: vehicle.image_url,
+        status: 'success',
+      }]);
+    } else {
+      setVehicleImages([]);
     }
-
-    setVehicleImageUri(asset.uri);
-    setVehicleImageFileName(asset.fileName || `vehicle-${Date.now()}.jpg`);
-  };
-
-  const uploadVehicleImage = async () => {
-    if (!vehicle || !vehicleImageUri || vehicleImageUri === vehicle.image_url) return vehicle?.image_url || null;
-    const formData = new FormData();
-    formData.append('image', { uri: vehicleImageUri, type: 'image/jpeg', name: vehicleImageFileName || `vehicle-${Date.now()}.jpg` } as any);
-    const response = await uploadSingleImage(formData).unwrap();
-    return response.url;
-  };
+  }, [vehicle]);
 
   const handleSave = async () => {
     if (!vehicle) return;
     if (!userId) return Alert.alert('Lỗi', 'Không tìm thấy customer_id để cập nhật xe.');
     if (!garageCode && !garageId) return Alert.alert('Lỗi', 'Không tìm thấy gara hiện tại để cập nhật xe.');
 
+    // Kiểm tra nếu có ảnh đang upload thì chờ
+    const hasUploading = vehicleImages.some((img) => img.status === 'uploading');
+    if (hasUploading) {
+      return Alert.alert('Thông báo', 'Vui lòng chờ ảnh tải lên xong.');
+    }
+
+    // Lấy URL ảnh từ MultiImagePicker (uploadedUrl ưu tiên, fallback uri nếu là remote URL)
+    const imageItem = vehicleImages[0];
+    const uploadedImageUrl = imageItem?.uploadedUrl ?? imageItem?.uri ?? vehicle.image_url ?? null;
+
+    // Tất cả trường tùy chọn — null khi rỗng, không bắt buộc
+    const currentProductionYear = productionYear.trim() ? Number(productionYear.trim()) : null;
     const currentLicenseExpiryDate = toBackendDate(licenseExpiryDate);
     const currentInspectionCertificateNumber = normalizeText(inspectionCertificateNumber);
     const currentInspectionDate = toBackendDate(inspectionDate);
@@ -134,28 +136,32 @@ export const useVehicleEditScreen = (vehicleId: string) => {
     const currentInsuranceStartDate = toBackendDate(insuranceStartDate);
     const currentInsuranceExpiryDate = toBackendDate(insuranceExpiryDate);
 
-    if (!currentLicenseExpiryDate) return Alert.alert('Lỗi', 'Vui lòng nhập ngày hết hạn bằng lái xe.');
-    if (!currentInspectionCertificateNumber || !currentInspectionDate || !currentInspectionExpiryDate) return Alert.alert('Lỗi', 'Vui lòng nhập đủ thông tin đăng kiểm.');
-    if (!currentInsuranceCompany || !currentInsuranceStartDate || !currentInsuranceExpiryDate) return Alert.alert('Lỗi', 'Vui lòng nhập đủ thông tin bảo hiểm.');
+    if (productionYear.trim()) {
+      const year = Number(productionYear.trim());
+      const currentYear = new Date().getFullYear();
+      if (!Number.isInteger(year) || year < 1886 || year > currentYear) {
+        return Alert.alert('Lỗi', 'Năm sản xuất không hợp lệ.');
+      }
+    }
 
     try {
-      const uploadedImageUrl = await uploadVehicleImage();
       await updateVehicle({
         id: vehicle.id.toString(),
         garageCode,
         customer_id: userId,
         garage_code: garageCode || null,
         garage_id: garageId || null,
-        model: normalizeText(model) ?? vehicle.model ?? null,
-        image_url: uploadedImageUrl ?? vehicle.image_url ?? null,
-        license_number: normalizeText(licenseNumber) ?? vehicle.license_number ?? null,
-        license_expiry_date: currentLicenseExpiryDate ?? vehicle.license_expiry_date ?? null,
-        inspection_certificate_number: currentInspectionCertificateNumber ?? vehicle.inspection_certificate_number ?? null,
-        inspection_date: currentInspectionDate ?? vehicle.inspection_date ?? null,
-        inspection_expiry_date: currentInspectionExpiryDate ?? vehicle.inspection_expiry_date ?? null,
-        insurance_company: currentInsuranceCompany ?? vehicle.insurance_company ?? null,
-        insurance_start_date: currentInsuranceStartDate ?? vehicle.insurance_start_date ?? null,
-        insurance_expiry_date: currentInsuranceExpiryDate ?? vehicle.insurance_expiry_date ?? null,
+        model: normalizeText(model) ?? null,
+        production_year: currentProductionYear,
+        image_url: uploadedImageUrl,
+        license_number: normalizeText(licenseNumber) ?? null,
+        license_expiry_date: currentLicenseExpiryDate,
+        inspection_certificate_number: currentInspectionCertificateNumber,
+        inspection_date: currentInspectionDate,
+        inspection_expiry_date: currentInspectionExpiryDate,
+        insurance_company: currentInsuranceCompany,
+        insurance_start_date: currentInsuranceStartDate,
+        insurance_expiry_date: currentInsuranceExpiryDate,
       }).unwrap();
       Alert.alert('Thành công', 'Đã cập nhật thông tin xe.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } catch (error: any) {
@@ -171,6 +177,8 @@ export const useVehicleEditScreen = (vehicleId: string) => {
     hasGarageContext,
     model,
     setModel,
+    productionYear,
+    setProductionYear,
     licenseNumber,
     setLicenseNumber,
     licenseExpiryDate,
@@ -187,8 +195,8 @@ export const useVehicleEditScreen = (vehicleId: string) => {
     setInsuranceStartDate,
     insuranceExpiryDate,
     setInsuranceExpiryDate,
-    vehicleImageUri,
-    handlePickVehicleImage,
+    vehicleImages,
+    setVehicleImages,
     handleSave,
   };
 };

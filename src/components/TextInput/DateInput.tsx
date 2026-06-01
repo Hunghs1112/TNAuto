@@ -166,8 +166,8 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    height: 56,
-    paddingVertical: 4,
+    height: 44,
+    paddingVertical: 2,
   },
   dateLabelContainer: {
     width: 60,

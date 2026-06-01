@@ -1,6 +1,6 @@
 // src/screens/Customers/CustomersScreen.tsx
-import React, { useMemo, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useMemo, useCallback, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput, StyleSheet as RNStyleSheet } from 'react-native';
 import { Screen } from '../../components/layout';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typo';
@@ -22,6 +22,7 @@ const CustomersScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const userId = useAppSelector((state) => state.auth.userId);
   const currentEmployee = useAppSelector((state) => state.employee.currentEmployee);
+  const [search, setSearch] = useState('');
   
   const employeeId = currentEmployee?.id || userId;
   
@@ -77,6 +78,20 @@ const CustomersScreen: React.FC = () => {
 
     return Array.from(map.values());
   }, [assignedResponse]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!search.trim()) return customersMap;
+    const q = search.trim().toLowerCase();
+    return customersMap.filter(
+      (c) =>
+        c.customer_name.toLowerCase().includes(q) ||
+        (c.customer_phone || '').toLowerCase().includes(q) ||
+        // Tìm theo biển số xe từ các đơn hàng
+        c.orders.some((o: any) =>
+          (o.license_plate || '').toLowerCase().includes(q),
+        ),
+    );
+  }, [customersMap, search]);
 
   const handleCustomerPress = useCallback((customerId: number, customerName: string, customerPhone?: string) => {
     navigation.navigate('CustomerDetail', { 
@@ -163,9 +178,26 @@ const CustomersScreen: React.FC = () => {
       safeAreaTopColor={Colors.primary}
       statusBarStyle="light-content"
     >
+      {/* Search bar */}
+      <View style={searchStyles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+        <TextInput
+          style={searchStyles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Tìm theo tên, SĐT, biển số..."
+          placeholderTextColor={Colors.text.secondary}
+          returnKeyType="search"
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
       <FlatList
         alwaysBounceVertical={true}
-        data={customersMap}
+        data={filteredCustomers}
         keyExtractor={keyExtractor}
         renderItem={renderCustomerItem}
         showsVerticalScrollIndicator={false}
@@ -189,4 +221,33 @@ const CustomersScreen: React.FC = () => {
 };
 
 export default CustomersScreen;
+
+const { Colors: C, spacing: sp, borderRadius: br, Typography: Typo } = {
+  Colors,
+  spacing: require('../../design-system/spacing').spacing,
+  borderRadius: require('../../design-system/borders').borderRadius,
+  Typography: require('../../constants/typo').Typography,
+};
+
+const searchStyles = RNStyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    margin: 12,
+    marginBottom: 4,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+    padding: 0,
+  },
+});
 

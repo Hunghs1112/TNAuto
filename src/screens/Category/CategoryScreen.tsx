@@ -1,6 +1,7 @@
 // src/screens/Category/CategoryScreen.tsx (Optimized with new loading pattern)
-import React, { useCallback } from "react";
-import { View, FlatList, RefreshControl } from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, FlatList, RefreshControl, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { Screen } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import Item from "../../components/Item";
@@ -35,6 +36,8 @@ const CategoryScreen = () => {
   const dealerCategoryQuery = useGetDealerCategoriesQuery(undefined, { skip: !isDealer });
   const query = isDealer ? dealerCategoryQuery : categoryQuery;
   const showGarageTabs = !isDealer && savedGarages.length > 1;
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const actualRefreshing = refreshing || query.isFetching;
 
@@ -118,7 +121,16 @@ const CategoryScreen = () => {
               </View>
             }
             children={(categories: CatalogCategory[]) => {
-              const categoryItems = categories.map((category: CatalogCategory) => {
+              const categoryItems = categories
+                .filter((category: CatalogCategory) => {
+                  if (!searchQuery.trim()) return true;
+                  const q = searchQuery.toLowerCase().trim();
+                  return (
+                    category.name?.toLowerCase().includes(q) ||
+                    category.description?.toLowerCase().includes(q)
+                  );
+                })
+                .map((category: CatalogCategory) => {
                 const descriptionParts = [
                   category.description || "Xem tất cả sản phẩm trong danh mục này",
                 ];
@@ -143,6 +155,28 @@ const CategoryScreen = () => {
 
               return (
                 <View style={styles.form}>
+                  {/* Search bar */}
+                  <View style={catSearchStyles.searchBar}>
+                    <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                    <TextInput
+                      style={catSearchStyles.searchInput}
+                      value={searchInput}
+                      onChangeText={setSearchInput}
+                      onBlur={() => setSearchQuery(searchInput)}
+                      onSubmitEditing={() => setSearchQuery(searchInput)}
+                      placeholder="Tìm danh mục..."
+                      placeholderTextColor={Colors.text.secondary}
+                      returnKeyType="search"
+                    />
+                    {searchInput ? (
+                      <TouchableOpacity
+                        onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                   <FlatList
                     alwaysBounceVertical={true}
                     data={categoryItems}
@@ -184,4 +218,27 @@ const CategoryScreen = () => {
 CategoryScreen.displayName = "CategoryScreen";
 
 export default React.memo(CategoryScreen);
+
+const catSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+});
 

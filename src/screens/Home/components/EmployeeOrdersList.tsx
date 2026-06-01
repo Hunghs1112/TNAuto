@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 
 import ServiceOrderCard from '../../../components/ServiceOrderCard';
@@ -31,16 +32,23 @@ interface EmployeeOrdersListProps {
 type OrderStatus = 'received' | 'in_progress' | 'ready_for_pickup' | 'completed' | 'cancelled' | 'canceled' | 'all';
 
 const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus; icon: string }> = [
-  { label: 'Tất cả', value: 'all', icon: 'list-outline' },
   { label: 'Đang xử lý', value: 'in_progress', icon: 'construct-outline' },
   { label: 'Chờ bàn giao', value: 'ready_for_pickup', icon: 'car-outline' },
   { label: 'Hoàn thành', value: 'completed', icon: 'checkmark-done-circle-outline' },
   { label: 'Đã hủy', value: 'cancelled', icon: 'close-circle-outline' },
+  { label: 'Tất cả', value: 'all', icon: 'list-outline' },
 ];
 
 const EmployeeOrdersList = ({ orders, isLoading, onOrderPress, emptyMessage = 'Chưa có đơn giao nào' }: EmployeeOrdersListProps) => {
   const services = useAppSelector(selectServicesList) as ServiceSummary[];
-  const [selectedStatus, setSelectedStatus] = useState('all' as OrderStatus);
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>('in_progress');
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setSelectedStatus('in_progress');
+    }, [])
+  );
+
   const filteredOrders = useMemo(() => (selectedStatus === 'all' ? orders : orders.filter((order) => order.status === selectedStatus)), [orders, selectedStatus]);
 
   const renderOrderItem = useCallback(({ item }: { item: Order }) => (

@@ -1,6 +1,6 @@
 // src/screens/MyService/MyServiceScreen.tsx
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, RefreshControl, SafeAreaView } from "react-native";
+import { View, Text, StatusBar, ActivityIndicator, FlatList, ScrollView, TouchableOpacity, RefreshControl, SafeAreaView, TextInput, StyleSheet } from "react-native";
 import { RootView } from "../../components/layout";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Colors } from "../../constants/colors";
@@ -31,7 +31,10 @@ const MyServiceScreen: React.FC = () => {
     (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
   );
   const services = useAppSelector((state: RootState) => state.services.services);
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('active');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Redirect to Login if not authenticated
   useEffect(() => {
@@ -58,10 +61,11 @@ const MyServiceScreen: React.FC = () => {
 
   const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse?.data]);
   const statusFilters = useMemo(() => ([
+    { key: 'active', label: 'Đang xử lý' },
     { key: 'all', label: 'Tất cả' },
     { key: 'received', label: 'Đã đặt lịch' },
     { key: 'ready_for_pickup', label: 'Chờ xác nhận' },
-    { key: 'in_progress', label: 'Đang xử lý' },
+    { key: 'in_progress', label: 'Đang làm' },
     { key: 'completed', label: 'Hoàn thành' },
     // Merge cancelled + canceled thành 1 filter
     { key: 'cancelled', label: 'Đã hủy' },
@@ -87,19 +91,40 @@ const MyServiceScreen: React.FC = () => {
   );
 
   const filteredOrders = useMemo(
-    () =>
-      selectedStatus === 'all'
-        ? sortedOrders
-        : sortedOrders.filter(
-            (order) =>
-              order.status === selectedStatus ||
-              // Merge cancelled + canceled vào cùng filter 'cancelled'
-              (selectedStatus === 'cancelled' && order.status === 'canceled'),
-          ),
-    [selectedStatus, sortedOrders],
+    () => {
+      let result: typeof sortedOrders;
+      if (selectedStatus === 'all') {
+        result = sortedOrders;
+      } else if (selectedStatus === 'active') {
+        // Ẩn đơn hoàn thành và đã hủy
+        result = sortedOrders.filter(
+          (order) => order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'canceled',
+        );
+      } else {
+        result = sortedOrders.filter(
+          (order) =>
+            order.status === selectedStatus ||
+            (selectedStatus === 'cancelled' && order.status === 'canceled'),
+        );
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        result = result.filter(
+          (order) =>
+            order.service_name?.toLowerCase().includes(q) ||
+            order.employee_name?.toLowerCase().includes(q) ||
+            order.garage_name?.toLowerCase().includes(q) ||
+            order.garage_code?.toLowerCase().includes(q) ||
+            String(order.id).includes(q),
+        );
+      }
+      return result;
+    },
+    [selectedStatus, sortedOrders, searchQuery],
   );
 
   const sectionTitle = useMemo(() => {
+    if (selectedStatus === 'active') return 'Đơn đang xử lý';
     const filter = statusFilters.find(f => f.key === selectedStatus);
     return filter ? `${filter.label} dịch vụ` : 'Tất cả dịch vụ';
   }, [selectedStatus, statusFilters]);
@@ -227,6 +252,29 @@ const MyServiceScreen: React.FC = () => {
               ))}
             </ScrollView>
           </View>
+
+          {/* Search bar */}
+          <View style={myServiceSearchStyles.searchBar}>
+            <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+            <TextInput
+              style={myServiceSearchStyles.searchInput}
+              value={searchInput}
+              onChangeText={setSearchInput}
+              onBlur={() => setSearchQuery(searchInput)}
+              onSubmitEditing={() => setSearchQuery(searchInput)}
+              placeholder="Tìm dịch vụ, nhân viên, gara..."
+              placeholderTextColor={Colors.text.secondary}
+              returnKeyType="search"
+            />
+            {searchInput ? (
+              <TouchableOpacity
+                onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
           
           <View style={styles.form}>
             <SectionHeader title={sectionTitle} />
@@ -255,4 +303,26 @@ const MyServiceScreen: React.FC = () => {
 };
 
 export default React.memo(MyServiceScreen);
+
+const myServiceSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 8,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+});
 

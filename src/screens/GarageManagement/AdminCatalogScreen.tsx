@@ -151,6 +151,7 @@ function CatalogTabContent({ tab }: { tab: CatalogTab }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editItem, setEditItem] = useState<AdminEntity | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
 
   const listQuery = useGetAdminResourceListQuery({ resource: tab as AdminListResource });
   const [createItem] = useCreateAdminResourceMutation();
@@ -158,7 +159,15 @@ function CatalogTabContent({ tab }: { tab: CatalogTab }) {
   const [deleteItem] = useDeleteAdminResourceMutation();
   const [uploadAsset] = useUploadAdminEntityAssetMutation();
 
-  const items = useMemo(() => listQuery.data || [], [listQuery.data]);
+  const items = useMemo(() => {
+    const all = listQuery.data || [];
+    if (!search.trim()) return all;
+    const q = search.trim().toLowerCase();
+    return all.filter((item) =>
+      String(item.name || '').toLowerCase().includes(q) ||
+      String(item.description || '').toLowerCase().includes(q),
+    );
+  }, [listQuery.data, search]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -285,6 +294,24 @@ function CatalogTabContent({ tab }: { tab: CatalogTab }) {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Search bar */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Tìm theo tên..."
+          placeholderTextColor={Colors.text.secondary}
+          returnKeyType="search"
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
       {isInitialLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -632,6 +659,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    margin: spacing.base,
+    marginBottom: 0,
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    padding: 0,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   FlatList,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Platform,
   TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -50,6 +51,21 @@ import { useAutoRefresh } from "../../redux/hooks/useAutoRefresh";
 import { isManagerRole } from "../../navigation/rolePolicy";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+
+const getNotificationMeta = (type: string, title: string) => {
+  const t = (type + title).toLowerCase();
+  if (t.includes('order_completed') || t.includes('hoàn thành'))
+    return { icon: 'checkmark-circle', color: '#16A34A', bg: '#F0FDF4' };
+  if (t.includes('order') || t.includes('đơn'))
+    return { icon: 'receipt-outline', color: '#2563EB', bg: '#EFF6FF' };
+  if (t.includes('warranty') || t.includes('bảo hành'))
+    return { icon: 'shield-checkmark', color: '#7C3AED', bg: '#F5F3FF' };
+  if (t.includes('service_reminder') || t.includes('dịch vụ') || t.includes('nhắc'))
+    return { icon: 'build', color: '#D97706', bg: '#FFFBEB' };
+  if (t.includes('promo') || t.includes('ưu đãi') || t.includes('giảm'))
+    return { icon: 'pricetag', color: '#DB2777', bg: '#FDF2F8' };
+  return { icon: 'notifications', color: Colors.primary, bg: Colors.primarySoft };
+};
 
 const getNotificationOrderId = (item: any) => {
   const rawOrderId = item?.order_id ?? item?.metadata?.order_id ?? (item?.ref_type === 'order' ? item?.ref_id : undefined);
@@ -95,6 +111,8 @@ const NotificationScreen = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createNotification] = useCreateAdminResourceMutation();
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const adminNotificationsQuery = useGetAdminNotificationLogsQuery(undefined, {
     skip: !isLoggedIn || !isManagerUser,
@@ -288,6 +306,18 @@ const NotificationScreen = () => {
 
   const TAB_BAR_HEIGHT = 76;
 
+  // Filter notifications theo search query (chỉ áp dụng khi out focus)
+  const filteredNotifications = useMemo(() => {
+    if (!searchQuery.trim() || !notifications) return notifications;
+    const q = searchQuery.toLowerCase().trim();
+    return notifications.filter((item: any) => {
+      const title = String(item?.title || item?.message || '').toLowerCase();
+      const body = String(item?.body || item?.message || '').toLowerCase();
+      const type = String(item?.type || '').toLowerCase();
+      return title.includes(q) || body.includes(q) || type.includes(q);
+    });
+  }, [notifications, searchQuery]);
+
   const renderItem = ({ item }: { item: any }) => {
     const rawTitle = item?.title ?? null;
     const rawBody = item?.body ?? null;
@@ -310,35 +340,47 @@ const NotificationScreen = () => {
         })
       : 'Vừa xong';
 
+    const isUnread = !item.read;
+    const meta = getNotificationMeta(item?.type || '', title);
+
     return (
-      <View style={{ position: 'relative', opacity: item.read ? 0.6 : 1 }}>
-        <Item
-          title={title}
-          description={`${body} • ${time}`}
-          imageUri={item.image_url}
-          onPress={() => handlePress(item)}
-          isPressable={true}
-        />
-        {!isManagerUser ? (
+      <TouchableOpacity
+        activeOpacity={0.82}
+        style={[notifItemStyles.card, isUnread && notifItemStyles.cardUnread]}
+        onPress={() => handlePress(item)}
+      >
+        {/* Unread bar */}
+        {isUnread && <View style={notifItemStyles.unreadBar} />}
+
+        {/* Icon */}
+        <View style={[notifItemStyles.iconWrap, { backgroundColor: meta.bg }]}>
+          <Ionicons name={meta.icon as any} size={20} color={meta.color} />
+        </View>
+
+        {/* Content */}
+        <View style={notifItemStyles.content}>
+          <View style={notifItemStyles.topRow}>
+            <Text style={[notifItemStyles.title, !isUnread && notifItemStyles.titleRead]} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={notifItemStyles.time}>{time}</Text>
+          </View>
+          {body ? (
+            <Text style={notifItemStyles.body} numberOfLines={2}>{body}</Text>
+          ) : null}
+        </View>
+
+        {/* Delete button */}
+        {!isManagerUser && (
           <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              backgroundColor: Colors.alpha.slate15,
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 10,
-            }}
+            style={notifItemStyles.deleteBtn}
             onPress={() => handleDelete(String(item.id))}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close-outline" size={16} color={Colors.status.error} />
+            <Ionicons name="close" size={14} color={Colors.neutral[400]} />
           </TouchableOpacity>
-        ) : null}
-      </View>
+        )}
+      </TouchableOpacity>
     );
   };
 
@@ -413,9 +455,32 @@ const NotificationScreen = () => {
       useScrollView={false}
       contentStyle={{ paddingBottom: 0 }}
     >
+      {/* Search bar */}
+      <View style={notifSearchStyles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+        <TextInput
+          style={notifSearchStyles.searchInput}
+          value={searchInput}
+          onChangeText={setSearchInput}
+          onBlur={() => setSearchQuery(searchInput)}
+          onSubmitEditing={() => setSearchQuery(searchInput)}
+          placeholder="Tìm thông báo..."
+          placeholderTextColor={Colors.text.secondary}
+          returnKeyType="search"
+        />
+        {searchInput ? (
+          <TouchableOpacity
+            onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
       <FlatList
         alwaysBounceVertical={true}
-        data={notifications}
+        data={filteredNotifications}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         getItemLayout={getItemLayout}
@@ -606,4 +671,119 @@ const notifStyles = StyleSheet.create({
   cancelText: { fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.base, color: Colors.text.secondary },
   saveBtn: { flex: 2, paddingVertical: spacing.md, borderRadius: borderRadius.xl, backgroundColor: Colors.primary, alignItems: 'center' },
   saveText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.base, color: Colors.background.light, fontWeight: Typography.weight.bold },
+});
+
+const notifSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+});
+
+const notifItemStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.light,
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.neutral[200],
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  cardUnread: {
+    borderColor: Colors.alpha.primary12,
+    backgroundColor: Colors.primarySoft,
+    ...Platform.select({
+      ios: { shadowOpacity: 0.1 },
+      android: { elevation: 3 },
+    }),
+  },
+  unreadBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: Colors.primary,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  iconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  content: {
+    flex: 1,
+    gap: 4,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  title: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Typography.fontFamily.bold,
+    color: Colors.text.primary,
+    lineHeight: 19,
+  },
+  titleRead: {
+    fontFamily: Typography.fontFamily.medium,
+    color: Colors.text.secondary,
+  },
+  time: {
+    fontSize: 11,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.neutral[400],
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  body: {
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.regular,
+    color: Colors.text.secondary,
+    lineHeight: 18,
+  },
+  deleteBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.neutral[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
 });

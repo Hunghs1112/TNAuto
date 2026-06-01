@@ -167,6 +167,12 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Employee login in app namespace (token-based)',
     body: ['phone', 'password'],
   },
+  employeeChangePassword: {
+    method: 'PUT',
+    path: '/api/app/employee/change-password',
+    description: 'Employee self-service change password (requires Bearer token)',
+    body: ['current_password', 'new_password'],
+  },
   managerLogin: {
     method: 'POST',
     path: '/api/app/manager/auth/login',

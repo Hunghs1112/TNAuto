@@ -27,11 +27,10 @@ export const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logoFrame: {
-    width: "100%",
-    maxWidth: 520,
-    height: 260,
+    width: 200,
+    height: 150,
     alignSelf: "center",
-    marginVertical: spacing.xl,
+    marginVertical: spacing.lg,
   },
   logo: {
     width: "100%",
@@ -40,17 +39,31 @@ export const styles = StyleSheet.create({
   
   // Input area spacing
   inputContainer: {
-    gap: spacing.base,
     width: "100%",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
-  // Backward compatible: single input wrapper
+  // Wrapper bao quanh TextInput + error icon
   inputWrapper: {
-    marginBottom: spacing.base,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#ff4d4f',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorIconText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    lineHeight: 15,
   },
   // Actions area (buttons)
   actions: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     marginBottom: spacing.xs,
   },
   

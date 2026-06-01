@@ -1,6 +1,6 @@
 // src/screens/Product/ProductScreen.tsx (Optimized with new loading pattern)
-import React, { useMemo, useCallback } from "react";
-import { View, FlatList, RefreshControl, Image } from "react-native";
+import React, { useMemo, useCallback, useState } from "react";
+import { View, FlatList, RefreshControl, Image, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import Screen from "../../components/layout/Screen/Screen";
 import Item from "../../components/Item";
 import { QueryWrapper, ScreenLoader } from "../../components/Loading";
@@ -21,6 +21,9 @@ import { selectGarageCode, selectHasGarageContext, selectSavedGarages } from "..
 import GarageTabs from "../../components/GarageTabs";
 import GarageSelectionPrompt from "../../components/GarageSelectionPrompt";
 import useCustomerGarageSelection from "../../hooks/useCustomerGarageSelection";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+import { Colors } from "../../constants/colors";
+import { fuzzyMatchVietnamese } from "../../utils/normalizeVietnamese";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 type ProductScreenRouteProp = RouteProp<AppStackParamList, "Product">;
@@ -36,6 +39,14 @@ const ProductScreen = () => {
   const savedGarages = useAppSelector(selectSavedGarages);
   const isDealer = (userType === "dealer" || userType === "garage_manager" || userType === "garage_admin");
   const { refreshing: autoRefreshing, onRefresh: baseOnRefresh } = useAutoRefresh({ tags: ["Product", "Category"] });
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Debounce 300ms: searchInput → searchQuery (real-time, không cần nhấn Enter)
+  React.useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const categoryId = route.params?.categoryId;
   const categoryName = route.params?.categoryName;
@@ -221,7 +232,15 @@ const ProductScreen = () => {
               </View>
             }
             children={() => {
-              const productItems = filteredProducts.map((product: CatalogProduct) => ({
+              const productItems = filteredProducts
+                .filter((product: CatalogProduct) => {
+                  if (!searchQuery.trim()) return true;
+                  return (
+                    fuzzyMatchVietnamese(product.name, searchQuery) ||
+                    fuzzyMatchVietnamese(product.description, searchQuery)
+                  );
+                })
+                .map((product: CatalogProduct) => ({
                 id: product.id,
                 title: product.name,
                 description: product.description || (product.images?.length ? `${product.images.length} ảnh` : "Xem chi tiết"),
@@ -233,6 +252,26 @@ const ProductScreen = () => {
 
               return (
                 <View style={styles.form}>
+                  {/* Search bar */}
+                  <View style={prodSearchStyles.searchBar}>
+                    <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                    <TextInput
+                      style={prodSearchStyles.searchInput}
+                      value={searchInput}
+                      onChangeText={setSearchInput}
+                      placeholder="Tìm sản phẩm..."
+                      placeholderTextColor={Colors.text.secondary}
+                      returnKeyType="search"
+                    />
+                    {searchInput ? (
+                      <TouchableOpacity
+                        onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                   <FlatList
                     alwaysBounceVertical={true}
                     data={productItems}
@@ -263,4 +302,27 @@ const ProductScreen = () => {
 ProductScreen.displayName = "ProductScreen";
 
 export default React.memo(ProductScreen);
+
+const prodSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 0,
+  },
+});
 

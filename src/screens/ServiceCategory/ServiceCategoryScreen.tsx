@@ -1,6 +1,5 @@
-// src/screens/ServiceCategory/ServiceCategoryScreen.tsx
-import React, { useCallback, useEffect, useMemo } from "react";
-import { View, FlatList, RefreshControl, Image } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, FlatList, RefreshControl, Image, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Screen } from "../../components/layout";
 import { Colors } from "../../constants/colors";
 import Item from "../../components/Item";
@@ -17,6 +16,7 @@ import { selectGarageCode, selectHasGarageContext, selectSavedGarages } from "..
 import GarageTabs from "../../components/GarageTabs";
 import GarageSelectionPrompt from "../../components/GarageSelectionPrompt";
 import useCustomerGarageSelection from "../../hooks/useCustomerGarageSelection";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -30,6 +30,8 @@ const ServiceCategoryScreen = () => {
   const savedGarages = useAppSelector(selectSavedGarages);
   const query = useGetServiceCategoriesQuery({ garageCode: currentGarageCode }, { skip: userType === "dealer" || !hasGarageContext });
   const showGarageTabs = userType !== "dealer" && savedGarages.length > 1;
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Use isFetching to determine actual refreshing state
   const actualRefreshing = refreshing || query.isFetching;
@@ -49,7 +51,16 @@ const ServiceCategoryScreen = () => {
   // Tính categoryItems ở level component — không tính lại trong children callback mỗi render
   const categoryItems = useMemo(
     () =>
-      (query.data ?? []).map((category: ServiceCategory) => {
+      (query.data ?? [])
+        .filter((category: ServiceCategory) => {
+          if (!searchQuery.trim()) return true;
+          const q = searchQuery.toLowerCase().trim();
+          return (
+            category.name?.toLowerCase().includes(q) ||
+            category.description?.toLowerCase().includes(q)
+          );
+        })
+        .map((category: ServiceCategory) => {
         const descriptionParts = [
           category.description || 'Xem tất cả dịch vụ trong danh mục này',
         ];
@@ -183,6 +194,28 @@ const ServiceCategoryScreen = () => {
             children={(categories: ServiceCategory[]) => {
               return (
                 <View style={styles.form}>
+                  {/* Search bar */}
+                  <View style={svcCatSearchStyles.searchBar}>
+                    <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                    <TextInput
+                      style={svcCatSearchStyles.searchInput}
+                      value={searchInput}
+                      onChangeText={setSearchInput}
+                      onBlur={() => setSearchQuery(searchInput)}
+                      onSubmitEditing={() => setSearchQuery(searchInput)}
+                      placeholder="Tìm danh mục dịch vụ..."
+                      placeholderTextColor={Colors.text.secondary}
+                      returnKeyType="search"
+                    />
+                    {searchInput ? (
+                      <TouchableOpacity
+                        onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                   <FlatList
                     alwaysBounceVertical={true}
                     data={categoryItems}
@@ -214,3 +247,26 @@ const ServiceCategoryScreen = () => {
 ServiceCategoryScreen.displayName = 'ServiceCategoryScreen';
 
 export default React.memo(ServiceCategoryScreen);
+
+const svcCatSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+});

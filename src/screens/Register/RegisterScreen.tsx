@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
+import Ionicons from "@react-native-vector-icons/ionicons";
 import Screen from "../../components/layout/Screen/Screen";
 import { FormContainer } from "../../components/layout/FormContainer";
 import { Colors } from "../../constants/colors";
@@ -31,7 +32,57 @@ export default function RegisterScreen() {
   const [licensePlate, setLicensePlate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Error states
+  const [nameError, setNameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [plateError, setPlateError] = useState("");
+
   const [registerCustomer] = useRegisterCustomerMutation();
+
+  // Real-time validation
+  const handleNameChange = (text: string) => {
+    setName(text);
+    if (text.trim().length === 0) {
+      setNameError("");
+    } else {
+      const result = validateName(text);
+      setNameError(result.isValid ? "" : (result.error || "Họ và tên không hợp lệ"));
+    }
+  };
+
+  const handlePhoneChange = (text: string) => {
+    setPhone(text);
+    if (text.trim().length === 0) {
+      setPhoneError("");
+    } else if (!/^[0-9]{10,11}$/.test(text)) {
+      setPhoneError("Số điện thoại phải có 10–11 chữ số");
+    } else {
+      setPhoneError("");
+    }
+  };
+
+  const handlePlateChange = (text: string) => {
+    const upper = text.toUpperCase();
+    setLicensePlate(upper);
+    if (upper.trim().length === 0) {
+      setPlateError("");
+    } else {
+      const result = validateLicensePlate(upper);
+      setPlateError(result.isValid ? "" : (result.error || "Biển số phải có cả chữ và số (VD: 29A-12345)"));
+    }
+  };
+
+  const showError = (msg: string) => {
+    if (msg) Alert.alert("Lỗi nhập liệu", msg);
+  };
+
+  // Form valid when name + plate filled and no errors
+  const isFormValid =
+    name.trim().length > 0 &&
+    licensePlate.trim().length > 0 &&
+    !nameError &&
+    !plateError &&
+    !phoneError;
 
   const handleRegister = async () => {
     const trimmedName = name.trim();
@@ -46,7 +97,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Validate phone (optional)
     const hasPhone = phone.trim().length > 0;
     if (hasPhone) {
       const phoneValidation = validatePhone(phone);
@@ -70,156 +120,158 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try {
-      // Clean and format data before sending
       const cleanedPhone = hasPhone ? cleanPhone(phone) : undefined;
       const formattedPlate = formatLicensePlate(licensePlate);
-      
-      const requestBody: { name: string; phone?: string; license_plate?: string; avatar_url?: string } = {
+
+      const requestBody: { name: string; phone?: string; license_plate?: string } = {
         name: trimmedName,
       };
-
-      if (cleanedPhone) {
-        requestBody.phone = cleanedPhone;
-      }
-
+      if (cleanedPhone) requestBody.phone = cleanedPhone;
       requestBody.license_plate = formattedPlate;
 
       const result = await registerCustomer(requestBody).unwrap();
-      
+
       if (result.success) {
         Alert.alert(
-          "Đăng ký thành công! 🎉", 
+          "Đăng ký thành công! 🎉",
           result.message || "Bạn có thể đăng nhập ngay bây giờ",
-          [
-            {
-              text: "OK",
-              onPress: () => navigation.navigate("Login")
-            }
-          ]
+          [{ text: "OK", onPress: () => navigation.navigate("Login") }]
         );
       } else {
         Alert.alert("Lỗi", "Đăng ký thất bại!");
       }
     } catch (error: any) {
-      console.error('RegisterScreen: Registration error:', error);
-      
-      // Handle specific error cases from backend
       let errorMessage = "Đăng ký thất bại! Vui lòng thử lại.";
-      
       if (error?.data?.error || error?.message) {
         const errorText = error?.data?.error || error?.message || '';
-        
-        // Phone already exists
-        if (errorText.toLowerCase().includes('phone') && 
-            (errorText.toLowerCase().includes('exist') || errorText.toLowerCase().includes('duplicate'))) {
-          errorMessage = "Số điện thoại này đã được đăng ký.\nVui lòng sử dụng số điện thoại khác hoặc đăng nhập.";
-        }
-        // License plate already exists
-        else if (errorText.toLowerCase().includes('license') && 
-                 (errorText.toLowerCase().includes('exist') || errorText.toLowerCase().includes('duplicate'))) {
-          errorMessage = "Biển số xe này đã được đăng ký.\nVui lòng kiểm tra lại biển số xe.";
-        }
-        // Duplicate entry (generic)
-        else if (errorText.toLowerCase().includes('duplicate')) {
-          errorMessage = "Thông tin này đã tồn tại trong hệ thống.\nVui lòng kiểm tra lại số điện thoại hoặc biển số xe.";
-        }
-        // Missing required fields
-        else if (errorText.toLowerCase().includes('required') ||
-                 errorText.toLowerCase().includes('missing')) {
-          errorMessage = "Vui lòng cung cấp thông tin hợp lệ.";
-        }
-        // Invalid format
-        else if (errorText.toLowerCase().includes('format') || 
-                 errorText.toLowerCase().includes('invalid')) {
-          errorMessage = "Định dạng thông tin không hợp lệ.\nVui lòng kiểm tra lại số điện thoại hoặc biển số xe.";
-        }
-        // Server error
-        else if (errorText.toLowerCase().includes('server') || 
-                 errorText.toLowerCase().includes('internal')) {
-          errorMessage = "Lỗi hệ thống. Vui lòng thử lại sau.";
-        }
-        // Default: show backend error message
-        else {
+        if (errorText.toLowerCase().includes('phone') &&
+          (errorText.toLowerCase().includes('exist') || errorText.toLowerCase().includes('duplicate'))) {
+          errorMessage = "Số điện thoại này đã được đăng ký.";
+        } else if (errorText.toLowerCase().includes('license') &&
+          (errorText.toLowerCase().includes('exist') || errorText.toLowerCase().includes('duplicate'))) {
+          errorMessage = "Biển số xe này đã được đăng ký.";
+        } else if (errorText.toLowerCase().includes('duplicate')) {
+          errorMessage = "Thông tin đã tồn tại trong hệ thống.";
+        } else {
           errorMessage = errorText;
         }
       }
-      
       Alert.alert("Lỗi đăng ký", errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLogin = () => {
-    navigation.navigate("Login");
-  };
-
   return (
-    <Screen
-      statusBarStyle="light-content"
-    >
+    <Screen statusBarStyle="light-content">
       <FormContainer
         keyboardAvoiding
         withScroll
         paddingCustom={{ horizontal: 'xl', top: 'lg', bottom: 'xl' }}
         dismissKeyboardOnPress
       >
-        <Text style={styles.welcomeText}>Chào mừng đến với GaraOne</Text>
+        <View style={{ marginTop: 20 }}>
+          <Text style={styles.welcomeText}>Chào mừng đến với GaraOne</Text>
 
-        <View style={styles.logoFrame}>
-          <Image
-            style={styles.logo}
-            source={require('../../assets/logo.png')}
-            resizeMode="contain"
-          />
-        </View>
+          <View style={styles.logoFrame}>
+            <Image
+              style={styles.logo}
+              source={require('../../assets/logo.png')}
+              resizeMode="contain"
+            />
+          </View>
 
-        <View style={styles.inputContainer}>
-          <TextInputComponent
-            value={name}
-            onChangeText={setName}
-            placeholder="Họ và tên *"
-            placeholderTextColor={Colors.text.placeholder}
-          />
-          <TextInputComponent
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="Số điện thoại (không bắt buộc)"
-            placeholderTextColor={Colors.text.placeholder}
-            keyboardType="phone-pad"
-          />
-          <TextInputComponent
-            value={licensePlate}
-            onChangeText={(text) => setLicensePlate(text.toUpperCase())}
-            placeholder="Biển số xe * (VD: 29A-12345)"
-            placeholderTextColor={Colors.text.placeholder}
-          />
-          <Text style={styles.helperText}>Các trường có dấu * là bắt buộc.</Text>
-        </View>
+          <View style={styles.inputContainer}>
+            {/* Họ và tên */}
+            <TextInputComponent
+              value={name}
+              onChangeText={handleNameChange}
+              placeholder="Họ và tên"
+              placeholderTextColor={Colors.text.placeholder}
+              iconLeft={<Ionicons name="person" size={20} color="#006DB6" />}
+              iconRight={
+                nameError && name.length > 0 ? (
+                  <TouchableOpacity onPress={() => showError(nameError)}>
+                    <View style={styles.errorIcon}>
+                      <Text style={styles.errorIconText}>!</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : undefined
+              }
+            />
 
-        <View style={styles.actions}>
-          <Button
-            title="Đăng ký"
-            onPress={handleRegister}
-            loading={isLoading}
-            disabled={isLoading}
-            variant="primary"
-            fullWidth
-          />
-        </View>
+            {/* Số điện thoại */}
+            <TextInputComponent
+              value={phone}
+              onChangeText={handlePhoneChange}
+              placeholder="Số điện thoại"
+              placeholderTextColor={Colors.text.placeholder}
+              keyboardType="phone-pad"
+              maxLength={11}
+              iconLeft={<Ionicons name="call" size={20} color="#006DB6" />}
+              iconRight={
+                phoneError && phone.length > 0 ? (
+                  <TouchableOpacity onPress={() => showError(phoneError)}>
+                    <View style={styles.errorIcon}>
+                      <Text style={styles.errorIconText}>!</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : undefined
+              }
+            />
 
-        <View style={styles.signup}>
-          <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
-          <TouchableOpacity onPress={handleLogin}>
-            <Text style={styles.registerLink}>Đăng nhập</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Biển số xe */}
+            <TextInputComponent
+              value={licensePlate}
+              onChangeText={handlePlateChange}
+              placeholder="Biển số xe (VD: 29A-12345)"
+              placeholderTextColor={Colors.text.placeholder}
+              autoCapitalize="characters"
+              iconLeft={<Ionicons name="car" size={20} color="#006DB6" />}
+              iconRight={
+                plateError && licensePlate.length > 0 ? (
+                  <TouchableOpacity onPress={() => showError(plateError)}>
+                    <View style={styles.errorIcon}>
+                      <Text style={styles.errorIconText}>!</Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : undefined
+              }
+            />
+          </View>
 
-        <View style={styles.signup}>
-          <Text style={styles.registerPrompt}>Bạn muốn làm đại lí để nhận thêm nhiều ưu đãi?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('DealerRegister' as any)}>
-            <Text style={styles.registerLink}>Đăng ký đại lí</Text>
-          </TouchableOpacity>
+          <View style={styles.actions}>
+            <Button
+              title="Đăng ký"
+              onPress={handleRegister}
+              loading={isLoading}
+              disabled={!isFormValid || isLoading}
+              variant="primary"
+              fullWidth
+              style={{
+                backgroundColor: isFormValid && !isLoading ? Colors.primary : '#a9a9a9',
+                opacity: isFormValid && !isLoading ? 1 : 0.6,
+              }}
+            />
+          </View>
+
+          <View style={styles.signup}>
+            <Text style={styles.registerPrompt}>Bạn đã có tài khoản?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.registerLink}>Đăng nhập</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.signup}>
+            <TouchableOpacity
+              style={styles.dealerBanner}
+              onPress={() => navigation.navigate('DealerRegister' as any)}
+            >
+              <Ionicons name="storefront-outline" size={18} color="#fff" />
+              <Text style={styles.dealerBannerText}>Làm đại lý · Nhận thêm ưu đãi</Text>
+              <Ionicons name="chevron-forward" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </FormContainer>
     </Screen>

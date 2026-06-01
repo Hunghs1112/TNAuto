@@ -45,6 +45,8 @@ import { styles } from './styles';
 const getApiErrorMessage = (error: any, fallback: string) =>
   error?.data?.error || error?.data?.message || error?.error || fallback;
 
+const MAX_IMAGES_PER_UPLOAD = 10;
+
 const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } } }) => {
   const { id } = route.params;
   const navigation = useNavigation<any>();
@@ -55,7 +57,7 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const currentEmployeeId = currentEmployee?.id ? String(currentEmployee.id) : null;
 
   const [refreshing, setRefreshing] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingSection, setUploadingSection] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(null as string | null);
   const [claiming, setClaiming] = useState(false);
 
@@ -102,6 +104,89 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
   const canUpdateStatus = Boolean(orderData && isOwnedByCurrentEmployee && orderData.status === 'in_progress');
   const canUploadImages = isOwnedByCurrentEmployee;
 
+  const handleUploadImages = useCallback(
+    async (statusAtTime: string, source: 'camera' | 'gallery'): Promise<void> => {
+      // Guard checks (task 3.3): quyền upload và trạng thái đang upload
+      if (!canUploadImages) {
+        Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
+        return;
+      }
+      if (uploadingSection !== null) {
+        Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
+        return;
+      }
+
+      // Bước 1: Chọn ảnh theo source
+      let assets: import('react-native-image-picker').Asset[];
+
+      if (source === 'camera') {
+        const asset = await pickImageFromCamera({ maxWidth: 1920, maxHeight: 1920, quality: 0.8 });
+        // pickImageFromCamera trả về Asset | null — wrap thành Asset[]
+        if (!asset) return;
+        assets = [asset];
+      } else {
+        assets = await pickImageFromGallery({
+          selectionLimit: MAX_IMAGES_PER_UPLOAD,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.8,
+        });
+        // Return sớm nếu user cancel (mảng rỗng)
+        if (assets.length === 0) return;
+      }
+
+      // Bước 2: Validate kích thước từng ảnh trong batch (task 3.2)
+      // Phải xảy ra TRƯỚC khi set uploadingSection (trước khi bắt đầu upload)
+      for (const asset of assets) {
+        if (!validateImageSize(asset, 5)) {
+          // validateImageSize đã hiển thị Alert — hủy toàn bộ batch
+          return;
+        }
+      }
+
+      // Bước 3: Upload song song lên storage (task 3.4)
+      setUploadingSection(statusAtTime);
+      try {
+        const uploadResults = await Promise.all(
+          assets.map(asset => uploadSingleImage(createImageFormData(asset, 'image')).unwrap()),
+        );
+
+        // Lưu metadata tuần tự vào DB để tránh race condition
+        for (const result of uploadResults) {
+          await uploadServiceOrderImage({
+            order_id: id,
+            image_url: result.url,
+            status_at_time: statusAtTime,
+            uploaded_by: currentEmployeeId || '0',
+            description: '',
+          }).unwrap();
+        }
+
+        Alert.alert('Thành công', `Tải lên thành công ${uploadResults.length} ảnh.`);
+        await refetch();
+      } catch (uploadError: any) {
+        Alert.alert('Lỗi', getApiErrorMessage(uploadError, 'Tải ảnh lên thất bại. Vui lòng thử lại.'));
+      } finally {
+        setUploadingSection(null);
+      }
+    },
+    [canUploadImages, uploadingSection, id, currentEmployeeId, uploadSingleImage, uploadServiceOrderImage, refetch],
+  );
+
+  const handlePickImage = useCallback(
+    (statusAtTime: string) => {
+      if (!canUploadImages) {
+        Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
+        return;
+      }
+      showImagePickerOptions(
+        () => handleUploadImages(statusAtTime, 'camera'),
+        () => handleUploadImages(statusAtTime, 'gallery'),
+      );
+    },
+    [canUploadImages, handleUploadImages],
+  );
+
   if (isDealer || isManagerUser) return null;
 
   if (isLoading) {
@@ -133,60 +218,6 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
       </RootView>
     );
   }
-
-  const handleUploadImage = useCallback(
-    async (statusAtTime: string, source: 'camera' | 'gallery') => {
-      if (!canUploadImages) {
-        Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
-        return;
-      }
-      if (uploading) {
-        Alert.alert('Thông báo', 'Đang tải ảnh lên, vui lòng đợi...');
-        return;
-      }
-      try {
-        setUploading(true);
-        const asset =
-          source === 'camera'
-            ? await pickImageFromCamera({ maxWidth: 1920, maxHeight: 1920, quality: 0.8 })
-            : (await pickImageFromGallery({ maxWidth: 1920, maxHeight: 1920, quality: 0.8, selectionLimit: 1 }))[0] ?? null;
-
-        if (!asset?.uri || !validateImageSize(asset, 5)) return;
-
-        const formData = createImageFormData(asset, 'image');
-        const uploadResult = await uploadSingleImage(formData).unwrap();
-        await uploadServiceOrderImage({
-          order_id: id,
-          image_url: uploadResult.url,
-          status_at_time: statusAtTime,
-          uploaded_by: currentEmployeeId || '0',
-          description: '',
-        }).unwrap();
-
-        Alert.alert('Thành công', 'Tải ảnh lên thành công.');
-        await refetch();
-      } catch (uploadError: any) {
-        Alert.alert('Lỗi', getApiErrorMessage(uploadError, 'Tải ảnh lên thất bại. Vui lòng thử lại.'));
-      } finally {
-        setUploading(false);
-      }
-    },
-    [canUploadImages, uploading, id, currentEmployeeId, uploadSingleImage, uploadServiceOrderImage, refetch],
-  );
-
-  const handlePickImage = useCallback(
-    (statusAtTime: string) => {
-      if (!canUploadImages) {
-        Alert.alert('Thông báo', 'Bạn chỉ có thể tải ảnh lên khi đơn thuộc về mình.');
-        return;
-      }
-      showImagePickerOptions(
-        () => handleUploadImage(statusAtTime, 'camera'),
-        () => handleUploadImage(statusAtTime, 'gallery'),
-      );
-    },
-    [canUploadImages, handleUploadImage],
-  );
 
   const handleClaimOrder = async () => {
     if (!currentEmployeeId) {
@@ -361,11 +392,11 @@ const EmployeeOrderDetailScreen = ({ route }: { route: { params: { id: string } 
           <Text style={styles.imageLabel}>{title}</Text>
           {canUploadImages ? (
             <TouchableOpacity
-              style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
+              style={[styles.uploadButton, uploadingSection === statusAtTime && styles.uploadButtonDisabled]}
               onPress={() => handlePickImage(statusAtTime)}
-              disabled={uploading}
+              disabled={uploadingSection === statusAtTime}
             >
-              {uploading ? (
+              {uploadingSection === statusAtTime ? (
                 <ActivityIndicator size="small" color={Colors.text.primary} />
               ) : (
                 <>

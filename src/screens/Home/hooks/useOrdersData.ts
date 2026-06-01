@@ -6,6 +6,7 @@ import { ApiResponse, ServiceOrder } from '../../../types/api.types';
 interface UseOrdersDataProps {
   userType: 'customer' | 'employee' | 'dealer' | 'garage_manager' | 'garage_admin' | null;
   userPhone: string;
+  userId?: string;
   currentEmployeeId?: string;
   hasGarageContext?: boolean;
 }
@@ -40,16 +41,18 @@ const isUnassignedAvailableOrder = (order: ServiceOrder) =>
   (order.employee_id === null || order.employee_id === undefined || order.employee_id === '') &&
   order.claimable !== false;
 
-export const useOrdersData = ({ userType, userPhone, currentEmployeeId, hasGarageContext = false }: UseOrdersDataProps) => {
+export const useOrdersData = ({ userType, userPhone, userId, currentEmployeeId, hasGarageContext = false }: UseOrdersDataProps) => {
   const {
     data: ordersResponse,
     isLoading: ordersLoading,
     error: ordersError,
     refetch: refetchCustomerOrders,
     isFetching: isFetchingCustomerOrders,
-  } = useGetCustomerOrdersQuery(userPhone, {
-    skip: userType !== 'customer' || !userPhone || !hasGarageContext,
-  });
+  } = useGetCustomerOrdersQuery(
+    userType === 'customer' ? { customer_id: userId || userPhone } : undefined,
+    {
+      skip: userType !== 'customer' || (!userId && !userPhone) || !hasGarageContext,
+    });
 
   const {
     data: assignedResponse,

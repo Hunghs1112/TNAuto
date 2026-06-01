@@ -398,11 +398,11 @@ const CustomerDetailScreen: React.FC = () => {
         vehicles: adminVehicles.length || Number(rec.vehicle_count || 0),
       };
     }
-    if (customerOrders.length === 0) return null;
+    // Employee view: dùng route params làm fallback khi chưa có orders
     const first = customerOrders[0];
     return {
-      name: customerName || first.customer_name || 'Khách hàng không tên',
-      phone: customerPhone || first.customer_phone || '',
+      name: customerName || first?.customer_name || 'Khách hàng không tên',
+      phone: customerPhone || first?.customer_phone || '',
       email: '',
       avatarUrl: '',
       totalOrders: customerOrders.length,
@@ -543,7 +543,7 @@ const CustomerDetailScreen: React.FC = () => {
 
   // ── Loading state ──────────────────────────────────────────────────────────
   const isScreenLoading = isAdminManager
-    ? (adminCustomerQuery.isLoading || adminVehiclesQuery.isLoading) && !adminCustomer
+    ? adminCustomerQuery.isLoading && !adminCustomer
     : empLoading && customerOrders.length === 0;
 
   if (isScreenLoading) {

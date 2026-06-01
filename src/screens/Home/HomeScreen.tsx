@@ -105,12 +105,16 @@ function StandardHomeScreen() {
           )}
           {isLoggedIn && (
             <View style={styles.heroActionsOverlay}>
-              <TouchableOpacity style={styles.heroActionButton} onPress={actions.onOfferPress}>
-                <Ionicons name="pricetag-outline" size={16} color={Colors.background.light} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.heroActionButton} onPress={actions.onWarrantyPress}>
-                <Ionicons name="shield-checkmark-outline" size={16} color={Colors.background.light} />
-              </TouchableOpacity>
+              {userType !== "employee" && (
+                <TouchableOpacity style={styles.heroActionButton} onPress={actions.onOfferPress}>
+                  <Ionicons name="pricetag-outline" size={16} color={Colors.background.light} />
+                </TouchableOpacity>
+              )}
+              {userType !== "employee" && (
+                <TouchableOpacity style={styles.heroActionButton} onPress={actions.onWarrantyPress}>
+                  <Ionicons name="shield-checkmark-outline" size={16} color={Colors.background.light} />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.heroActionButton} onPress={actions.onNotificationPress}>
                 <Ionicons name="notifications-outline" size={16} color={Colors.background.light} />
               </TouchableOpacity>
@@ -182,13 +186,6 @@ function StandardHomeScreen() {
                 />
               </View>
 
-              <View style={styles.section}>
-                <SectionHeader title="Thông tin bảo hành" />
-                <WarrantyInfo
-                  orders={ordersState.sortedAssignedOrders}
-                  onWarrantyPress={(orderId: string) => actions.onOrderPress(orderId)}
-                />
-              </View>
             </>
           ) : (
             <>

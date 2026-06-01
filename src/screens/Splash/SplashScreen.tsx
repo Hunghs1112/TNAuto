@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     width: 164,
     height: 164,
-    borderRadius: 82,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   logoGlow: {
     width: 164,
     height: 164,
-    borderRadius: 82,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: Colors.palette.gold,
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 148,
     height: 148,
-    borderRadius: 74,
+    borderRadius: 32,
   },
   shimmer: {
     position: 'absolute',

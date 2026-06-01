@@ -1,6 +1,6 @@
 // src/screens/Vehicle/VehicleListScreen.tsx
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, TextInput } from 'react-native';
 import { RootView } from '../../components/layout';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import { Vehicle } from '../../types/api.types';
 import { AppStackParamList } from '../../navigation/AppNavigator';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
+import { fuzzyMatchVietnamese } from '../../utils/normalizeVietnamese';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -38,6 +39,14 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
     { skip: !hasGarageContext || !userId },
   );
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Debounce 300ms: real-time search không cần nhấn Enter
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     if (!hasGarageContext) {
@@ -58,6 +67,17 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
   }, [imageUrls]);
 
   const keyExtractor = useCallback((item: Vehicle) => item.id.toString(), []);
+
+  // Filter theo search query (chỉ áp dụng khi out focus)
+  const displayedVehicles = useMemo(() => {
+    const all = vehiclesData?.data ?? [];
+    if (!searchQuery.trim()) return all;
+    return all.filter(
+      (v) =>
+        fuzzyMatchVietnamese(v.license_plate, searchQuery) ||
+        fuzzyMatchVietnamese(v.model, searchQuery),
+    );
+  }, [vehiclesData?.data, searchQuery]);
 
   const handleVehiclePress = useCallback((vehicle: Vehicle) => {
     navigation.navigate('VehicleDetail', {
@@ -103,6 +123,11 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
             <Text style={styles.model}>{item.model || 'Chưa cập nhật'}</Text>
           </View>
 
+          <View style={styles.modelContainer}>
+            <Ionicons name="calendar-outline" size={14} color={Colors.text.secondary} />
+            <Text style={styles.model}>{item.production_year ? `Năm ${item.production_year}` : 'Chưa cập nhật'}</Text>
+          </View>
+
           {item.active_order_count ? (
             <Text style={styles.orderCount}>{item.active_order_count} đơn đang xử lý</Text>
           ) : null}
@@ -135,18 +160,43 @@ const VehicleListScreen: React.FC<VehicleListScreenProps> = ({ route }) => {
       </View>
 
       <View style={styles.body}>
-        {!vehiclesData?.data || vehiclesData.data.length === 0 ? (
+        {/* Search bar */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={16} color={Colors.neutral[400]} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            placeholder="Tìm biển số, dòng xe..."
+            placeholderTextColor={Colors.neutral[400]}
+            returnKeyType="search"
+          />
+          {searchInput ? (
+            <TouchableOpacity
+              onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="close-circle" size={16} color={Colors.neutral[400]} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {!displayedVehicles || displayedVehicles.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="car-outline" size={80} color={Colors.neutral[300]} />
-            <Text style={styles.emptyTitle}>Chưa có xe nào</Text>
+            <Text style={styles.emptyTitle}>
+              {searchQuery ? 'Không tìm thấy xe' : 'Chưa có xe nào'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              Xe sẽ tự động được thêm khi bạn tạo đơn dịch vụ
+              {searchQuery
+                ? 'Thử tìm kiếm với từ khóa khác'
+                : 'Xe sẽ tự động được thêm khi bạn tạo đơn dịch vụ'}
             </Text>
           </View>
         ) : (
           <FlatList
             alwaysBounceVertical={true}
-            data={vehiclesData.data}
+            data={displayedVehicles}
             renderItem={renderVehicleCard}
             keyExtractor={keyExtractor}
             numColumns={2}
@@ -318,6 +368,26 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.neutral[100],
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.neutral[200],
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
   },
 });
 

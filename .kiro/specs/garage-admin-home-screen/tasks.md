@@ -226,7 +226,7 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
     - Apply SafeAreaView và responsive layout
     - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.6, 7.1, 7.2, 7.3, 10.2_
 
-  - [~] 15.2 Implement memoization cho performance
+  - [ ] 15.2 Implement memoization cho performance
     - Wrap child components với React.memo
     - Use useMemo cho computed values (filtered orders, formatted KPIs)
     - Use useCallback cho event handlers
@@ -246,7 +246,7 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
     - Test error states
     - _Requirements: 1.1, 2.1, 5.1_
 
-- [~] 16. Implement role-based routing trong HomeScreen
+- [ ] 16. Implement role-based routing trong HomeScreen
   - Modify file `src/screens/HomeScreen.tsx`
   - Check userType từ auth state
   - Route to ManagerHomeScreen nếu userType là "garage_admin" hoặc "garage_manager"
@@ -262,7 +262,7 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
   - _Requirements: 9.1, 9.2, 9.3, 9.6_
 
 - [ ] 17. Implement offline support và sync logic
-  - [~] 17.1 Tạo file `src/utils/offlineManager.ts`
+  - [ ] 17.1 Tạo file `src/utils/offlineManager.ts`
     - Implement network status detection
     - Implement auto-sync khi network restored
     - Implement cache timestamp tracking
@@ -275,10 +275,10 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
     - Test expired cache warning
     - _Requirements: 10.2, 10.3, 10.6_
 
-- [~] 18. Checkpoint - Đảm bảo tích hợp hoàn chỉnh
+- [ ] 18. Checkpoint - Đảm bảo tích hợp hoàn chỉnh
   - Ensure all tests pass, ask the user if questions arise.
 
-- [~] 19. Implement accessibility enhancements
+- [ ] 19. Implement accessibility enhancements
   - Add accessibilityLabel và accessibilityHint cho tất cả interactive elements
   - Verify contrast ratio tối thiểu 4.5:1
   - Test với screen reader
@@ -292,7 +292,7 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
   - _Requirements: 7.4, 7.5, 7.6_
 
 - [ ] 20. Performance optimization và testing
-  - [~] 20.1 Optimize render performance
+  - [ ] 20.1 Optimize render performance
     - Verify initial render < 1000ms
     - Implement image lazy loading với placeholders
     - Optimize re-renders với memoization
@@ -303,7 +303,7 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
     - Test no unnecessary re-renders
     - _Requirements: 6.1, 6.5_
 
-- [~] 21. Final integration và polish
+- [ ] 21. Final integration và polish
   - Verify tất cả API endpoints hoạt động đúng
   - Test error scenarios (network error, 401, 500, 404, 408)
   - Test auto-refresh timers (60s cho KPIs, 30s cho notifications)
@@ -312,7 +312,7 @@ Kế hoạch triển khai tính năng cải thiện giao diện HomeScreen cho G
   - Verify offline mode với cached data
   - _Requirements: 1.2, 1.6, 5.2, 5.3, 5.4, 5.6, 7.2, 8.5, 10.2_
 
-- [~] 22. Final checkpoint - Đảm bảo tất cả tests pass
+- [ ] 22. Final checkpoint - Đảm bảo tất cả tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

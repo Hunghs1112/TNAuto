@@ -2,6 +2,7 @@
 // Types and constants for Manager Home Screen feature
 
 import { ServiceOrder } from './api.types';
+import { AdminAnalyticsResponse, TimePeriod } from '../services/adminGarageApi';
 
 // ==================== API Response Types ====================
 
@@ -124,6 +125,15 @@ export interface ManagerHomeViewModel {
   // Loading states
   isLoading: boolean;
   isRefreshing: boolean;
+
+  // Analytics
+  activePeriod: TimePeriod;
+  onPeriodChange: (period: TimePeriod) => void;
+  analyticsData: AdminAnalyticsResponse | undefined;
+  analyticsLoading: boolean;
+  analyticsIsError: boolean;
+  analyticsFetching: boolean;
+  onAnalyticsRetry: () => void;
 
   // Handlers
   onRefresh: () => Promise<void>;

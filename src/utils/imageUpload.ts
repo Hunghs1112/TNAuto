@@ -1,12 +1,12 @@
 // src/utils/imageUpload.ts
-import { launchCamera, launchImageLibrary, ImagePickerResponse, Asset } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary, ImagePickerResponse, Asset, PhotoQuality } from 'react-native-image-picker';
 import { Alert, Platform } from 'react-native';
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 
 export interface ImageUploadOptions {
   maxWidth?: number;
   maxHeight?: number;
-  quality?: number;
+  quality?: PhotoQuality;
   includeBase64?: boolean;
   mediaType?: 'photo' | 'video' | 'mixed';
   selectionLimit?: number;

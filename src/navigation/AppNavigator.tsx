@@ -27,10 +27,12 @@ import AccountInfoScreen from "../screens/AccountInfo/AccountInfoScreen";
 import LoginScreen from "../screens/Login/LoginScreen";
 import RegisterScreen from "../screens/Register/RegisterScreen";
 import EmployeePasswordScreen from "../screens/Login/EmployeePasswordScreen";
+import ChangePasswordScreen from "../screens/Login/ChangePasswordScreen";
 import DealerLoginScreen from "../screens/Login/DealerLoginScreen";
 import RoleSelectScreen from "../screens/Login/RoleSelectScreen";
 import ManagerPasswordScreen from "../screens/Login/ManagerPasswordScreen";
 import DealerRegisterScreen from "../screens/Register/DealerRegisterScreen";
+import EmployeeOrdersScreen from "../screens/EmployeeOrders/EmployeeOrdersScreen";
 import { usePrefetchData } from "../redux/hooks/usePrefetchData";
 import SelectGarageScreen from "../screens/Garage/SelectGarageScreen";
 import GarageManagementScreen from "../screens/GarageManagement/GarageManagementScreen";
@@ -82,6 +84,7 @@ export type AppStackParamList = {
       position?: string;
     };
   };
+  ChangePassword: { phone: string };
   DealerLogin: {
     phone: string;
     garageCode?: string;
@@ -100,6 +103,8 @@ export type AppStackParamList = {
   GarageManagement: undefined;
   GarageCustomers: undefined;
   GarageOrders: undefined;
+  /** Danh sách đơn hàng được giao cho nhân viên */
+  EmployeeOrders: undefined;
   /** Danh sách nhân viên — chỉ dành cho manager */
   GarageEmployees: undefined;
   /** Chi tiết nhân viên */
@@ -171,6 +176,7 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
       <Stack.Screen name="SelectGarage" component={SelectGarageScreen} />
+      <Stack.Screen name="EmployeeOrders" component={EmployeeOrdersScreen} />
       <Stack.Screen name="GarageManagement" component={GarageManagementScreen} />
       <Stack.Screen name="GarageEmployees" component={GarageEmployeesScreen} />
       <Stack.Screen name="EmployeeDetail" component={EmployeeDetailScreen} />
@@ -197,6 +203,7 @@ export default function AppNavigator() {
       <Stack.Screen name="DealerLogin" component={DealerLoginScreen} />
       <Stack.Screen name="DealerRegister" component={DealerRegisterScreen} />
       <Stack.Screen name="EmployeePassword" component={EmployeePasswordScreen} />
+      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
       <Stack.Screen name="ManagerPassword" component={ManagerPasswordScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />

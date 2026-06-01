@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,8 @@ import {
   RefreshControl,
   StyleSheet,
   Pressable,
-} from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+  ActivityIndicator,
+} from 'react-native';import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 
@@ -19,6 +19,14 @@ import {
 import { ManagerHomeViewModel } from '../../types/managerHome';
 import { Colors } from '../../constants/colors';
 import { spacing } from '../../design-system/spacing';
+import PeriodSelector from '../../components/ui/PeriodSelector';
+import KpiCard from '../../components/ui/KpiCard';
+import OrdersBarChart from '../../components/ui/OrdersBarChart';
+import NewCustomersLineChart from '../../components/ui/NewCustomersLineChart';
+import AnalyticsSkeleton from '../../components/ui/AnalyticsSkeleton';
+import ErrorView from '../../components/Loading/ErrorView';
+import { Typography } from '../../constants/typo';
+import { borderRadius } from '../../design-system/borders';
 
 // ─── ManagerHomeScreenView ────────────────────────────────────────────────────
 
@@ -47,6 +55,15 @@ const ManagerHomeScreenView: React.FC<ManagerHomeViewModel> = (props) => {
     kpis,
     managementStats,
 
+    // Analytics
+    activePeriod,
+    onPeriodChange,
+    analyticsData,
+    analyticsLoading,
+    analyticsIsError,
+    analyticsFetching,
+    onAnalyticsRetry,
+
     // Loading / refresh
     isLoading,
     isRefreshing,
@@ -57,6 +74,18 @@ const ManagerHomeScreenView: React.FC<ManagerHomeViewModel> = (props) => {
   } = props;
 
   const insets = useSafeAreaInsets();
+
+  // Refs để sync scroll giữa 2 biểu đồ
+  const ordersScrollRef = useRef<ScrollView>(null);
+  const customersScrollRef = useRef<ScrollView>(null);
+
+  const handleOrdersScroll = (x: number) => {
+    customersScrollRef.current?.scrollTo({ x, animated: false });
+  };
+
+  const handleCustomersScroll = (x: number) => {
+    ordersScrollRef.current?.scrollTo({ x, animated: false });
+  };
 
   return (
     <View style={styles.root}>
@@ -89,9 +118,6 @@ const ManagerHomeScreenView: React.FC<ManagerHomeViewModel> = (props) => {
         >
           <Text style={styles.garageName} numberOfLines={1} testID="manager-home-garage-name">
             {garageName}
-          </Text>
-          <Text style={styles.userName} numberOfLines={1} testID="manager-home-user-name">
-            {userName}
           </Text>
         </Pressable>
 
@@ -155,6 +181,74 @@ const ManagerHomeScreenView: React.FC<ManagerHomeViewModel> = (props) => {
         {/* KPI Section */}
         <View style={styles.section}>
           <KPISection kpis={kpis} isLoading={isLoading} />
+        </View>
+
+        {/* Analytics Section */}
+        <View style={styles.section}>
+          <View style={styles.analyticsSectionHeader}>
+            <Text style={styles.analyticsSectionTitle}>Phân tích hoạt động</Text>
+            {analyticsFetching && analyticsData ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : null}
+          </View>
+
+          <PeriodSelector value={activePeriod} onChange={onPeriodChange} />
+
+          {analyticsLoading && !analyticsData ? (
+            <AnalyticsSkeleton />
+          ) : analyticsIsError && !analyticsData ? (
+            <ErrorView
+              message="Không thể tải dữ liệu phân tích"
+              onRetry={onAnalyticsRetry}
+              icon="bar-chart-outline"
+            />
+          ) : analyticsData ? (
+            <>
+              <View style={styles.kpiGrid}>
+                <KpiCard
+                  title="Tổng đơn"
+                  value={analyticsData.kpi.total_orders}
+                  previousValue={analyticsData.kpi.previous_period_orders}
+                  icon="receipt-outline"
+                  onPress={() => props.onSectionPress('orders')}
+                />
+                <KpiCard
+                  title="Khách mới"
+                  value={analyticsData.kpi.new_customers}
+                  previousValue={analyticsData.kpi.previous_period_new_customers}
+                  icon="person-add-outline"
+                  onPress={() => props.onSectionPress('customers')}
+                />
+                <KpiCard
+                  title="Hoàn thành"
+                  value={analyticsData.kpi.completed_orders}
+                  previousValue={analyticsData.kpi.previous_period_completed}
+                  icon="checkmark-circle-outline"
+                />
+                <KpiCard
+                  title="Đang xử lý"
+                  value={analyticsData.kpi.in_progress_orders}
+                  previousValue={analyticsData.kpi.previous_period_in_progress}
+                  icon="time-outline"
+                  onPress={() => props.onSectionPress('orders')}
+                />
+              </View>
+
+              <OrdersBarChart
+                data={analyticsData.series.orders_by_status}
+                period={activePeriod}
+                scrollRef={ordersScrollRef}
+                onSyncScroll={handleOrdersScroll}
+              />
+
+              <NewCustomersLineChart
+                data={analyticsData.series.new_customers}
+                period={activePeriod}
+                scrollRef={customersScrollRef}
+                onSyncScroll={handleCustomersScroll}
+              />
+            </>
+          ) : null}
         </View>
 
         {/* Management Section */}
@@ -273,6 +367,25 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: spacing.base,
     marginBottom: spacing.xl,
+  },
+  analyticsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  analyticsSectionTitle: {
+    fontFamily: Typography.fontFamily.bold,
+    fontWeight: Typography.weight.bold,
+    fontSize: Typography.size.lg,
+    color: Colors.text.primary,
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
 });
 

@@ -89,6 +89,39 @@ export interface AdminMutationResponse extends AdminEntity {
   message?: string;
 }
 
+export type TimePeriod = '1d' | '3d' | '7d' | '1m' | '1y';
+
+export interface AnalyticsKpi {
+  total_orders: number;
+  new_customers: number;
+  completed_orders: number;
+  in_progress_orders: number;
+  previous_period_orders: number;
+  previous_period_new_customers: number;
+  previous_period_completed: number;
+  previous_period_in_progress: number;
+}
+
+export interface TimeSeriesPoint {
+  label: string;
+  value: number;
+}
+
+export interface AdminAnalyticsResponse {
+  kpi: AnalyticsKpi;
+  series: {
+    orders: TimeSeriesPoint[];
+    orders_by_status: {
+      received: TimeSeriesPoint[];
+      in_progress: TimeSeriesPoint[];
+      ready_for_pickup: TimeSeriesPoint[];
+      completed: TimeSeriesPoint[];
+      cancelled: TimeSeriesPoint[];
+    };
+    new_customers: TimeSeriesPoint[];
+  };
+}
+
 export interface GarageManager {
   id: string | number;
   name?: string | null;
@@ -365,6 +398,45 @@ export const adminGarageApi = createApi({
       transformResponse: (response: unknown) =>
         extractStats(response, 'Failed to fetch admin statistics'),
     }),
+    getAdminAnalytics: builder.query<AdminAnalyticsResponse, { period: TimePeriod }>({
+      query: ({ period }) => `${ADMIN_BASE_PATH}/analytics?period=${encodeURIComponent(period)}`,
+      providesTags: (result, error, { period }) => [
+        { type: 'AdminDashboard' as const, id: `analytics:${period}` },
+      ],
+      transformResponse: (response: unknown): AdminAnalyticsResponse => {
+        if (!isRecord(response)) {
+          return { kpi: { total_orders: 0, new_customers: 0, completed_orders: 0, in_progress_orders: 0, previous_period_orders: 0, previous_period_new_customers: 0, previous_period_completed: 0, previous_period_in_progress: 0 }, series: { orders: [], orders_by_status: { received: [], in_progress: [], ready_for_pickup: [], completed: [], cancelled: [] }, new_customers: [] } };
+        }
+        const data = isRecord(response.data) ? response.data : response;
+        const kpi = (isRecord(data.kpi) ? data.kpi : {}) as Record<string, unknown>;
+        const series = (isRecord(data.series) ? data.series : {}) as Record<string, unknown>;
+        const obs = (isRecord(series.orders_by_status) ? series.orders_by_status : {}) as Record<string, unknown>;
+        const toPoints = (v: unknown): TimeSeriesPoint[] => Array.isArray(v) ? v as TimeSeriesPoint[] : [];
+        return {
+          kpi: {
+            total_orders: Number(kpi.total_orders ?? 0),
+            new_customers: Number(kpi.new_customers ?? 0),
+            completed_orders: Number(kpi.completed_orders ?? 0),
+            in_progress_orders: Number(kpi.in_progress_orders ?? 0),
+            previous_period_orders: Number(kpi.previous_period_orders ?? 0),
+            previous_period_new_customers: Number(kpi.previous_period_new_customers ?? 0),
+            previous_period_completed: Number(kpi.previous_period_completed ?? 0),
+            previous_period_in_progress: Number(kpi.previous_period_in_progress ?? 0),
+          },
+          series: {
+            orders: toPoints(series.orders),
+            orders_by_status: {
+              received: toPoints(obs.received),
+              in_progress: toPoints(obs.in_progress),
+              ready_for_pickup: toPoints(obs.ready_for_pickup),
+              completed: toPoints(obs.completed),
+              cancelled: toPoints(obs.cancelled),
+            },
+            new_customers: toPoints(series.new_customers),
+          },
+        };
+      },
+    }),
     getAdminResourceList: builder.query<AdminEntity[], ResourceListArgs>({
       query: ({ resource, params }) => ({
         url: buildResourcePath(resource),
@@ -638,6 +710,7 @@ export const adminGarageApi = createApi({
 
 export const {
   useGetAdminStatsQuery,
+  useGetAdminAnalyticsQuery,
   useGetAdminResourceListQuery,
   useGetAdminResourceDetailQuery,
   useGetAdminCustomerVehiclesQuery,

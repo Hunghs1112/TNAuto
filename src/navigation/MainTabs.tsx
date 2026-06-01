@@ -12,6 +12,8 @@ import GarageManagementScreen from "../screens/GarageManagement/GarageManagement
 import GarageCustomersScreen from "../screens/GarageManagement/GarageCustomersScreen";
 import GarageOrdersScreen from "../screens/GarageManagement/GarageOrdersScreen";
 import SuperAdminGaragesScreen from "../screens/GarageManagement/SuperAdminGaragesScreen";
+import NotificationScreen from "../screens/Notification/NotificationScreen";
+import EmployeeOrdersScreen from "../screens/EmployeeOrders/EmployeeOrdersScreen";
 
 export type TabParamList = {
   HomeTab: undefined;
@@ -25,6 +27,10 @@ export type TabParamList = {
   GarageOrders: undefined;
   /** Chỉ dành cho garage_admin (super admin) */
   SuperAdminGarages: undefined;
+  /** Tab thông báo — dùng cho employee */
+  Notification: undefined;
+  /** Tab đơn việc — dùng cho employee */
+  EmployeeOrders: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -52,6 +58,10 @@ export default function MainTabs() {
       <Tab.Screen name="GarageOrders" component={GarageOrdersScreen} />
       {/* Super admin only — màn hình bị guard bên trong nếu không đủ quyền */}
       <Tab.Screen name="SuperAdminGarages" component={SuperAdminGaragesScreen} />
+      {/* Tab thông báo — dùng cho employee */}
+      <Tab.Screen name="Notification" component={NotificationScreen} />
+      {/* Tab đơn việc — dùng cho employee */}
+      <Tab.Screen name="EmployeeOrders" component={EmployeeOrdersScreen} />
     </Tab.Navigator>
   );
 }

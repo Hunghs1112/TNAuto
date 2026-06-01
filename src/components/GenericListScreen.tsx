@@ -1,7 +1,7 @@
 // src/components/GenericListScreen/GenericListScreen.tsx
 // Generic reusable component for list screens to reduce code duplication
-import React, { ReactNode, useMemo, useCallback } from 'react';
-import { View, Text, StatusBar, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
+import React, { ReactNode, useMemo, useCallback, useState } from 'react';
+import { View, Text, StatusBar, ActivityIndicator, FlatList, RefreshControl, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { RootView } from '../components/layout';
 import { Colors } from '../constants/colors';
 import { PerformanceConfig } from '../config/performance';
@@ -10,6 +10,7 @@ import Item from './Item';
 import ErrorView from './Loading/ErrorView';
 import { sharedStyles } from '../styles/sharedStyles';
 import { useAutoRefresh } from '../redux/hooks/useAutoRefresh';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
 
 export interface ListItem {
   id: number | string;
@@ -31,6 +32,8 @@ interface GenericListScreenProps {
   onRefresh?: () => void | Promise<void>;
   refreshing?: boolean;
   topContent?: ReactNode;
+  /** Placeholder cho search bar. Nếu không truyền thì không hiển thị search bar. */
+  searchPlaceholder?: string;
 }
 
 const GenericListScreen: React.FC<GenericListScreenProps> = ({
@@ -45,15 +48,29 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
   onRefresh: customOnRefresh,
   refreshing: customRefreshing,
   topContent,
+  searchPlaceholder,
 }) => {
   const { refreshing: autoRefreshing, onRefresh: autoOnRefresh } = useAutoRefresh();
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Use custom refresh if provided, otherwise use auto refresh
   const refreshing = customRefreshing !== undefined ? customRefreshing : autoRefreshing;
   const onRefresh = customOnRefresh || autoOnRefresh;
 
   // Memoize items to prevent re-computation
-  const items = useMemo(() => data ? mapDataToItems(data) : [], [data, mapDataToItems]);
+  const allItems = useMemo(() => data ? mapDataToItems(data) : [], [data, mapDataToItems]);
+
+  // Filter theo search query (chỉ áp dụng khi out focus)
+  const items = useMemo(() => {
+    if (!searchPlaceholder || !searchQuery.trim()) return allItems;
+    const q = searchQuery.toLowerCase().trim();
+    return allItems.filter(
+      (item) =>
+        item.title?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q),
+    );
+  }, [allItems, searchQuery, searchPlaceholder]);
 
   // Memoize renderItem callback
   const renderItem = useCallback(({ item }: { item: ListItem }) => (
@@ -151,6 +168,29 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
           {topContent}
           <View style={sharedStyles.body}>
             <View style={sharedStyles.form}>
+              {searchPlaceholder ? (
+                <View style={genericSearchStyles.searchBar}>
+                  <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+                  <TextInput
+                    style={genericSearchStyles.searchInput}
+                    value={searchInput}
+                    onChangeText={setSearchInput}
+                    onBlur={() => setSearchQuery(searchInput)}
+                    onSubmitEditing={() => setSearchQuery(searchInput)}
+                    placeholder={searchPlaceholder}
+                    placeholderTextColor={Colors.text.secondary}
+                    returnKeyType="search"
+                  />
+                  {searchInput ? (
+                    <TouchableOpacity
+                      onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : null}
               <FlatList
                 alwaysBounceVertical={true}
                 data={items}
@@ -182,3 +222,24 @@ const GenericListScreen: React.FC<GenericListScreenProps> = ({
 GenericListScreen.displayName = 'GenericListScreen';
 
 export default React.memo(GenericListScreen);
+
+const genericSearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+});

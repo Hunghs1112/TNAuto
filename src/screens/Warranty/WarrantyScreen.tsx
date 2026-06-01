@@ -1,5 +1,5 @@
 // src/screens/Warranty/WarrantyScreen.tsx
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  TextInput,
+  StyleSheet,
 } from 'react-native';
 import { Screen } from '../../components/layout';
 import { Ionicons } from '@react-native-vector-icons/ionicons';
@@ -173,6 +175,8 @@ const WarrantyScreen: React.FC = () => {
   const TAB_BAR_HEIGHT = 76;
 
   const isManager = isManagerRole(userType);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Redirect non-customer roles
   useEffect(() => {
@@ -206,6 +210,20 @@ const WarrantyScreen: React.FC = () => {
 
   // Render trực tiếp từ query data — không cần Redux slice trung gian
   const warranties = useMemo(() => warrantiesData ?? [], [warrantiesData]);
+
+  // Filter theo search query (chỉ áp dụng khi out focus)
+  const filteredWarranties = useMemo(() => {
+    if (!searchQuery.trim()) return warranties;
+    const q = searchQuery.toLowerCase().trim();
+    return warranties.filter(
+      (w) =>
+        w.service_name?.toLowerCase().includes(q) ||
+        w.license_plate?.toLowerCase().includes(q) ||
+        w.product_name?.toLowerCase().includes(q) ||
+        w.dealer_name?.toLowerCase().includes(q) ||
+        String(w.id).includes(q),
+    );
+  }, [warranties, searchQuery]);
 
   const handleOrderPress = useCallback(
     (orderId: string) => {
@@ -271,9 +289,32 @@ const WarrantyScreen: React.FC = () => {
       contentStyle={{ paddingBottom: 0 }}
     >
       <View style={styles.content}>
-        {warranties.length > 0 ? (
+        {/* Search bar */}
+        <View style={warrantySearchStyles.searchBar}>
+          <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+          <TextInput
+            style={warrantySearchStyles.searchInput}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            onBlur={() => setSearchQuery(searchInput)}
+            onSubmitEditing={() => setSearchQuery(searchInput)}
+            placeholder="Tìm biển số, dịch vụ, sản phẩm..."
+            placeholderTextColor={Colors.text.secondary}
+            returnKeyType="search"
+          />
+          {searchInput ? (
+            <TouchableOpacity
+              onPress={() => { setSearchInput(''); setSearchQuery(''); }}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {filteredWarranties.length > 0 ? (
           <FlatList
-            data={warranties}
+            data={filteredWarranties}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
@@ -294,9 +335,13 @@ const WarrantyScreen: React.FC = () => {
         ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="shield-outline" size={64} color={Colors.text.secondary} />
-            <Text style={styles.emptyTitle}>Chưa có bảo hành nào</Text>
+            <Text style={styles.emptyTitle}>
+              {searchQuery ? 'Không tìm thấy kết quả' : 'Chưa có bảo hành nào'}
+            </Text>
             <Text style={styles.emptySubtitle}>
-              Bảo hành sẽ được tạo tự động khi hoàn thành dịch vụ
+              {searchQuery
+                ? 'Thử tìm kiếm với từ khóa khác'
+                : 'Bảo hành sẽ được tạo tự động khi hoàn thành dịch vụ'}
             </Text>
           </View>
         )}
@@ -306,3 +351,26 @@ const WarrantyScreen: React.FC = () => {
 };
 
 export default WarrantyScreen;
+
+const warrantySearchStyles = StyleSheet.create({
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.text.primary,
+    paddingVertical: 0,
+  },
+});

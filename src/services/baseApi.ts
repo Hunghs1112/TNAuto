@@ -5,83 +5,91 @@ import { API_BASE_URL } from '../constants/config';
 import type { RootState } from '../redux/types';
 
 /**
+ * Base query — constructed once so the same fetchBaseQuery instance (and its
+ * internal AbortController references) is reused across all retry attempts.
+ * Previously this was recreated inside the retry callback on every attempt,
+ * which caused unnecessary object churn and could contribute to AbortController
+ * class-identity mismatches.
+ */
+const baseQuery = fetchBaseQuery({
+  fetchFn: limitedFetch,
+  baseUrl: API_BASE_URL,
+  timeout: 15000, // 15 seconds timeout
+  prepareHeaders: (headers, { getState, endpoint }) => {
+    // Set default headers for all requests
+    headers.set('Content-Type', 'application/json');
+    headers.set('Accept', 'application/json');
+    headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    headers.set('Pragma', 'no-cache');
+    headers.set('Expires', '0');
+
+    const state = getState() as any;
+    const token = state?.auth?.token;
+    const customerId = state?.auth?.userId;
+    const userType = state?.auth?.userType;
+
+    const nonAuthEndpoints = new Set([
+      'addCustomerGarage',
+      'getPublicGarages',
+      'resolveGarageByCode',
+      'registerCustomer',
+      'loginCustomer',
+      'checkPhone',
+      'loginEmployee',
+      'dealerLogin',
+      'managerLogin',
+      'dealerRegister',
+    ]);
+
+    if (token && !nonAuthEndpoints.has(endpoint)) {
+      headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      headers.delete('Authorization');
+    }
+
+    // New contract: customer aggregate routes use customer context, not garage headers.
+    if (userType === 'customer' && customerId) {
+      headers.set('x-customer-id', String(customerId));
+    } else {
+      headers.delete('x-customer-id');
+    }
+
+    headers.delete('x-garage-code');
+
+    // Set x-garage-id header only for endpoints that require garage context.
+    const garageId = (state as RootState)?.garageContext?.garageId;
+    const garageRequiredEndpoints = new Set([
+      'createServiceOrder',
+      'getServiceOrderImages',
+      'getCustomerVehiclesAdmin',
+      'searchVehicles',
+      'updateVehicle',
+      'createVehicleForGarage',
+      'updateVehicleForGarage',
+    ]);
+
+    if (garageId && garageRequiredEndpoints.has(endpoint)) {
+      headers.set('x-garage-id', garageId);
+    } else {
+      headers.delete('x-garage-id');
+    }
+
+    return headers;
+  },
+});
+
+/**
  * Base query with retry logic for failed requests
  */
 export const baseQueryWithRetry = retry(
   async (args, api, extraOptions) => {
-    const result = await fetchBaseQuery({ 
-      fetchFn: limitedFetch,
+    const result = await baseQuery(args, api, extraOptions);
 
-      baseUrl: API_BASE_URL,
-      timeout: 15000, // 15 seconds timeout
-      prepareHeaders: (headers, { getState, endpoint }) => {
-        // Set default headers for all requests
-        headers.set('Content-Type', 'application/json');
-        headers.set('Accept', 'application/json');
-        headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-        headers.set('Pragma', 'no-cache');
-        headers.set('Expires', '0');
-
-        const state = getState() as any;
-        const token = state?.auth?.token;
-        const customerId = state?.auth?.userId;
-        const userType = state?.auth?.userType;
-
-        const nonAuthEndpoints = new Set([
-          'addCustomerGarage',
-          'getPublicGarages',
-          'resolveGarageByCode',
-          'registerCustomer',
-          'loginCustomer',
-          'checkPhone',
-          'loginEmployee',
-          'dealerLogin',
-          'managerLogin',
-          'dealerRegister',
-        ]);
-
-        if (token && !nonAuthEndpoints.has(endpoint)) {
-          headers.set('Authorization', `Bearer ${token}`);
-        } else {
-          headers.delete('Authorization');
-        }
-
-        // New contract: customer aggregate routes use customer context, not garage headers.
-        if (userType === 'customer' && customerId) {
-          headers.set('x-customer-id', String(customerId));
-        } else {
-          headers.delete('x-customer-id');
-        }
-
-        headers.delete('x-garage-code');
-
-        // Set x-garage-id header only for endpoints that require garage context.
-        const garageId = (state as RootState)?.garageContext?.garageId;
-        const garageRequiredEndpoints = new Set([
-          'createServiceOrder',
-          'getServiceOrderImages',
-          'getCustomerVehiclesAdmin',
-          'searchVehicles',
-          'updateVehicle',
-          'createVehicleForGarage',
-          'updateVehicleForGarage',
-        ]);
-
-        if (garageId && garageRequiredEndpoints.has(endpoint)) {
-          headers.set('x-garage-id', garageId);
-        } else {
-          headers.delete('x-garage-id');
-        }
-
-        return headers;
-      },
-    })(args, api, extraOptions);
-    
     // Don't retry on 401 (auth errors)
     if (result.error?.status === 401) {
       retry.fail(result.error);
     }
-    
+
     return result;
   },
   {

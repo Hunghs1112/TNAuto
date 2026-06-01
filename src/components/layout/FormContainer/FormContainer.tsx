@@ -109,7 +109,8 @@ const FormContainer: React.FC<FormContainerProps> = ({
     cancelAnimation();
     
     keyboardHeight.current = event.endCoordinates.height;
-    const offset = keyboardHeight.current - (defaultKeyboardOffset || 0);
+    // Đẩy lên 35% chiều cao bàn phím — đủ để input không bị che
+    const offset = Math.max(keyboardHeight.current * 0.35 - (defaultKeyboardOffset || 0), 0);
     
     const duration = Platform.OS === 'ios' 
       ? (event.duration || 250) 
