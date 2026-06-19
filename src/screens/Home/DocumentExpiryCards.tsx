@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
@@ -12,18 +12,9 @@ import { useAppSelector } from "../../redux/hooks/useAppSelector";
 import { useGetCustomerVehiclesQuery } from "../../services/vehicleApi";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
-
 type ExpiryState = "missing" | "valid" | "expired";
 
-type ExpiryItem = {
-  id: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  accent: string;
-  expiryDate?: string | null;
-  route: keyof AppStackParamList;
-  routeParams: Record<string, any>;
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const parseDate = (value?: string | null) => {
   if (!value) return null;
@@ -33,137 +24,96 @@ const parseDate = (value?: string | null) => {
 
 const getExpiryMeta = (expiryDate?: string | null) => {
   const parsed = parseDate(expiryDate);
+  if (!parsed) return { state: "missing" as ExpiryState, label: "Chưa cập nhật", daysLabel: "" };
 
-  if (!parsed) {
-    return {
-      state: "missing" as ExpiryState,
-      label: "Chưa cập nhật",
-      daysLabel: "",
-      color: Colors.text.secondary,
-    };
-  }
-
-  const diffMs = parsed.getTime() - Date.now();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
+  const diffDays = Math.ceil((parsed.getTime() - Date.now()) / 86400000);
   if (diffDays < 0) {
-    return {
-      state: "expired" as ExpiryState,
-      label: "Hết hạn",
-      daysLabel: `${Math.abs(diffDays)} ngày`,
-      color: Colors.status.error,
-    };
+    return { state: "expired" as ExpiryState, label: "Hết hạn", daysLabel: `${Math.abs(diffDays)} ngày` };
   }
-
-  return {
-    state: "valid" as ExpiryState,
-    label: "Còn hạn",
-    daysLabel: `${diffDays} ngày`,
-    color: Colors.status.success,
-  };
+  return { state: "valid" as ExpiryState, label: "Còn hạn", daysLabel: `${diffDays} ngày` };
 };
 
-const buildExpiryItems = (vehicle?: Vehicle | null): ExpiryItem[] => [
-  {
-    id: "license",
-    title: "Bằng lái",
-    icon: "document-text-outline",
-    accent: "#16A34A",
-    expiryDate: vehicle?.license_expiry_date,
-    route: "VehicleDetail",
-    routeParams: { vehicleId: String(vehicle?.id ?? ""), licensePlate: vehicle?.license_plate ?? "" },
-  },
-  {
-    id: "inspection",
-    title: "Đăng kiểm",
-    icon: "shield-checkmark-outline",
-    accent: "#EAB308",
-    expiryDate: vehicle?.inspection_expiry_date,
-    route: "VehicleEdit",
-    routeParams: { vehicleId: String(vehicle?.id ?? ""), licensePlate: vehicle?.license_plate ?? "" },
-  },
-  {
-    id: "insurance",
-    title: "Bảo hiểm",
-    icon: "card-outline",
-    accent: "#7C3AED",
-    expiryDate: vehicle?.insurance_expiry_date,
-    route: "VehicleEdit",
-    routeParams: { vehicleId: String(vehicle?.id ?? ""), licensePlate: vehicle?.license_plate ?? "" },
-  },
-];
+// ─── Card config ──────────────────────────────────────────────────────────────
+
+const CARDS = [
+  { key: "license",    label: "Bằng lái",   icon: "document-text-outline" as const,    accent: "#16A34A", screen: "VehicleDetail" as const },
+  { key: "inspection", label: "Đăng kiểm",  icon: "shield-checkmark-outline" as const, accent: "#EAB308", screen: "VehicleEdit" as const },
+  { key: "insurance",  label: "Bảo hiểm",   icon: "card-outline" as const,             accent: "#7C3AED", screen: "VehicleEdit" as const },
+] as const;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const DocumentExpiryCards: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const userId = useAppSelector((state) => state.auth.userId);
-  const userType = useAppSelector((state) => state.auth.userType);
-  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+  const { width: screenWidth } = useWindowDimensions();
+  const userId    = useAppSelector((s) => s.auth.userId);
+  const userType  = useAppSelector((s) => s.auth.userType);
+  const isLoggedIn = useAppSelector((s) => s.auth.isLoggedIn);
 
+  // Thẻ xe dùng padding 16 mỗi bên → 3 ô chia đều phần còn lại, gap 8×2
+  const cellWidth = Math.floor((screenWidth - 32 - 16) / 3);
+
+  const isCustomer = isLoggedIn && userType === "customer" && !!userId;
   const { data: customerVehiclesData } = useGetCustomerVehiclesQuery(
-    userType === "customer" ? { customer_id: userId } : undefined,
-    { skip: !isLoggedIn || userType !== "customer" || !userId },
+    isCustomer ? { customer_id: userId } : undefined,
+    { skip: !isCustomer },
   );
 
-  const vehicle: Vehicle | null = useMemo(() => customerVehiclesData?.data?.[0] ?? null, [customerVehiclesData?.data]);
-  const items = useMemo(() => buildExpiryItems(vehicle), [vehicle]);
+  const vehicle: Vehicle | null = useMemo(
+    () => customerVehiclesData?.data?.[0] ?? null,
+    [customerVehiclesData?.data],
+  );
 
-  const handlePress = (item: ExpiryItem) => {
-    if (!item.routeParams.vehicleId || !item.routeParams.licensePlate) return;
-    navigation.navigate(item.route as any, item.routeParams as any);
+  const navigateToVehicle = (screen: "VehicleDetail" | "VehicleEdit") => {
+    if (!vehicle?.id || !vehicle?.license_plate) return;
+    navigation.navigate(screen, { vehicleId: String(vehicle.id), licensePlate: vehicle.license_plate });
+  };
+
+  const metas = {
+    license:    getExpiryMeta(vehicle?.license_expiry_date),
+    inspection: getExpiryMeta(vehicle?.inspection_expiry_date),
+    insurance:  getExpiryMeta(vehicle?.insurance_expiry_date),
   };
 
   return (
-    <View style={styles.wrapper}>
-      {items.map((item: ExpiryItem) => {
-        const expiryMeta = getExpiryMeta(item.expiryDate);
-        const isMissing = expiryMeta.state === "missing";
+    <View style={styles.row}>
+      {CARDS.map((card) => {
+        const meta      = metas[card.key];
+        const isMissing = meta.state === "missing";
+        const isExpired = meta.state === "expired";
+        const textColor = isMissing ? Colors.text.secondary : isExpired ? Colors.status.error : Colors.status.success;
 
         return (
           <TouchableOpacity
-            key={item.id}
+            key={card.key}
             activeOpacity={0.85}
-            style={[styles.card, { borderColor: item.accent + "66" }]}
-            onPress={() => handlePress(item)}
+            style={[styles.card, { borderColor: card.accent + "55", width: cellWidth }]}
+            onPress={() => navigateToVehicle(card.screen)}
           >
+            {/* Icon + label */}
             <View style={styles.headerRow}>
-              <View style={[styles.iconWrap, { backgroundColor: item.accent + "14" }]}>
-                <Ionicons name={item.icon} size={12} color={item.accent} />
+              <View style={[styles.iconWrap, { backgroundColor: card.accent + "18" }]}>
+                <Ionicons name={card.icon} size={11} color={card.accent} />
               </View>
-              <Text style={[styles.title, { color: item.accent }]} numberOfLines={1}>
-                {item.title}
+              <Text style={[styles.title, { color: card.accent }]} numberOfLines={1}>
+                {card.label}
               </Text>
             </View>
 
-            <View style={styles.countdownWrap}>
-              <Text
-                style={[
-                  styles.countdownText,
-                  isMissing
-                    ? styles.countdownMissing
-                    : expiryMeta.state === "expired"
-                      ? styles.countdownExpired
-                      : styles.countdownValid,
-                ]}
-                numberOfLines={1}
-              >
-                {expiryMeta.label}
+            {/* Status */}
+            <Text style={[styles.statusText, { color: textColor }]} numberOfLines={1}>
+              {meta.label}
+            </Text>
+
+            {/* Days */}
+            {meta.daysLabel ? (
+              <Text style={[styles.daysText, { color: textColor }]} numberOfLines={1}>
+                {meta.daysLabel}
               </Text>
-              {expiryMeta.daysLabel ? (
-                <Text
-                  style={[
-                    styles.daysText,
-                    isMissing
-                      ? styles.daysMissing
-                      : expiryMeta.state === "expired"
-                        ? styles.daysExpired
-                        : styles.daysValid,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {expiryMeta.daysLabel}
-                </Text>
-              ) : null}
-            </View>
+            ) : (
+              // placeholder để giữ height đồng đều
+              <Text style={styles.daysPlaceholder}> </Text>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -171,75 +121,62 @@ const DocumentExpiryCards: React.FC = () => {
   );
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  wrapper: {
+  row: {
     flexDirection: "row",
-    gap: 18,
-    width: "100%",
+    gap: 8,
   },
   card: {
-    flex: 1,
-    borderRadius: 18,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    borderRadius: 16,
+    paddingHorizontal: 9,
+    paddingTop: 9,
+    paddingBottom: 9,
     borderWidth: 1,
     backgroundColor: Colors.background.light,
-    shadowColor: Colors.shadow.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-    justifyContent: "space-between",
+    shadowColor: Colors.shadow?.primary ?? "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+    // KHÔNG dùng gap hay justifyContent: 'space-between'
+    // để tránh khoảng trắng thừa
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    marginBottom: 6,
   },
   iconWrap: {
-    width: 16,
-    height: 16,
-    borderRadius: 5,
+    width: 15,
+    height: 15,
+    borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
   },
   title: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 13,
     fontFamily: Typography.fontFamily.bold,
   },
-  countdownWrap: {
-    gap: 2,
-  },
-  countdownText: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: Typography.fontFamily.semibold,
-  },
-  countdownMissing: {
-    color: Colors.text.secondary,
-  },
-  countdownValid: {
-    color: Colors.status.success,
-  },
-  countdownExpired: {
-    color: Colors.status.error,
-  },
-  daysText: {
+  statusText: {
     fontSize: 12,
     lineHeight: 16,
+    fontFamily: Typography.fontFamily.semibold,
+    marginBottom: 2,
+  },
+  daysText: {
+    fontSize: 10,
+    lineHeight: 13,
     fontFamily: Typography.fontFamily.bold,
   },
-  daysMissing: {
-    color: Colors.text.secondary,
-  },
-  daysValid: {
-    color: Colors.status.success,
-  },
-  daysExpired: {
-    color: Colors.status.error,
+  daysPlaceholder: {
+    fontSize: 10,
+    lineHeight: 13,
   },
 });
 

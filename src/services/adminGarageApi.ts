@@ -653,6 +653,52 @@ export const adminGarageApi = createApi({
       transformResponse: (response: unknown) =>
         normalizeMutationResponse(response, 'Failed to delete inspection'),
     }),
+    // ── Vehicle Violation (Phạt nguội) ──────────────────────────────────────
+    getAdminVehicleViolation: builder.query<AdminEntity | null, string | number>({
+      query: (vehicleId) => `${ADMIN_BASE_PATH}/vehicles/${encodeURIComponent(String(vehicleId))}/violation`,
+      providesTags: (result, error, vehicleId) => [{ type: 'AdminDashboard' as const, id: `violation:${vehicleId}` }],
+      transformResponse: (response: unknown) => {
+        try {
+          return extractObject<AdminEntity>(response, 'Failed to fetch violation');
+        } catch {
+          return null;
+        }
+      },
+    }),
+    getAdminViolationSummary: builder.query<AdminEntity[], { page?: number; limit?: number; status?: string }>({
+      query: ({ page = 1, limit = 50, status } = {}) => ({
+        url: `${ADMIN_BASE_PATH}/vehicles/violation-summary`,
+        params: { page, limit, ...(status ? { status } : {}) },
+      }),
+      providesTags: [{ type: 'AdminDashboard' as const, id: 'violation:summary' }],
+      transformResponse: (response: unknown) =>
+        extractList<AdminEntity>(response, 'Failed to fetch violation summary'),
+    }),
+    upsertAdminVehicleViolation: builder.mutation<AdminMutationResponse, { vehicleId: string | number; body: Record<string, unknown> }>({
+      query: ({ vehicleId, body }) => ({
+        url: `${ADMIN_BASE_PATH}/vehicles/${encodeURIComponent(String(vehicleId))}/violation`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (result, error, { vehicleId }) => [
+        { type: 'AdminDashboard' as const, id: `violation:${vehicleId}` },
+        { type: 'AdminDashboard' as const, id: 'violation:summary' },
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to update violation'),
+    }),
+    deleteAdminVehicleViolation: builder.mutation<AdminMutationResponse, string | number>({
+      query: (vehicleId) => ({
+        url: `${ADMIN_BASE_PATH}/vehicles/${encodeURIComponent(String(vehicleId))}/violation`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, vehicleId) => [
+        { type: 'AdminDashboard' as const, id: `violation:${vehicleId}` },
+        { type: 'AdminDashboard' as const, id: 'violation:summary' },
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to delete violation'),
+    }),
     updateAdminServiceReminderConfig: builder.mutation<AdminMutationResponse, { serviceId: string | number; body: Record<string, unknown> }>({
       query: ({ serviceId, body }) => ({
         url: `${ADMIN_BASE_PATH}/settings/service-reminder-configs/${encodeURIComponent(String(serviceId))}`,
@@ -735,6 +781,11 @@ export const {
   useDeleteAdminCustomerDriverLicenseMutation,
   useUpsertAdminVehicleInspectionMutation,
   useDeleteAdminVehicleInspectionMutation,
+  // Violation
+  useGetAdminVehicleViolationQuery,
+  useGetAdminViolationSummaryQuery,
+  useUpsertAdminVehicleViolationMutation,
+  useDeleteAdminVehicleViolationMutation,
   useUpdateAdminServiceReminderConfigMutation,
   useToggleAdminServiceReminderConfigMutation,
   useUpdateAdminUiVisibilityMutation,

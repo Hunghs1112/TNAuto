@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
   },
   greeting: {
     color: Colors.background.light,
-    ...textStyles.bodyLarge,
+    fontSize: 15,
+    lineHeight: 20,
     fontFamily: Typography.fontFamily.medium,
     fontWeight: Typography.weight.medium,
     opacity: 0.95,

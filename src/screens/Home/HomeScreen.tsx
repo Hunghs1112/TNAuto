@@ -23,9 +23,7 @@ import QuickBookingForm from "./QuickBookingForm";
 import OrdersList from "./components/OrdersList";
 import AvailableOrdersList from "./components/AvailableOrdersList";
 import EmployeeOrdersList from "./components/EmployeeOrdersList";
-import WarrantyInfo from "./components/WarrantyInfo";
 import ViewMoreButton from "./ViewMoreButton";
-import DocumentExpiryCards from "./DocumentExpiryCards";
 import { useHomeScreen } from "./useHomeScreen";
 import ManagerHomeScreen from "./ManagerHomeScreen";
 
@@ -129,12 +127,6 @@ function StandardHomeScreen() {
             canChangeGarage={garageSummary.canChangeGarage}
           />
         </View>
-
-        {!shouldShowPromoHome && isLoggedIn && userType === "customer" && (
-          <View style={styles.documentExpiryOverlay}>
-            <DocumentExpiryCards />
-          </View>
-        )}
 
         {!shouldShowPromoHome && promoBanner && (
           <View style={styles.bannerInlineWrap}>

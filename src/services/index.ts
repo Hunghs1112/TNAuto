@@ -18,3 +18,4 @@ export * from './serviceCategoryApi';
 export * from './managerApi';
 export * from './adminGarageApi';
 export * from './dealerCatalog.types';
+export * from './violationApi';

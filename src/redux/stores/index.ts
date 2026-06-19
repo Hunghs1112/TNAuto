@@ -19,6 +19,7 @@ import { vehicleApi } from '../../services/vehicleApi';
 import { serviceCategoryApi } from '../../services/serviceCategoryApi';
 import { managerApi } from '../../services/managerApi';
 import { adminGarageApi } from '../../services/adminGarageApi';
+import { violationApi } from '../../services/violationApi';
 
 import authReducer from '../slices/authSlice';
 import loadingReducer from '../slices/loadingSlice';
@@ -91,6 +92,7 @@ export const store = configureStore({
     [serviceCategoryApi.reducerPath]: serviceCategoryApi.reducer,
     [managerApi.reducerPath]: managerApi.reducer,
     [adminGarageApi.reducerPath]: adminGarageApi.reducer,
+    [violationApi.reducerPath]: violationApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -114,7 +116,8 @@ export const store = configureStore({
       vehicleApi.middleware,
       serviceCategoryApi.middleware,
       managerApi.middleware,
-      adminGarageApi.middleware
+      adminGarageApi.middleware,
+      violationApi.middleware
     ),
 });
 

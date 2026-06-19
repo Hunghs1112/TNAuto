@@ -15,6 +15,8 @@ import { AppStackParamList } from '../../navigation/AppNavigator';
 import { useAutoRefresh } from '../../redux/hooks/useAutoRefresh';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { selectGarageCode } from '../../redux/selectors';
+import { useGetCustomerVehicleViolationQuery } from '../../services/violationApi';
+import type { ViolationStatus } from '../../services/violationApi';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -48,6 +50,11 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
   
   // Fetch services to get service names
   const { data: servicesData } = useGetServicesQuery({ garageCode: activeGarageCode }, { skip: !hasGarageContext });
+
+  // Fetch violation status cho xe này
+  const { data: violationData } = useGetCustomerVehicleViolationQuery(vehicleId, {
+    skip: !vehicleId,
+  });
   
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -329,6 +336,54 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
 
   const isLoading = vehicleLoading || ordersLoading;
 
+  // Violation display helpers
+  const violationStatus: ViolationStatus = violationData?.violation_status ?? 'pending';
+  const violationCount = violationData?.violation_count ?? 0;
+  const violationCheckedAt = violationData?.checked_at ?? null;
+
+  const getViolationDisplay = () => {
+    switch (violationStatus) {
+      case 'violation':
+        return {
+          label: 'Vi phạm',
+          subLabel: violationCount > 0 ? `${violationCount} vi phạm chưa xử phạt` : 'Có vi phạm phạt nguội',
+          color: Colors.status.error,
+          bgColor: '#FEE2E2',
+          borderColor: '#FECACA',
+          icon: 'warning-outline' as const,
+        };
+      case 'no_violation':
+        return {
+          label: 'Không vi phạm',
+          subLabel: 'Biển số sạch',
+          color: Colors.status.success,
+          bgColor: '#DCFCE7',
+          borderColor: '#BBF7D0',
+          icon: 'checkmark-circle-outline' as const,
+        };
+      case 'check_error':
+        return {
+          label: 'Lỗi tra cứu',
+          subLabel: 'Không thể tra cứu, thử lại sau',
+          color: Colors.text.secondary,
+          bgColor: Colors.neutral[100],
+          borderColor: Colors.neutral[200],
+          icon: 'alert-circle-outline' as const,
+        };
+      default:
+        return {
+          label: 'Chưa tra cứu',
+          subLabel: 'Chưa có thông tin phạt nguội',
+          color: Colors.text.secondary,
+          bgColor: Colors.neutral[100],
+          borderColor: Colors.neutral[200],
+          icon: 'time-outline' as const,
+        };
+    }
+  };
+
+  const violationDisplay = getViolationDisplay();
+
   if (!hasGarageContext) {
     return null;
   }
@@ -496,6 +551,58 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
             ],
             imageUrl: vehicle.insurance_image_url,
           })}
+
+          {/* Phạt nguội */}
+          <View style={[styles.documentCard, { borderColor: violationDisplay.borderColor }]}>
+            <View style={styles.documentCardHeader}>
+              <View style={styles.documentTitleWrap}>
+                <View style={[styles.documentIconWrap, { backgroundColor: violationDisplay.bgColor, borderColor: violationDisplay.borderColor }]}>
+                  <Ionicons name={violationDisplay.icon} size={18} color={violationDisplay.color} />
+                </View>
+                <Text style={styles.documentTitle}>Phạt nguội</Text>
+              </View>
+              <View style={[styles.documentStatusBadge, { backgroundColor: violationDisplay.bgColor, borderColor: violationDisplay.borderColor }]}>
+                <Text style={[styles.documentStatusText, { color: violationDisplay.color }]}>
+                  {violationDisplay.label}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.documentFieldsGrid}>
+              <View style={[styles.documentField, { backgroundColor: violationDisplay.bgColor }]}>
+                <Text style={styles.documentFieldLabel}>Trạng thái</Text>
+                <Text style={[styles.documentFieldValue, { color: violationDisplay.color }]}>
+                  {violationDisplay.label}
+                </Text>
+              </View>
+              <View style={styles.documentField}>
+                <Text style={styles.documentFieldLabel}>Số vi phạm chưa xử phạt</Text>
+                <Text style={[
+                  styles.documentFieldValue,
+                  violationCount > 0 ? { color: Colors.status.error, fontFamily: Typography.fontFamily.bold } : null,
+                ]}>
+                  {violationStatus === 'pending' ? '—' : `${violationCount} vi phạm`}
+                </Text>
+              </View>
+              <View style={[styles.documentField, { width: '100%' }]}>
+                <Text style={styles.documentFieldLabel}>Thời gian tra cứu gần nhất</Text>
+                <Text style={styles.documentFieldValue}>
+                  {violationCheckedAt
+                    ? new Date(violationCheckedAt).toLocaleString('vi-VN')
+                    : 'Chưa tra cứu'}
+                </Text>
+              </View>
+            </View>
+
+            {violationStatus === 'violation' && violationCount > 0 && (
+              <View style={[styles.documentImageButton, { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }]}>
+                <Ionicons name="warning" size={14} color={Colors.status.error} />
+                <Text style={[styles.documentImageButtonText, { color: Colors.status.error }]}>
+                  {violationDisplay.subLabel}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Orders Section */}

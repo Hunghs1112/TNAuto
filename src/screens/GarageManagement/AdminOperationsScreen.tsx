@@ -32,10 +32,14 @@ import {
   useGetAdminResourceDetailQuery,
   useGetAdminResourceListQuery,
   useGetAdminVehicleInspectionQuery,
+  useGetAdminViolationSummaryQuery,
+  useGetAdminVehicleViolationQuery,
   useUpdateAdminResourceMutation,
   useUploadAdminEntityAssetMutation,
   useUpsertAdminVehicleInspectionMutation,
   useDeleteAdminVehicleInspectionMutation,
+  useUpsertAdminVehicleViolationMutation,
+  useDeleteAdminVehicleViolationMutation,
 } from '../../services/adminGarageApi';
 import {
   createImageFormData,
@@ -45,11 +49,12 @@ import {
   validateImageSize,
 } from '../../utils/imageUpload';
 
-type OpsTab = 'warranties' | 'vehicles';
+type OpsTab = 'warranties' | 'vehicles' | 'violations';
 
 const TABS: Array<{ key: OpsTab; label: string; icon: string }> = [
   { key: 'warranties', label: 'Bảo hành', icon: 'shield-checkmark-outline' },
   { key: 'vehicles', label: 'Xe', icon: 'car-sport-outline' },
+  { key: 'violations', label: 'Phạt nguội', icon: 'warning-outline' },
 ];
 
 export default function AdminOperationsScreen() {
@@ -96,6 +101,7 @@ export default function AdminOperationsScreen() {
       <View style={{ flex: 1 }}>
         {activeTab === 'warranties' && <WarrantiesTab />}
         {activeTab === 'vehicles' && <VehiclesTab />}
+        {activeTab === 'violations' && <ViolationsTab />}
       </View>
     </Screen>
   );
@@ -380,6 +386,330 @@ function VehiclesTab() {
   );
 }
 
+// ─── Violations Tab ───────────────────────────────────────────────────────────
+
+type ViolationStatus = 'pending' | 'violation' | 'no_violation' | 'check_error';
+
+const VIOLATION_FILTER_OPTIONS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'violation', label: 'Vi phạm' },
+  { value: 'no_violation', label: 'Không vi phạm' },
+  { value: 'check_error', label: 'Lỗi tra' },
+  { value: 'pending', label: 'Chưa tra' },
+];
+
+const VIOLATION_STATUS_OPTIONS: Array<{ value: ViolationStatus; label: string; color: string }> = [
+  { value: 'violation', label: 'Vi phạm', color: '#DC2626' },
+  { value: 'no_violation', label: 'Không vi phạm', color: '#16A34A' },
+  { value: 'check_error', label: 'Lỗi tra cứu', color: '#9CA3AF' },
+  { value: 'pending', label: 'Chưa tra', color: '#6B7280' },
+];
+
+function getViolationChipStyle(status: ViolationStatus | string) {
+  switch (status) {
+    case 'violation': return { bg: '#FEE2E2', text: '#DC2626' };
+    case 'no_violation': return { bg: '#DCFCE7', text: '#16A34A' };
+    case 'check_error': return { bg: '#F3F4F6', text: '#6B7280' };
+    default: return { bg: '#F3F4F6', text: '#6B7280' };
+  }
+}
+
+function getViolationLabel(status: string) {
+  return VIOLATION_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? 'Chưa tra';
+}
+
+const SAMPLE_VIOLATIONS: AdminEntity[] = [
+  { vehicle_id: 1, license_plate: '30B-29235', model: 'Toyota Vios', customer_name: 'Nguyễn Văn A', customer_phone: '0901234567', violation_status: 'violation', violation_count: 2, checked_at: '2026-06-08 14:25:10' },
+  { vehicle_id: 2, license_plate: '51G-88123', model: 'Honda Civic', customer_name: 'Trần Thị B', customer_phone: '0912345678', violation_status: 'no_violation', violation_count: 0, checked_at: '2026-06-07 09:10:00' },
+  { vehicle_id: 3, license_plate: '29A-45678', model: null, customer_name: 'Lê Văn C', customer_phone: '0923456789', violation_status: 'pending', violation_count: 0, checked_at: null },
+];
+
+function ViolationsTab() {
+  const [filterStatus, setFilterStatus] = useState('');
+  const [selectedVehicle, setSelectedVehicle] = useState<AdminEntity | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const summaryQuery = useGetAdminViolationSummaryQuery(
+    { limit: 100, ...(filterStatus ? { status: filterStatus } : {}) },
+  );
+  const [upsertViolation] = useUpsertAdminVehicleViolationMutation();
+  const [deleteViolation] = useDeleteAdminVehicleViolationMutation();
+
+  // Dùng data mẫu khi chưa có dữ liệu thật
+  const rawItems: AdminEntity[] = summaryQuery.data && summaryQuery.data.length > 0
+    ? summaryQuery.data
+    : SAMPLE_VIOLATIONS;
+
+  const items = useMemo(() => {
+    if (!search.trim()) return rawItems;
+    const q = search.trim().toLowerCase();
+    return rawItems.filter((item) =>
+      String(item.license_plate || '').toLowerCase().includes(q) ||
+      String(item.customer_name || '').toLowerCase().includes(q),
+    );
+  }, [rawItems, search]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await summaryQuery.refetch(); } finally { setRefreshing(false); }
+  }, [summaryQuery]);
+
+  const handleDelete = useCallback((item: AdminEntity) => {
+    Alert.alert('Xóa dữ liệu phạt nguội', `Xóa thông tin phạt nguội của xe "${item.license_plate}"?`, [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xóa', style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteViolation(item.vehicle_id as string | number).unwrap();
+            await summaryQuery.refetch();
+          } catch { Alert.alert('Lỗi', 'Không thể xóa.'); }
+        },
+      },
+    ]);
+  }, [deleteViolation, summaryQuery]);
+
+  const renderItem = useCallback(({ item }: { item: AdminEntity }) => {
+    const plate = String(item.license_plate || '');
+    const customer = String(item.customer_name || '');
+    const model = String(item.model || '');
+    const status = String(item.violation_status || 'pending');
+    const count = Number(item.violation_count ?? 0);
+    const checkedAt = item.checked_at ? String(item.checked_at).slice(0, 16) : null;
+    const chip = getViolationChipStyle(status);
+    const isSample = !summaryQuery.data || summaryQuery.data.length === 0;
+
+    return (
+      <View style={[styles.card, isSample && { opacity: 0.55 }]}>
+        <View style={styles.cardRow}>
+          <View style={[styles.iconCircle, { backgroundColor: chip.bg }]}>
+            <Ionicons
+              name={status === 'violation' ? 'warning-outline' : status === 'no_violation' ? 'checkmark-circle-outline' : 'time-outline'}
+              size={20}
+              color={chip.text}
+            />
+          </View>
+          <View style={styles.cardInfo}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <Text style={styles.cardName}>{plate}</Text>
+              <View style={[violStyles.chip, { backgroundColor: chip.bg }]}>
+                <Text style={[violStyles.chipText, { color: chip.text }]}>{getViolationLabel(status)}</Text>
+              </View>
+            </View>
+            {customer ? <Text style={styles.cardSub}>{customer}{model ? ` · ${model}` : ''}</Text> : null}
+            <Text style={styles.cardSub}>
+              {status === 'violation' && count > 0 ? `${count} vi phạm chưa xử phạt · ` : ''}
+              {checkedAt ? `Tra: ${checkedAt}` : 'Chưa được tra cứu'}
+            </Text>
+          </View>
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => setSelectedVehicle(item)}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="create-outline" size={18} color={Colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => handleDelete(item)}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="trash-outline" size={18} color={Colors.status.error} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }, [handleDelete, summaryQuery.data]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Search */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={16} color={Colors.text.secondary} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Tìm biển số, khách hàng..."
+          placeholderTextColor={Colors.text.secondary}
+          returnKeyType="search"
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Ionicons name="close-circle" size={16} color={Colors.text.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* Filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={violStyles.filterRow}
+      >
+        {VIOLATION_FILTER_OPTIONS.map((opt) => {
+          const isActive = filterStatus === opt.value;
+          return (
+            <TouchableOpacity
+              key={opt.value}
+              style={[violStyles.filterChip, isActive && violStyles.filterChipActive]}
+              onPress={() => setFilterStatus(opt.value)}
+              activeOpacity={0.8}
+            >
+              <Text style={[violStyles.filterChipText, isActive && violStyles.filterChipTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Nhãn mẫu */}
+      {(!summaryQuery.data || summaryQuery.data.length === 0) && !summaryQuery.isLoading && (
+        <View style={violStyles.sampleBanner}>
+          <Ionicons name="information-circle-outline" size={14} color={Colors.text.secondary} />
+          <Text style={violStyles.sampleText}>Dữ liệu mẫu — kết nối tool tra phạt nguội để cập nhật</Text>
+        </View>
+      )}
+
+      <FlatList
+        data={items}
+        keyExtractor={(item, idx) => String(item.vehicle_id ?? idx)}
+        renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing || summaryQuery.isFetching} onRefresh={handleRefresh} />}
+        ListEmptyComponent={
+          summaryQuery.isLoading ? (
+            <View style={styles.centered}><ActivityIndicator size="large" color={Colors.primary} /></View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="warning-outline" size={40} color={Colors.text.secondary} />
+              <Text style={styles.emptyTitle}>Chưa có dữ liệu phạt nguội</Text>
+            </View>
+          )
+        }
+      />
+
+      {selectedVehicle && (
+        <ViolationDetailModal
+          vehicle={selectedVehicle}
+          onClose={() => setSelectedVehicle(null)}
+          onSave={async (data) => {
+            await upsertViolation({ vehicleId: selectedVehicle.vehicle_id as string | number, body: data }).unwrap();
+            await summaryQuery.refetch();
+            Alert.alert('Thành công', 'Đã cập nhật trạng thái phạt nguội.');
+            setSelectedVehicle(null);
+          }}
+        />
+      )}
+    </View>
+  );
+}
+
+// ─── Violation Detail Modal ───────────────────────────────────────────────────
+
+function ViolationDetailModal({
+  vehicle,
+  onClose,
+  onSave,
+}: {
+  vehicle: AdminEntity;
+  onClose: () => void;
+  onSave: (data: Record<string, unknown>) => Promise<void>;
+}) {
+  const vehicleId = (vehicle.vehicle_id ?? vehicle.id) as string | number;
+  const violationQuery = useGetAdminVehicleViolationQuery(vehicleId);
+
+  const [status, setStatus] = useState<ViolationStatus>(
+    (vehicle.violation_status as ViolationStatus) ?? 'pending',
+  );
+  const [count, setCount] = useState(String(vehicle.violation_count ?? 0));
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (violationQuery.data) {
+      const d = violationQuery.data as Record<string, unknown>;
+      if (d.violation_status) setStatus(d.violation_status as ViolationStatus);
+      if (d.violation_count !== undefined) setCount(String(d.violation_count));
+    }
+  }, [violationQuery.data]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        violation_status: status,
+        violation_count: Number(count) || 0,
+      });
+    } catch { Alert.alert('Lỗi', 'Không thể lưu.'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <View style={modalStyles.overlay}>
+      <View style={modalStyles.sheet}>
+        <View style={modalStyles.header}>
+          <Text style={modalStyles.title}>Phạt nguội: {String(vehicle.license_plate || '')}</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={22} color={Colors.text.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Text style={modalStyles.sectionLabel}>Trạng thái vi phạm</Text>
+          {VIOLATION_STATUS_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[violStyles.statusOption, status === opt.value && { borderColor: opt.color, backgroundColor: opt.color + '10' }]}
+              onPress={() => setStatus(opt.value)}
+              activeOpacity={0.8}
+            >
+              <View style={[violStyles.statusDot, { backgroundColor: opt.color }]} />
+              <Text style={[violStyles.statusLabel, status === opt.value && { color: opt.color, fontFamily: Typography.fontFamily.bold }]}>
+                {opt.label}
+              </Text>
+              {status === opt.value && (
+                <Ionicons name="checkmark" size={16} color={opt.color} style={{ marginLeft: 'auto' }} />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          <View style={[modalStyles.field, { marginTop: spacing.base }]}>
+            <Text style={modalStyles.label}>Số lỗi vi phạm chưa xử phạt</Text>
+            <TextInput
+              style={modalStyles.input}
+              value={count}
+              onChangeText={setCount}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={Colors.text.secondary}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={modalStyles.actions}>
+          <TouchableOpacity style={modalStyles.cancelBtn} onPress={onClose}>
+            <Text style={modalStyles.cancelText}>Hủy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[modalStyles.saveBtn, saving && { opacity: 0.6 }]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving
+              ? <ActivityIndicator size="small" color={Colors.background.light} />
+              : <Text style={modalStyles.saveText}>Lưu</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // ─── Warranty Form Modal ──────────────────────────────────────────────────────
 function WarrantyFormModal({
   title,
@@ -634,4 +964,85 @@ const modalStyles = StyleSheet.create({
   saveText: { fontFamily: Typography.fontFamily.bold, fontSize: Typography.size.base, color: Colors.background.light, fontWeight: Typography.weight.bold },
   dangerBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   dangerText: { fontFamily: Typography.fontFamily.medium, fontSize: Typography.size.sm, color: Colors.status.error },
+});
+
+const violStyles = StyleSheet.create({
+  chip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  chipText: {
+    fontFamily: Typography.fontFamily.semibold,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.base,
+    paddingBottom: spacing.sm,
+  },
+  filterChip: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    backgroundColor: Colors.background.secondary,
+  },
+  filterChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primarySoft,
+  },
+  filterChipText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.xs,
+    color: Colors.text.secondary,
+  },
+  filterChipTextActive: {
+    color: Colors.primary,
+    fontFamily: Typography.fontFamily.bold,
+  },
+  sampleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginHorizontal: spacing.base,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    backgroundColor: '#FEF9C3',
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#FDE047',
+  },
+  sampleText: {
+    flex: 1,
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: 11,
+    color: Colors.text.secondary,
+  },
+  statusOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.base,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    backgroundColor: Colors.background.secondary,
+    marginBottom: spacing.sm,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  statusLabel: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+  },
 });
