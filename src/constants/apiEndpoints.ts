@@ -905,6 +905,67 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     description: 'Delete super admin garage',
     params: ['id'],
   },
+  // App Admin - Garage Managers (super admin only)
+  adminGarageManagers: {
+    method: 'GET',
+    path: '/api/app/admin/garage-managers',
+    description: 'Get admin garage manager list (filters: garage_id, search, status)',
+    params: ['garage_id', 'search', 'status', 'page', 'limit'],
+  },
+  adminCreateGarageManager: {
+    method: 'POST',
+    path: '/api/app/admin/garage-managers',
+    description: 'Create admin garage manager (required body: name, phone, password, garage_id)',
+    body: ['name', 'phone', 'password', 'garage_id'],
+  },
+  adminGarageManagerById: {
+    method: 'GET',
+    path: '/api/app/admin/garage-managers/:id',
+    description: 'Get admin garage manager detail',
+    params: ['id'],
+  },
+  adminUpdateGarageManager: {
+    method: 'PUT',
+    path: '/api/app/admin/garage-managers/:id',
+    description: 'Update admin garage manager (partial body: name, status, garage_id)',
+    params: ['id'],
+    body: ['name', 'status', 'garage_id', 'role'],
+  },
+  adminDeleteGarageManager: {
+    method: 'DELETE',
+    path: '/api/app/admin/garage-managers/:id',
+    description: 'Soft-delete admin garage manager (sets status=inactive)',
+    params: ['id'],
+  },
+  adminResetGarageManagerPassword: {
+    method: 'POST',
+    path: '/api/app/admin/garage-managers/:id/reset-password',
+    description: 'Reset admin garage manager password (super admin only; required body: new_password)',
+    params: ['id'],
+    body: ['new_password'],
+  },
+  // App Admin - Dealer extra
+  adminDealerStats: {
+    method: 'GET',
+    path: '/api/app/admin/dealers/stats',
+    description: 'Get admin dealer statistics',
+  },
+  adminDealerCategoriesStats: {
+    method: 'GET',
+    path: '/api/app/admin/dealer-categories/stats',
+    description: 'Get admin dealer category statistics',
+  },
+  adminDealerProductsStats: {
+    method: 'GET',
+    path: '/api/app/admin/dealer-products/stats',
+    description: 'Get admin dealer product statistics',
+  },
+  adminUploadDealerCategoryImage: {
+    method: 'POST',
+    path: '/api/app/admin/dealer-categories/:id/upload-image',
+    description: 'Upload image for admin dealer category (multipart/form-data field: image)',
+    params: ['id'],
+  },
   getEmployeeOrders: {
     method: 'GET',
     path: '/api/app/employee/orders',

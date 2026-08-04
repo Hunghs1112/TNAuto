@@ -21,6 +21,18 @@ interface BackendNotification {
   priority?: number;
   metadata?: Record<string, any> | null;
   created_at?: string;
+  /**
+   * Deep-link target screen (spec §3, §6). Trả về từ backend sau khi extend
+   * `notifications` table. Có thể là string thuần (DB column VARCHAR) hoặc đã
+   * được backend wrap trong object.
+   */
+  target_screen?: string | null;
+  /**
+   * Deep-link params (spec §3, §6). Backend lưu ở JSON column nên giá trị có
+   * thể trả về dưới dạng object (khi DB driver parse tự động) HOẶC string
+   * (JSON-encoded). Helper `normalizeTargetParams` xử lý cả 2 trường hợp.
+   */
+  target_params?: Record<string, any> | string | null;
 }
 
 interface Notification {
@@ -43,6 +55,8 @@ interface Notification {
   source?: string;
   claimable?: boolean;
   metadata?: Record<string, any>;
+  target_screen?: string | null;
+  target_params?: Record<string, any> | null;
 }
 
 interface ApiResponse<T> {
@@ -146,6 +160,42 @@ const extractOrderId = (item: BackendNotification, metadata: Record<string, any>
   return String(rawOrderId);
 };
 
+/**
+ * `target_params` có thể trả về dưới nhiều dạng tuỳ backend / DB driver:
+ *  - `Record<string, any>` khi JSON column đã được parse tự động
+ *  - `string` chứa JSON-encoded object (khi driver trả text thuần)
+ *  - `null` / `undefined` khi notification cũ (legacy)
+ *
+ * Hàm này chuẩn hoá về `Record<string, any> | null` để `tryNavigateToTargetScreen`
+ * (ở NotificationService) và `handlePress` (ở NotificationScreen) có thể đọc
+ * thống nhất. Trả về `null` khi payload không hợp lệ để caller fallback an toàn.
+ */
+const normalizeTargetParams = (
+  raw: Record<string, any> | string | null | undefined,
+): Record<string, any> | null => {
+  if (raw === null || raw === undefined) {
+    return null;
+  }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw;
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, any>;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 export const notificationApi = createApi({
   ...API_CONFIG,
   reducerPath: 'notificationApi' as const,
@@ -187,6 +237,10 @@ export const notificationApi = createApi({
             source: metadata.source,
             claimable: normalizedClaimable,
             metadata,
+            // Deep-link (spec §3, §6, §7). Map từ backend columns vào Notification
+            // để tryNavigateToTargetScreen có thể đọc khi user tap notif trong list.
+            target_screen: item.target_screen ?? null,
+            target_params: normalizeTargetParams(item.target_params),
           };
         });
       },

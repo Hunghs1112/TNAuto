@@ -24,7 +24,8 @@ export type AdminListResource =
   | 'dealers'
   | 'dealer-categories'
   | 'dealer-products'
-  | 'garages';
+  | 'garages'
+  | 'garage-managers';
 
 export type AdminWritableResource = AdminListResource;
 
@@ -179,7 +180,7 @@ interface ResourceImageUpdateArgs extends ResourceImageMutationArgs {
 }
 
 interface UploadEntityAssetArgs {
-  resource: 'customers' | 'employees' | 'services' | 'service-categories' | 'categories' | 'offers' | 'vehicles';
+  resource: 'customers' | 'employees' | 'services' | 'service-categories' | 'categories' | 'offers' | 'vehicles' | 'dealer-categories';
   id: string | number;
   action: 'upload-avatar' | 'upload-image';
   body: FormData;
@@ -751,6 +752,117 @@ export const adminGarageApi = createApi({
         return response?.data ?? response;
       },
     }),
+    // ── App Admin Garage Managers (mobile-first, super admin CRUD) ───────────
+    getAdminGarageManagers: builder.query<GarageManager[], { garage_id?: string | number; search?: string; status?: string; page?: number; limit?: number } | void>({
+      query: (args) => {
+        const params = args
+          ? {
+              ...(args.garage_id !== undefined && args.garage_id !== '' ? { garage_id: args.garage_id } : {}),
+              ...(args.search ? { search: args.search } : {}),
+              ...(args.status ? { status: args.status } : {}),
+              ...(args.page ? { page: args.page } : {}),
+              ...(args.limit ? { limit: args.limit } : {}),
+            }
+          : undefined;
+        return {
+          url: `${ADMIN_BASE_PATH}/garage-managers`,
+          params,
+        };
+      },
+      providesTags: (result, error) => [
+        { type: 'AdminDashboard' as const, id: 'garage-managers:list' },
+      ],
+      transformResponse: (response: unknown) =>
+        extractList<GarageManager>(response, 'Failed to fetch garage managers'),
+    }),
+    getAdminGarageManagerById: builder.query<GarageManager, string | number>({
+      query: (id) => `${ADMIN_BASE_PATH}/garage-managers/${encodeURIComponent(String(id))}`,
+      providesTags: (result, error, id) => [
+        { type: 'AdminDashboard' as const, id: `garage-manager:${id}` },
+      ],
+      transformResponse: (response: unknown) =>
+        extractObject<GarageManager>(response, 'Failed to fetch garage manager'),
+    }),
+    createAdminGarageManager: builder.mutation<AdminMutationResponse, Record<string, unknown>>({
+      query: (body) => ({
+        url: `${ADMIN_BASE_PATH}/garage-managers`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'AdminDashboard' as const, id: 'garage-managers:list' },
+        'AdminDashboard',
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to create garage manager'),
+    }),
+    updateAdminGarageManager: builder.mutation<AdminMutationResponse, { id: string | number; body: Record<string, unknown> }>({
+      query: ({ id, body }) => ({
+        url: `${ADMIN_BASE_PATH}/garage-managers/${encodeURIComponent(String(id))}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'AdminDashboard' as const, id: `garage-manager:${id}` },
+        { type: 'AdminDashboard' as const, id: 'garage-managers:list' },
+        'AdminDashboard',
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to update garage manager'),
+    }),
+    deleteAdminGarageManager: builder.mutation<AdminMutationResponse, string | number>({
+      query: (id) => ({
+        url: `${ADMIN_BASE_PATH}/garage-managers/${encodeURIComponent(String(id))}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        { type: 'AdminDashboard' as const, id: 'garage-managers:list' },
+        'AdminDashboard',
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to delete garage manager'),
+    }),
+    resetAdminGarageManagerPassword: builder.mutation<AdminMutationResponse, { id: string | number; new_password: string }>({
+      query: ({ id, new_password }) => ({
+        url: `${ADMIN_BASE_PATH}/garage-managers/${encodeURIComponent(String(id))}/reset-password`,
+        method: 'POST',
+        body: { new_password },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'AdminDashboard' as const, id: `garage-manager:${id}` },
+        { type: 'AdminDashboard' as const, id: 'garage-managers:list' },
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to reset garage manager password'),
+    }),
+    // ── App Admin Dealers: extra POST (đã có list/detail/update/delete) ───────
+    createAdminDealer: builder.mutation<AdminMutationResponse, Record<string, unknown>>({
+      query: (body) => ({
+        url: `${ADMIN_BASE_PATH}/dealers`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [
+        { type: 'AdminDashboard' as const, id: 'dealers:list' },
+        'AdminDashboard',
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to create dealer'),
+    }),
+    // ── App Admin Dealer Catalog: upload ảnh cho dealer-category ─────────────
+    uploadAdminDealerCategoryImage: builder.mutation<AdminMutationResponse, { id: string | number; body: FormData }>({
+      query: ({ id, body }) => ({
+        url: `${ADMIN_BASE_PATH}/dealer-categories/${encodeURIComponent(String(id))}/upload-image`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'AdminDashboard' as const, id: `dealer-categories:${id}` },
+        { type: 'AdminDashboard' as const, id: 'dealer-categories:list' },
+      ],
+      transformResponse: (response: unknown) =>
+        normalizeMutationResponse(response, 'Failed to upload dealer category image'),
+    }),
   }),
 });
 
@@ -791,4 +903,15 @@ export const {
   useUpdateAdminUiVisibilityMutation,
   useCreateGarageManagerMutation,
   useUpdateGarageManagerMutation,
+  // App Admin Garage Managers
+  useGetAdminGarageManagersQuery,
+  useGetAdminGarageManagerByIdQuery,
+  useCreateAdminGarageManagerMutation,
+  useUpdateAdminGarageManagerMutation,
+  useDeleteAdminGarageManagerMutation,
+  useResetAdminGarageManagerPasswordMutation,
+  // App Admin Dealers
+  useCreateAdminDealerMutation,
+  // App Admin Dealer Catalog
+  useUploadAdminDealerCategoryImageMutation,
 } = adminGarageApi;

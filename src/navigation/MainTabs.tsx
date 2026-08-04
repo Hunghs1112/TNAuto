@@ -12,6 +12,7 @@ import GarageManagementScreen from "../screens/GarageManagement/GarageManagement
 import GarageCustomersScreen from "../screens/GarageManagement/GarageCustomersScreen";
 import GarageOrdersScreen from "../screens/GarageManagement/GarageOrdersScreen";
 import SuperAdminGaragesScreen from "../screens/GarageManagement/SuperAdminGaragesScreen";
+import DealersScreen from "../screens/GarageManagement/DealersScreen";
 import NotificationScreen from "../screens/Notification/NotificationScreen";
 import EmployeeOrdersScreen from "../screens/EmployeeOrders/EmployeeOrdersScreen";
 
@@ -27,6 +28,8 @@ export type TabParamList = {
   GarageOrders: undefined;
   /** Chỉ dành cho garage_admin (super admin) */
   SuperAdminGarages: undefined;
+  /** Super admin — danh sách đại lý (cổng vào module đại lý + catalog) */
+  Dealers: undefined;
   /** Tab thông báo — dùng cho employee */
   Notification: undefined;
   /** Tab đơn việc — dùng cho employee */
@@ -58,6 +61,7 @@ export default function MainTabs() {
       <Tab.Screen name="GarageOrders" component={GarageOrdersScreen} />
       {/* Super admin only — màn hình bị guard bên trong nếu không đủ quyền */}
       <Tab.Screen name="SuperAdminGarages" component={SuperAdminGaragesScreen} />
+      <Tab.Screen name="Dealers" component={DealersScreen} />
       {/* Tab thông báo — dùng cho employee */}
       <Tab.Screen name="Notification" component={NotificationScreen} />
       {/* Tab đơn việc — dùng cho employee */}

@@ -38,6 +38,7 @@ import {
   deleteNotification as deleteNotificationAction,
   setUnreadCount,
 } from "../../redux/slices/notificationSlice";
+import { tryNavigateToTargetScreen } from "../../services/NotificationService";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { Colors } from "../../constants/colors";
 import { Typography } from "../../constants/typo";
@@ -201,6 +202,16 @@ const NotificationScreen = () => {
       }
     } catch (markReadError) {
       console.error('NotificationScreen: Failed to mark notification as read:', markReadError);
+    }
+
+    // Tạm thời: in payload để debug vấn đề in-app tap không navigate.
+    // Có thể gỡ sau khi xác nhận xong.
+    console.log('[Notification] handlePress payload:', JSON.stringify(item));
+
+    // Deep-link mới do Web Admin chỉ định. Phải chèn TRƯỚC nhánh switch theo `type`
+    // để giữ backward-compat với payload cũ không có `target_screen` (spec §7.2).
+    if (tryNavigateToTargetScreen(item, userType)) {
+      return;
     }
 
     const dataType = item?.type;

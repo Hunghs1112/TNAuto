@@ -98,6 +98,23 @@ export interface AdminGarage {
   address: string;
   status: string;
   is_super_garage: boolean;
+  manager_count?: number;
+}
+
+export interface AdminGarageManager {
+  id: string | number;
+  name: string;
+  phone: string;
+  email?: string | null;
+  role?: string | null;
+  status?: string;
+  garage_id?: string | number | null;
+  garage_name?: string | null;
+  garage_code?: string | null;
+  avatar_url?: string | null;
+  last_login_at?: string | null;
+  created_at?: string;
+  garages?: Array<{ id: string | number; code?: string; name?: string; is_super_garage?: boolean }>;
 }
 
 // ─── Mapper helpers ───────────────────────────────────────────────────────────
@@ -194,7 +211,32 @@ export const mapAdminGarage = (item: AdminEntity): AdminGarage => ({
   address: str(item.address),
   status: str(item.status),
   is_super_garage: isSuperGarage(item.is_super_garage),
+  manager_count: item.manager_count != null ? num(item.manager_count) : undefined,
 });
+
+export const mapAdminGarageManager = (item: AdminEntity): AdminGarageManager => {
+  const rawGarages = Array.isArray(item.garages) ? (item.garages as AdminEntity[]) : [];
+  return {
+    id: str(item.id),
+    name: str(item.name, 'Quản lý chưa đặt tên'),
+    phone: str(item.phone),
+    email: item.email != null ? str(item.email) : null,
+    role: item.role != null ? str(item.role) : null,
+    status: item.status != null ? str(item.status, 'active') : 'active',
+    garage_id: item.garage_id != null ? str(item.garage_id) : null,
+    garage_name: item.garage_name != null ? str(item.garage_name) : null,
+    garage_code: item.garage_code != null ? str(item.garage_code) : null,
+    avatar_url: item.avatar_url != null ? str(item.avatar_url) : null,
+    last_login_at: item.last_login_at != null ? str(item.last_login_at) : null,
+    created_at: item.created_at != null ? str(item.created_at) : undefined,
+    garages: rawGarages.map((g) => ({
+      id: str(g.id),
+      code: g.code != null ? str(g.code) : undefined,
+      name: g.name != null ? str(g.name) : undefined,
+      is_super_garage: g.is_super_garage != null ? bool(g.is_super_garage) : undefined,
+    })),
+  };
+};
 
 // ─── Convenience: map arrays ──────────────────────────────────────────────────
 
@@ -205,3 +247,4 @@ export const mapAdminServices = (items: AdminEntity[]) => items.map(mapAdminServ
 export const mapAdminProducts = (items: AdminEntity[]) => items.map(mapAdminProduct);
 export const mapAdminOffers = (items: AdminEntity[]) => items.map(mapAdminOffer);
 export const mapAdminGarages = (items: AdminEntity[]) => items.map(mapAdminGarage);
+export const mapAdminGarageManagers = (items: AdminEntity[]) => items.map(mapAdminGarageManager);

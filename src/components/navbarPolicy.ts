@@ -37,7 +37,9 @@ export function buildNavbarTabs(userType?: string | null): NavbarTabItem[] {
       { key: "garage", label: "Gara", icon: "business-outline", routeName: "GarageManagement", requiresAuth: true },
       { key: "home", label: "Trang chủ", icon: "home", routeName: "HomeTab", isCenter: true },
       { key: "orders", label: "Đơn hàng", icon: "receipt-outline", routeName: "GarageOrders", requiresAuth: true },
-      { key: "garages", label: "Hệ thống", icon: "storefront-outline", routeName: "SuperAdminGarages", requiresAuth: true, superAdminOnly: true },
+      // TẠM ẨN: tab "Đại lý" do backend danh sách đại lý đang lỗi — không thể tải danh sách đại lý.
+      // Thay tạm bằng "Cài đặt" để navbar vẫn có đủ 5 vị trí.
+      { key: "settings", label: "Cài đặt", icon: "settings-outline", routeName: "Profile", requiresAuth: true },
     ];
   }
 

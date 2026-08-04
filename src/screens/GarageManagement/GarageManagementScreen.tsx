@@ -17,7 +17,7 @@ import { Typography } from '../../constants/typo';
 import { borderRadius } from '../../design-system/borders';
 import { spacing } from '../../design-system/spacing';
 import { AppStackParamList } from '../../navigation/AppNavigator';
-import { isManagerRole } from '../../navigation/rolePolicy';
+import { isManagerRole, isSuperAdminRole } from '../../navigation/rolePolicy';
 import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import {
   AdminServiceReminderConfig,
@@ -60,6 +60,7 @@ const isTruthy = (v: unknown) =>
 export default function GarageManagementScreen() {
   const navigation = useNavigation<Nav>();
   const userType   = useAppSelector(s => s.auth.userType);
+  const isSuperAdmin = isSuperAdminRole(userType);
   const garageName = useAppSelector(s => s.garageContext.garageName);
   const garageCode = useAppSelector(
     s => s.garageContext.activeGarageCode || s.garageContext.garageCode,
@@ -370,6 +371,50 @@ export default function GarageManagementScreen() {
             ))}
           </View>
 
+          {/* Super admin quick cards — chỉ hiển thị với garage_admin */}
+          {isSuperAdmin && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Quản trị Super Admin</Text>
+              <View style={styles.adminCardGrid}>
+                <TouchableOpacity
+                  style={styles.adminCard}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('GarageManagers' as any)}
+                >
+                  <View style={styles.adminCardIcon}>
+                    <Ionicons name="person-circle-outline" size={22} color={Colors.primary} />
+                  </View>
+                  <View style={styles.adminCardBody}>
+                    <Text style={styles.adminCardTitle}>Tài khoản quản lý</Text>
+                    <Text style={styles.adminCardSub}>
+                      Tạo / sửa / reset mật khẩu manager cho các gara.
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+
+                {/* TẠM ẨN: nút "Đại lý & catalog" do backend danh sách đại lý đang lỗi — không thể tải danh sách đại lý.
+                <TouchableOpacity
+                  style={styles.adminCard}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('Dealers' as any)}
+                >
+                  <View style={styles.adminCardIcon}>
+                    <Ionicons name="storefront-outline" size={22} color={Colors.secondary} />
+                  </View>
+                  <View style={styles.adminCardBody}>
+                    <Text style={styles.adminCardTitle}>Đại lý &amp; catalog</Text>
+                    <Text style={styles.adminCardSub}>
+                      Quản lý đại lý, danh mục và sản phẩm kèm upload ảnh.
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.text.secondary} />
+                </TouchableOpacity>
+                */}
+              </View>
+            </View>
+          )}
+
           {/* Analytics */}
           {renderAnalytics()}
 
@@ -490,6 +535,45 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontFamily: Typography.fontFamily.medium,
     fontSize: Typography.size.xs,
+  },
+
+  // ── Super admin cards ─────────────────────────────────────────────────────
+  adminCardGrid: {
+    gap: spacing.sm,
+  },
+  adminCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+    backgroundColor: Colors.background.light,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.base,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  adminCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminCardBody: {
+    flex: 1,
+    gap: 2,
+  },
+  adminCardTitle: {
+    fontFamily: Typography.fontFamily.bold,
+    fontSize: Typography.size.base,
+    color: Colors.text.primary,
+    fontWeight: Typography.weight.bold,
+  },
+  adminCardSub: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.size.xs,
+    color: Colors.text.secondary,
+    lineHeight: 18,
   },
 
   // ── Section ───────────────────────────────────────────────────────────────

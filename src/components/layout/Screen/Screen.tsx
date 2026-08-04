@@ -30,6 +30,8 @@ export interface ScreenProps {
   refreshing?: boolean;
   onRefresh?: () => void;
   contentStyle?: any;
+  /** Callback cho nút bên phải trên header */
+  onHeaderRightPress?: () => void;
 }
 
 const Screen = ({
@@ -44,6 +46,7 @@ const Screen = ({
   refreshing = false,
   onRefresh,
   contentStyle,
+  onHeaderRightPress,
 }: ScreenProps) => {
   const insets = useSafeAreaInsets();
 
@@ -82,7 +85,12 @@ const Screen = ({
       {/* Header */}
       {!hideHeader && headerTitle && (
         <View style={styles.headerContainer}>
-          <Header title={headerTitle} hideBackButton={!showBackButton} />
+          <Header
+            title={headerTitle}
+            hideBackButton={!showBackButton}
+            onPressRight={onHeaderRightPress}
+            hideRightButton={!onHeaderRightPress}
+          />
         </View>
       )}
 

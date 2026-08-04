@@ -93,7 +93,7 @@ const Header = ({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
-              name="ellipsis-horizontal"
+              name="grid-outline"
               size={20}
               color={Colors.text.primary}
             />

@@ -44,6 +44,9 @@ import AdminCatalogScreen from "../screens/GarageManagement/AdminCatalogScreen";
 import AdminOperationsScreen from "../screens/GarageManagement/AdminOperationsScreen";
 import AdminSettingsScreen from "../screens/GarageManagement/AdminSettingsScreen";
 import SuperAdminGaragesScreen from "../screens/GarageManagement/SuperAdminGaragesScreen";
+import GarageManagersScreen from "../screens/GarageManagement/GarageManagersScreen";
+import DealersScreen from "../screens/GarageManagement/DealersScreen";
+import DealerCatalogScreen from "../screens/GarageManagement/DealerCatalogScreen";
 import { CheckPhoneRole } from "../services/authApi";
 import { useAppSelector } from "../redux/hooks/useAppSelector";
 import { AuthUserType } from "../redux/slices/authSlice";
@@ -117,6 +120,12 @@ export type AppStackParamList = {
   AdminSettings: undefined;
   /** Chỉ dành cho garage_admin (super admin) */
   SuperAdminGarages: undefined;
+  /** Quản lý tài khoản gara manager (super admin only) */
+  GarageManagers: undefined;
+  /** Danh sách đại lý (super admin only) */
+  Dealers: undefined;
+  /** Catalog đại lý: categories + products (super admin only) */
+  DealerCatalog: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -159,6 +168,9 @@ const GuardedVehicleListScreen = withRoleGuard(VehicleListScreen, customerAllowe
 const GuardedVehicleDetailScreen = withRoleGuard(VehicleDetailScreen, customerAllowedRoles);
 const GuardedVehicleEditScreen = withRoleGuard(VehicleEditScreen, customerAllowedRoles);
 const GuardedSuperAdminGaragesScreen = withRoleGuard(SuperAdminGaragesScreen, superAdminAllowedRoles);
+const GuardedGarageManagersScreen = withRoleGuard(GarageManagersScreen, superAdminAllowedRoles);
+const GuardedDealersScreen = withRoleGuard(DealersScreen, superAdminAllowedRoles);
+const GuardedDealerCatalogScreen = withRoleGuard(DealerCatalogScreen, superAdminAllowedRoles);
 
 export default function AppNavigator() {
   // Prefetch critical data (services, categories, offers) when app loads
@@ -185,6 +197,10 @@ export default function AppNavigator() {
       <Stack.Screen name="AdminSettings" component={AdminSettingsScreen} />
       {/* Super admin only — redirect về Home nếu không đủ quyền */}
       <Stack.Screen name="SuperAdminGarages" component={GuardedSuperAdminGaragesScreen} />
+      {/* Module Tài khoản & Đại lý (super admin only) */}
+      <Stack.Screen name="GarageManagers" component={GuardedGarageManagersScreen} />
+      <Stack.Screen name="Dealers" component={GuardedDealersScreen} />
+      <Stack.Screen name="DealerCatalog" component={GuardedDealerCatalogScreen} />
       {/* Tabs with Navbar (bottom tab visible) */}
       <Stack.Screen name="Home" component={MainTabs} />
 
