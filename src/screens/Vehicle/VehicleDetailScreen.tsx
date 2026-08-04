@@ -17,6 +17,7 @@ import { useAppSelector } from '../../redux/hooks/useAppSelector';
 import { selectGarageCode } from '../../redux/selectors';
 import { useGetCustomerVehicleViolationQuery } from '../../services/violationApi';
 import type { ViolationStatus } from '../../services/violationApi';
+import { formatDateTimeForDisplay } from '../../utils/dateHelpers';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -546,8 +547,14 @@ const VehicleDetailScreen: React.FC<VehicleDetailScreenProps> = ({ route }) => {
             status: vehicle.insurance_status,
             fields: [
               { label: 'Đơn vị bảo hiểm', value: vehicle.insurance_company, highlighted: true },
-              { label: 'Ngày bắt đầu bảo hiểm', value: formatDisplayDate(vehicle.insurance_start_date) },
-              { label: 'Ngày hết hạn bảo hiểm', value: formatDisplayDate(vehicle.insurance_expiry_date) },
+              {
+                label: 'Ngày đăng ký bảo hiểm',
+                value: formatDateTimeForDisplay(vehicle.insurance_start_date, vehicle.insurance_register_time),
+              },
+              {
+                label: 'Ngày hết hạn bảo hiểm',
+                value: formatDateTimeForDisplay(vehicle.insurance_expiry_date, vehicle.insurance_expiry_time),
+              },
             ],
             imageUrl: vehicle.insurance_image_url,
           })}

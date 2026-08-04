@@ -152,7 +152,9 @@ export interface VehicleDocumentFields {
   inspection_status?: VehicleDocumentStatus | null;
   insurance_company?: string | null;
   insurance_start_date?: string | null;
+  insurance_register_time?: string | null;
   insurance_expiry_date?: string | null;
+  insurance_expiry_time?: string | null;
   insurance_image_url?: string | null;
   insurance_status?: VehicleDocumentStatus | null;
 }
@@ -258,6 +260,15 @@ export interface Offer {
   valid_to?: string;
   primary_image?: OfferImage | null; // Ảnh chính
   images?: OfferImage[]; // Danh sách tất cả ảnh
+  garage_id?: number;
+  garage?: {
+    id?: number;
+    code?: string;
+    name?: string;
+    avatar_url?: string | null;
+    banner_url?: string | null;
+    is_super_garage?: boolean;
+  } | null;
   created_at: string;
   updated_at?: string;
 }

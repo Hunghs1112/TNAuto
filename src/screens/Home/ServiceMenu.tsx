@@ -29,11 +29,13 @@ const ServiceMenu: React.FC = () => {
   const dispatch = useAppDispatch();
   const offerCount = useAppSelector((state) => state.offers.count);
   const userType = useAppSelector((state) => state.auth.userType);
-
-  // Fetch offers for badge if not yet fetched
-  const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(undefined, {
-    skip: offerCount > 0, // avoid refetch if we already have offers
-  });
+  const customerId = useAppSelector((state) => state.auth.userId);
+  const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(
+    userType === 'customer' ? { customer_id: customerId ? Number(customerId) : undefined } : undefined,
+    {
+      skip: offerCount > 0 || userType === 'dealer' || (userType === 'customer' && !customerId),
+    },
+  );
 
   // Sync to redux when fetched
   useEffect(() => {

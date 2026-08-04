@@ -13,6 +13,7 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		F8D4198B3DFC4E29DD523F32 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		F909F78B9E304DC2B7C807A4374F25B7 /* noti.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 1FA9FA6312E0422F96520BB63EA6F4AF /* noti.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		5DCACB8F33CDC322A6C60F78 /* libPods-TNAuto.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TNAuto.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TNAuto/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = TNAuto/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1FA9FA6312E0422F96520BB63EA6F4AF /* noti.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = noti.mp3; path = TNAuto/noti.mp3; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -52,6 +54,7 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				1FA9FA6312E0422F96520BB63EA6F4AF /* noti.mp3 */,
 			);
 			name = TNAuto;
 			sourceTree = "<group>";
@@ -171,6 +174,7 @@
 				2412D9752F2A0EAA001B96BF /* GoogleService-Info.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				F8D4198B3DFC4E29DD523F32 /* PrivacyInfo.xcprivacy in Resources */,
+				F909F78B9E304DC2B7C807A4374F25B7 /* noti.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -5,6 +5,7 @@ import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { Screen, FormContainer } from '../../components/layout';
 import TextInput from '../../components/TextInput/TextInput';
 import DateInput from '../../components/TextInput/DateInput';
+import TimeInput from '../../components/TextInput/TimeInput';
 import { Button } from '../../components/ui';
 import { MultiImagePicker } from '../../components/MultiImagePicker';
 import { Colors } from '../../constants/colors';
@@ -47,8 +48,12 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
     setInsuranceCompany,
     insuranceStartDate,
     setInsuranceStartDate,
+    insuranceRegisterTime,
+    setInsuranceRegisterTime,
     insuranceExpiryDate,
     setInsuranceExpiryDate,
+    insuranceExpiryTime,
+    setInsuranceExpiryTime,
     vehicleImages,
     setVehicleImages,
     handleSave,
@@ -176,11 +181,51 @@ const VehicleEditScreen: React.FC<VehicleEditScreenProps> = ({ route }) => {
                   </View>
 
                   <View style={styles.fieldBlock}>
-                    <DateInput value={insuranceStartDate} onChangeText={setInsuranceStartDate} placeholder="Chọn ngày bắt đầu bảo hiểm" label="Ngày bắt đầu bảo hiểm (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <TimeInput
+                      value={insuranceRegisterTime}
+                      onChangeText={setInsuranceRegisterTime}
+                      placeholder="Chọn giờ đăng ký"
+                      label="Giờ đăng ký bảo hiểm (Tùy chọn)"
+                      fullWidth
+                      style={styles.timeInput}
+                    />
+                  </View>
+
+                  <View style={styles.fieldBlock}>
+                    <DateInput
+                      value={insuranceStartDate}
+                      onChangeText={setInsuranceStartDate}
+                      placeholder="Chọn ngày bắt đầu bảo hiểm"
+                      label="Ngày đăng ký bảo hiểm (Tùy chọn)"
+                      fullWidth
+                      style={styles.dateInput}
+                      minimumDate={VEHICLE_DOCUMENT_MIN_DATE}
+                      maximumDate={VEHICLE_DOCUMENT_MAX_DATE}
+                    />
                   </View>
 
                   <View style={styles.fieldBlockLast}>
-                    <DateInput value={insuranceExpiryDate} onChangeText={setInsuranceExpiryDate} placeholder="Chọn ngày hết hạn bảo hiểm" label="Ngày hết hạn bảo hiểm (Tùy chọn)" fullWidth style={styles.dateInput} minimumDate={VEHICLE_DOCUMENT_MIN_DATE} maximumDate={VEHICLE_DOCUMENT_MAX_DATE} />
+                    <TimeInput
+                      value={insuranceExpiryTime}
+                      onChangeText={setInsuranceExpiryTime}
+                      placeholder="Chọn giờ hết hạn"
+                      label="Giờ hết hạn bảo hiểm (Tùy chọn)"
+                      fullWidth
+                      style={styles.timeInput}
+                    />
+
+                    <View style={styles.dateRowGap}>
+                      <DateInput
+                        value={insuranceExpiryDate}
+                        onChangeText={setInsuranceExpiryDate}
+                        placeholder="Chọn ngày hết hạn bảo hiểm"
+                        label="Ngày hết hạn bảo hiểm (Tùy chọn)"
+                        fullWidth
+                        style={styles.dateInput}
+                        minimumDate={VEHICLE_DOCUMENT_MIN_DATE}
+                        maximumDate={VEHICLE_DOCUMENT_MAX_DATE}
+                      />
+                    </View>
                   </View>
                 </View>
 
@@ -221,6 +266,10 @@ const styles = StyleSheet.create({
   optionalLabel: { fontSize: 11, color: Colors.text.secondary, fontWeight: '400' },
   input: { marginBottom: 0 },
   dateInput: { marginBottom: 0 },
+  timeInput: { marginBottom: 0 },
+  dateRowGap: {
+    marginTop: spacing.md,
+  },
   stickyFooter: { backgroundColor: Colors.background.muted, borderTopWidth: 1, borderTopColor: Colors.alpha.primary12, paddingHorizontal: spacing.xl, paddingTop: spacing.md },
 });
 

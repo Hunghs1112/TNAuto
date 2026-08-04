@@ -24,6 +24,7 @@ import { styles } from "./styles";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import ConfirmButton from "../../components/ConfirmButton";
 import { offerApi } from "../../services/offerApi";
+import { useAppDispatch } from "../../redux/hooks/useAppDispatch";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
 
 type OfferDetailRouteProp = RouteProp<AppStackParamList, "OfferDetail">;
@@ -43,11 +44,16 @@ const OfferDetailScreen = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const flatListRef = useRef<FlatList<string>>(null);
-  const currentGarageCode = useAppSelector((s) => s.garageContext.garageCode);
+  const customerId = useAppSelector((s) => s.auth.userId);
+  const userType = useAppSelector((s) => s.auth.userType);
 
-  // Fetch offer details from API
-  const offerQuery = useGetOfferByIdQuery({ garageCode: currentGarageCode, id: offerId });
-  const offerImagesQuery = useGetOfferImagesQuery({ garageCode: currentGarageCode, offerId });
+  // Fetch offer details using customer aggregate context.
+  const offerQuery = useGetOfferByIdQuery({ id: offerId, customer_id: customerId ? Number(customerId) : undefined }, {
+    skip: userType !== 'customer' || !customerId,
+  });
+  const offerImagesQuery = useGetOfferImagesQuery({ offerId, customer_id: customerId ? Number(customerId) : undefined }, {
+    skip: userType !== 'customer' || !customerId,
+  });
 
   const offer = offerQuery.data?.data;
 

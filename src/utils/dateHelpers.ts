@@ -89,6 +89,73 @@ export const secondsToMonths = (seconds: number): number => {
   return Math.round(seconds / secondsPerMonth);
 };
 
+const TIME_BACKEND_REGEX = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+
+/**
+ * Format an HH:mm or HH:mm:ss time string for display.
+ * Returns null when the value is missing or malformed so the UI can decide
+ * whether to show the date only, the time only, or hide the field entirely.
+ */
+export const formatTimeForDisplay = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!TIME_BACKEND_REGEX.test(trimmed)) return null;
+  return trimmed.slice(0, 5); // HH:mm
+};
+
+/**
+ * Convert user's HH:mm input to backend HH:mm:ss, or null when empty.
+ * Throws on invalid input so callers can surface validation errors.
+ */
+export const formatTimeForAPI = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(trimmed)) {
+    throw new Error('invalid_time');
+  }
+  return `${trimmed}:00`;
+};
+
+/**
+ * Validate HH:mm input. Empty string is considered valid (treated as null).
+ */
+export const isValidTime = (value: string): boolean => {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(trimmed);
+};
+
+/**
+ * Combine a date (dd/mm/yyyy or yyyy-mm-dd) and an HH:mm:ss time for
+ * display. Returns null-like value ('') when either part is missing so
+ * the UI can render a single coherent string.
+ */
+export const formatDateTimeForDisplay = (
+  date?: string | null,
+  time?: string | null,
+): string => {
+  const formattedDate = (() => {
+    if (!date) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [y, m, d] = date.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return date;
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    const yyyy = parsed.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  })();
+
+  const formattedTime = formatTimeForDisplay(time);
+
+  if (formattedDate && formattedTime) return `${formattedDate} ${formattedTime}`;
+  if (formattedDate) return formattedDate;
+  if (formattedTime) return formattedTime;
+  return '';
+};
+
 /**
  * Calculate receive date from delivery date and estimated time
  * @param deliveryDateStr - Delivery date in dd/mm/yyyy format

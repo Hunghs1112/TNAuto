@@ -8,19 +8,18 @@ import { useGetOffersQuery } from "../../services/offerApi";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { setOffers } from "../../redux/slices/offersSlice";
 import { useAppSelector } from "../../redux/hooks/useAppSelector";
-import { selectGarageCode, selectHasGarageContext } from "../../redux/selectors";
 
 type OfferScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Offer'>;
 
 const OfferScreen = () => {
   const navigation = useNavigation<OfferScreenNavigationProp>();
   const dispatch = useAppDispatch();
-  const currentGarageCode = useAppSelector(selectGarageCode);
-  const hasGarageContext = useAppSelector(selectHasGarageContext);
+  const customerId = useAppSelector((state) => state.auth.userId);
+  const userType = useAppSelector((state) => state.auth.userType);
 
   const { data, isLoading, error } = useGetOffersQuery(
-    { garageCode: currentGarageCode },
-    { skip: !hasGarageContext || !currentGarageCode },
+    { customer_id: customerId ? Number(customerId) : undefined },
+    { skip: userType !== 'customer' || !customerId },
   );
 
   // Sync offers to redux slice when fetched – for badge count

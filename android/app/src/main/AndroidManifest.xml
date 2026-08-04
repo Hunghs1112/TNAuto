@@ -16,10 +16,13 @@
     android:supportsRtl="true"
     android:usesCleartextTraffic="true">
     
-    <!-- Default notification channel ID for Firebase Cloud Messaging -->
+    <!-- Default notification channel ID for Firebase Cloud Messaging.
+         Must match the channel id created by @notifee/react-native in App.tsx
+         (TNAUTO_CHANNEL_ID = "tnauto_noti"). FCM uses this as a fallback when
+         the payload's channelId cannot be resolved (e.g. cold-start race). -->
     <meta-data
       android:name="com.google.firebase.messaging.default_notification_channel_id"
-      android:value="default"
+      android:value="tnauto_noti"
       tools:replace="android:value" />
     
     <!-- Notification icon for FCM (optional) -->

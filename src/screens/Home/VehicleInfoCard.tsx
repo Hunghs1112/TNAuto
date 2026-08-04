@@ -8,6 +8,7 @@ import {
   Image,
   FlatList,
   Dimensions,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import LinearGradient from "react-native-linear-gradient";
@@ -27,7 +28,8 @@ const AppLogo = require("../../assets/logo.png");
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const BLEED = 16;
-const CARD_WIDTH = SCREEN_WIDTH;
+const IS_ANDROID = Platform.OS === "android";
+const CARD_WIDTH = IS_ANDROID ? SCREEN_WIDTH - BLEED * 2 : SCREEN_WIDTH;
 const S = 8; // base spacing unit — tất cả khoảng cách trong section dùng bội số của S
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
@@ -119,6 +121,8 @@ type Vehicle = {
   license_expiry_date?: string | null;
   inspection_expiry_date?: string | null;
   insurance_expiry_date?: string | null;
+  insurance_register_time?: string | null;
+  insurance_expiry_time?: string | null;
 };
 
 const SingleVehicleCard: React.FC<{
@@ -391,7 +395,7 @@ const styles = StyleSheet.create({
   // ── Wrapper — controls outer spacing of the whole section ──
   wrapper: {
     gap: S,                        // khoảng cách giữa card / dot / viewAllBtn
-    marginHorizontal: -BLEED,
+    marginHorizontal: IS_ANDROID ? 0 : -BLEED,
     marginTop: -S * 1.5,
     marginBottom: 16,
   },
@@ -409,9 +413,8 @@ const styles = StyleSheet.create({
   },
   atmCard: {
     borderRadius: 22,
-    paddingHorizontal: S * 2.5,
-    paddingTop: S * 2,
-    paddingBottom: S * 2,
+    paddingHorizontal: Platform.OS === "ios" ? S * 2.5 : 16,
+    paddingVertical: S * 2 + 4,
     minHeight: 250,
     overflow: "hidden",
   },

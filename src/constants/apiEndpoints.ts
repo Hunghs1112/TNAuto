@@ -1270,23 +1270,30 @@ export const ENDPOINTS: Record<string, ApiEndpoint> = {
     path: '/service-order-images/:order_id',
     description: 'Get service order images (required param: order_id; no body)',
   },
-  // Offers
+  // Customer aggregate offers
   getOffers: {
     method: 'GET',
-    path: '/offers',
-    description: 'Get all offers (no body)',
+    path: '/api/app/customer/offers',
+    description: 'Get offers from all garages linked to the customer',
+    params: ['customer_id', 'page', 'limit'],
+  },
+  getOfferById: {
+    method: 'GET',
+    path: '/api/app/customer/offers/:id',
+    description: 'Get a customer offer with images and garage details',
+    params: ['id', 'customer_id'],
+  },
+  getOfferImages: {
+    method: 'GET',
+    path: '/api/app/customer/offers/:id/images',
+    description: 'Get images for a customer offer',
+    params: ['id', 'customer_id'],
   },
   createOffer: {
     method: 'POST',
     path: '/offers',
     description: 'Create offer (required body: name, service_id)',
     body: ['name', 'service_id'],
-  },
-  getOfferById: {
-    method: 'GET',
-    path: '/offers/:id',
-    description: 'Get offer by ID (required param: id; no body)',
-    params: ['id'],
   },
   updateOffer: {
     method: 'PATCH',

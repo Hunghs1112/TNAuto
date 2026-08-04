@@ -53,6 +53,30 @@ const normalizeText = (value: string) => {
   return trimmed ? trimmed : null;
 };
 
+const TIME_INPUT_REGEX = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+
+const formatTimeInput = (value?: string | null) => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!TIME_INPUT_REGEX.test(trimmed)) return '';
+  return trimmed.slice(0, 5); // HH:mm
+};
+
+const isValidTimeInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(trimmed);
+};
+
+const toBackendTime = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(trimmed)) {
+    throw new Error('invalid_time');
+  }
+  return `${trimmed}:00`;
+};
+
 export const VEHICLE_DOCUMENT_MIN_DATE = new Date(2000, 0, 1);
 export const VEHICLE_DOCUMENT_MAX_DATE = new Date(2100, 11, 31);
 
@@ -75,7 +99,9 @@ export const useVehicleEditScreen = (vehicleId: string) => {
   const [inspectionExpiryDate, setInspectionExpiryDate] = useState('');
   const [insuranceCompany, setInsuranceCompany] = useState('');
   const [insuranceStartDate, setInsuranceStartDate] = useState('');
+  const [insuranceRegisterTime, setInsuranceRegisterTime] = useState('');
   const [insuranceExpiryDate, setInsuranceExpiryDate] = useState('');
+  const [insuranceExpiryTime, setInsuranceExpiryTime] = useState('');
 
   // Thay thế vehicleImageUri/vehicleImageFileName bằng ImageItem[]
   // MultiImagePicker xử lý upload nội bộ, hook chỉ cần đọc kết quả
@@ -96,7 +122,9 @@ export const useVehicleEditScreen = (vehicleId: string) => {
     setInspectionExpiryDate(formatDisplayDate(vehicle.inspection_expiry_date));
     setInsuranceCompany(vehicle.insurance_company || '');
     setInsuranceStartDate(formatDisplayDate(vehicle.insurance_start_date));
+    setInsuranceRegisterTime(vehicle.insurance_register_time ? formatTimeInput(vehicle.insurance_register_time) : '');
     setInsuranceExpiryDate(formatDisplayDate(vehicle.insurance_expiry_date));
+    setInsuranceExpiryTime(vehicle.insurance_expiry_time ? formatTimeInput(vehicle.insurance_expiry_time) : '');
 
     // Khởi tạo vehicleImages từ image_url hiện tại (nếu có)
     if (vehicle.image_url) {
@@ -144,6 +172,22 @@ export const useVehicleEditScreen = (vehicleId: string) => {
       }
     }
 
+    if (!isValidTimeInput(insuranceRegisterTime)) {
+      return Alert.alert('Lỗi', 'Giờ đăng ký bảo hiểm không hợp lệ. Định dạng HH:mm.');
+    }
+    if (!isValidTimeInput(insuranceExpiryTime)) {
+      return Alert.alert('Lỗi', 'Giờ hết hạn bảo hiểm không hợp lệ. Định dạng HH:mm.');
+    }
+
+    let currentInsuranceRegisterTime: string | null;
+    let currentInsuranceExpiryTime: string | null;
+    try {
+      currentInsuranceRegisterTime = toBackendTime(insuranceRegisterTime);
+      currentInsuranceExpiryTime = toBackendTime(insuranceExpiryTime);
+    } catch {
+      return Alert.alert('Lỗi', 'Giờ bảo hiểm không hợp lệ. Định dạng HH:mm.');
+    }
+
     try {
       await updateVehicle({
         id: vehicle.id.toString(),
@@ -161,7 +205,9 @@ export const useVehicleEditScreen = (vehicleId: string) => {
         inspection_expiry_date: currentInspectionExpiryDate,
         insurance_company: currentInsuranceCompany,
         insurance_start_date: currentInsuranceStartDate,
+        insurance_register_time: currentInsuranceRegisterTime,
         insurance_expiry_date: currentInsuranceExpiryDate,
+        insurance_expiry_time: currentInsuranceExpiryTime,
       }).unwrap();
       Alert.alert('Thành công', 'Đã cập nhật thông tin xe.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } catch (error: any) {
@@ -193,8 +239,12 @@ export const useVehicleEditScreen = (vehicleId: string) => {
     setInsuranceCompany,
     insuranceStartDate,
     setInsuranceStartDate,
+    insuranceRegisterTime,
+    setInsuranceRegisterTime,
     insuranceExpiryDate,
     setInsuranceExpiryDate,
+    insuranceExpiryTime,
+    setInsuranceExpiryTime,
     vehicleImages,
     setVehicleImages,
     handleSave,

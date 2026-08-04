@@ -9,6 +9,8 @@ import { Colors } from '../constants/colors';
 import * as RootNavigation from '../navigation/RootNavigation';
 import { store } from '../redux/stores';
 
+export const TNAUTO_CHANNEL_ID = 'tnauto_noti';
+
 interface NotificationData {
   type?: string;
   order_id?: string;
@@ -28,40 +30,62 @@ interface NotificationData {
 }
 
 class NotificationService {
-  private channelId: string = 'default';
+  private channelId: string = TNAUTO_CHANNEL_ID;
   private channelCreated: boolean = false;
+
+  async ensureTNAutoChannel() {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    await notifee.createChannel({
+      id: TNAUTO_CHANNEL_ID,
+      name: 'TNAUTO Notifications',
+      description: 'Thông báo chung từ hệ thống TN AUTO',
+      importance: AndroidImportance.HIGH,
+      sound: 'noti',
+      vibration: true,
+      vibrationPattern: [300, 500],
+      lights: true,
+      lightColor: Colors.primary,
+    });
+  }
 
   async initialize() {
     try {
       if (Platform.OS === 'android') {
-        this.channelId = await notifee.createChannel({
-          id: 'default',
+        await this.ensureTNAutoChannel();
+        this.channelId = TNAUTO_CHANNEL_ID;
+
+        // Legacy channels remain available for locally displayed notifications.
+        await notifee.createChannel({
+          id: 'default_v2',
           name: 'Thông báo chung',
           description: 'Kênh thông báo mặc định',
           importance: AndroidImportance.HIGH,
-          sound: 'default',
+          sound: 'noti',
           vibration: true,
           lights: true,
           lightColor: Colors.primary,
         });
 
         await notifee.createChannel({
-          id: 'orders',
+          id: 'orders_v2',
           name: 'Đơn hàng',
           description: 'Thông báo về đơn hàng',
           importance: AndroidImportance.HIGH,
-          sound: 'default',
+          sound: 'noti',
           vibration: true,
           lights: true,
           lightColor: Colors.primary,
         });
 
         await notifee.createChannel({
-          id: 'warranty',
+          id: 'warranty_v2',
           name: 'Bảo hành',
           description: 'Thông báo về bảo hành',
           importance: AndroidImportance.DEFAULT,
-          sound: 'default',
+          sound: 'noti',
           vibration: true,
         });
 
@@ -94,14 +118,7 @@ class NotificationService {
         await this.initialize();
       }
 
-      let channelId = this.channelId;
-      if (data?.type) {
-        if (data.type.includes('order') || data.order_id) {
-          channelId = 'orders';
-        } else if (data.type.includes('warranty')) {
-          channelId = 'warranty';
-        }
-      }
+      const channelId = this.channelId;
 
       const notification: Notification = {
         title,
@@ -114,7 +131,9 @@ class NotificationService {
             id: 'default',
             launchActivity: 'default',
           },
-          sound: 'default',
+          // sound để null: kênh Android đã gắn sound riêng trong createChannel
+          // (nếu truyền string ở đây sẽ override channel sound và gây ra default)
+          sound: undefined,
           vibrationPattern: [300, 500],
           showTimestamp: true,
           timestamp: Date.now(),
@@ -122,7 +141,7 @@ class NotificationService {
           visibility: 1,
         },
         ios: {
-          sound: 'default',
+          sound: 'noti.mp3',
           foregroundPresentationOptions: {
             alert: true,
             badge: true,
@@ -293,4 +312,3 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
-notificationService.initialize();

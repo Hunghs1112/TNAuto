@@ -3,10 +3,8 @@ import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { store } from './src/redux/stores';
 import RootNavigator from './src/navigation/RootNavigator';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
-import { Platform, Alert } from 'react-native';
-// import { fcmService } from './src/services/FCMService';
-// import { notificationService } from './src/services/NotificationService';
+import { notificationService } from './src/services/NotificationService';
+import { fcmService } from './src/services/FCMService';
 
 export default function App() {
   useEffect(() => {
@@ -14,17 +12,11 @@ export default function App() {
     const initializeApp = async () => {
       console.log('🚀 App: Initializing...');
 
-      // Initialize notification service first (create channels)
-      // await notificationService.initialize();
+      // Initialize the notification channel before any FCM message can be displayed.
+      await notificationService.initialize();
 
-      // Small delay before next permission request to avoid spam
-      // await new Promise<void>(resolve => setTimeout(() => resolve(), 800));
-
-      // Request notification permission with user-friendly prompt
-      // await requestNotificationPermission();
-
-      // Initialize FCM service (setup listeners)
-      // await fcmService.initialize();
+      // Initialize FCM service (setup listeners) so foreground/initial messages work.
+      await fcmService.initialize();
 
       console.log('✅ App: Initialization complete');
     };
@@ -32,9 +24,9 @@ export default function App() {
     initializeApp();
 
     // Cleanup on unmount
-    // return () => {
-    //   fcmService.cleanup();
-    // };
+    return () => {
+      fcmService.cleanup();
+    };
   }, []);
 
   // DISABLED: Firebase/Notifee removed

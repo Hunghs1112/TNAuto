@@ -28,6 +28,7 @@ export const usePrefetchData = () => {
   const dispatch = useAppDispatch();
   const isLoggedIn = useAppSelector((state: RootState) => state.auth.isLoggedIn);
   const userType = useAppSelector((state: RootState) => state.auth.userType);
+  const customerId = useAppSelector((state: RootState) => state.auth.userId);
   const activeGarageCode = useAppSelector(selectGarageCode);
   const hasGarageContext = useAppSelector(
     (state: RootState) => Boolean(state.garageContext.garageCode && state.garageContext.resolved),
@@ -53,9 +54,11 @@ export const usePrefetchData = () => {
 
   // Prefetch offers (critical for home screen badge)
   const { data: offersData, isSuccess: offersSuccess } = useGetOffersQuery(
-    { garageCode: activeGarageCode },
+    userType === 'customer'
+      ? { customer_id: customerId ? Number(customerId) : undefined }
+      : { garageCode: activeGarageCode },
     {
-      skip: !canUseTenantCatalog || isManagerRole, // Manager/Admin home should stay lightweight
+      skip: isManagerRole || (userType === 'customer' ? !isLoggedIn || !customerId : !canUseTenantCatalog),
     },
   );
 

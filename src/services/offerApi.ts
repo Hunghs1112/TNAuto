@@ -31,6 +31,11 @@ interface GetOffersResponse {
   success: boolean;
   data: Offer[];
   count: number;
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  pagination?: unknown;
 }
 
 export interface GetOfferResponse {
@@ -50,16 +55,11 @@ export const offerApi = createApi({
   baseQuery: baseQueryWithRetry,
   tagTypes: ['Offer', 'OfferImage'] as const,
   endpoints: (builder) => ({
-    getOffers: builder.query<GetOffersResponse, { garageCode?: string } | void>({
-      query: ({ garageCode } = {}) => {
-        const normalizedGarageCode = (garageCode || '').trim();
-
-        if (!normalizedGarageCode) {
-          throw new Error('Missing garageCode for getOffers');
-        }
-
-        return ENDPOINTS.getOffers.path.replace(':garageCode', encodeURIComponent(normalizedGarageCode));
-      },
+    getOffers: builder.query<GetOffersResponse, { garageCode?: string; page?: number; limit?: number; customer_id?: number } | void>({
+      query: (args) => ({
+        url: ENDPOINTS.getOffers.path,
+        params: args,
+      }),
       providesTags: (result) =>
         result?.data
           ? [
@@ -68,7 +68,11 @@ export const offerApi = createApi({
             ]
           : [{ type: 'Offer' as const, id: 'LIST' }],
       transformResponse: (response: GetOffersResponse) => {
-        if (!response.success || !response.data) throw new Error('Failed to fetch offers');
+        if (!response.success || !response.data) {
+          // Return empty list instead of throwing to keep cache stable
+          // and avoid re-fetches when endpoint is unavailable.
+          return { success: true, data: [], count: 0 } as GetOffersResponse;
+        }
         return response;
       },
     }),
@@ -80,17 +84,11 @@ export const offerApi = createApi({
         return response;
       },
     }),
-    getOfferById: builder.query<GetOfferResponse, { garageCode: string; id: number }>({
-      query: ({ garageCode, id }) => {
-        const normalizedGarageCode = (garageCode || '').trim();
-        if (!normalizedGarageCode) {
-          throw new Error('Missing garageCode for getOfferById');
-        }
-
-        return ENDPOINTS.getOfferById.path
-          .replace(':garageCode', encodeURIComponent(normalizedGarageCode))
-          .replace(':id', id.toString());
-      },
+    getOfferById: builder.query<GetOfferResponse, { garageCode?: string; id: number; customer_id?: number }>({
+      query: ({ id, customer_id }) => ({
+        url: ENDPOINTS.getOfferById.path.replace(':id', id.toString()),
+        params: customer_id ? { customer_id } : undefined,
+      }),
       providesTags: (result, error, { id }) => [{ type: 'Offer' as const, id }],
       transformResponse: (response: GetOfferResponse) => {
         if (!response.success || !response.data) throw new Error('Failed to fetch offer');
@@ -99,17 +97,11 @@ export const offerApi = createApi({
     }),
     // Lấy danh sách ảnh của ưu đãi (nếu backend hỗ trợ endpoint riêng)
     // Nếu không, có thể sử dụng images từ getOfferById
-    getOfferImages: builder.query<OfferImage[], { garageCode: string; offerId: number }>({
-      query: ({ garageCode, offerId }) => {
-        const normalizedGarageCode = (garageCode || '').trim();
-        if (!normalizedGarageCode) {
-          throw new Error('Missing garageCode for getOfferImages');
-        }
-
-        return ENDPOINTS.getOfferImages.path
-          .replace(':garageCode', encodeURIComponent(normalizedGarageCode))
-          .replace(':offerId', offerId.toString());
-      },
+    getOfferImages: builder.query<OfferImage[], { garageCode?: string; offerId: number; customer_id?: number }>({
+      query: ({ offerId, customer_id }) => ({
+        url: ENDPOINTS.getOfferImages.path.replace(':id', offerId.toString()),
+        params: customer_id ? { customer_id } : undefined,
+      }),
       providesTags: (result, error, { offerId }) => [
         { type: 'OfferImage' as const, id: offerId },
         { type: 'Offer' as const, id: offerId },
